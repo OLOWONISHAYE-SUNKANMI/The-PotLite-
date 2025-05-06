@@ -1,0 +1,171 @@
+You are helping me build a sandbox MVP for an app called The Pot.
+
+The Pot – MVP Phase 1 App Overview (For Replit AI + Devs)
+
+App Name: The Pot
+
+Version: MVP Phase 1 – Sandbox Testing
+Purpose:
+The Pot is a digital group savings app built to help users pool money toward shared goals, with structured payout systems, flexible governance, and transparency at every step. The MVP focuses on enabling users to create “Pots,” select how payouts are handled, and simulate deposits and withdrawals in a risk-free sandbox mode using dummy coins.
+
+Core Features of the MVP:
+1. User Registration & Login
+• Name, email/phone, and password
+• Onboarding to create or join a Pot
+
+2. Create or Join a Pot
+• Pot Name, Description, and Target Goal
+• Invite others by phone or email
+• Select Payout Structure (see below)
+• Select Withdrawal Approval Method (democratic vote, admin, or timed)
+
+3. Payout Structures – The 3 Methods of Withdrawal
+These define how the pooled funds will be distributed once the withdrawal is triggered:
+A. One-to-Many:
+• One user deposits (e.g., a club leader or parent)
+• Funds are evenly or selectively distributed to all members in the Pot
+• Use case: disbursing allowances, event stipends, club budgets
+
+B. Many-to-One:
+• Multiple users deposit into the Pot
+• One recipient gets all the funds (e.g., someone receiving a gift or financial support)
+• Use case: birthday surprise, emergency fundraiser, peer-to-peer backing
+
+C. Many-to-Selected:
+• Multiple users deposit into the Pot
+• Funds are distributed only to select users (e.g., group trip costs for certain members)
+• Use case: shared expenses where not everyone receives money back
+
+Each Pot setup must define one of these payout methods before deposits begin.
+
+4. Withdrawal Approval System:
+These determine how funds are released from the Pot:
+• Democratic Vote: All members must vote; a set majority threshold must be reached for withdrawal to occur.
+• Admin Approval: The Pot creator or designated admin has sole authority to approve or deny withdrawals.
+• Timed Release: Funds cannot be withdrawn until a preset time/date is reached.
+
+5. Sandbox Transactions:
+• Dummy coin deposits/withdrawals
+• Simulated errors (e.g., failed deposit, vote not passed, invalid timing)
+• Developer logs + user-facing messages
+
+6. Activity Logs & Confirmation Flows:
+• Logs show deposits, votes, approvals, errors
+• Confirmation screens guide testers through the experience
+
+Updated Brand Color Scheme for The Pot (Vibrant Purple + Gold)
+
+Purpose              Color Description           Hex Code
+Primary Background   Royal Purple                #5B1FA6
+Secondary Background Deep Plum (card background) #3D0F6C
+Primary Text / Titles Golden Yellow              #FFD94A
+Secondary Text       White / Light Lavender      #FAF8FF
+Accent Highlight     Coin Gold (Logo Pot Color)  #F4B831
+Success Indicator    Soft Lime Green             #B8E986
+Error Indicator      Soft Coral Red              #FF6E6E
+Button Gradient Start Pink Purple Pop            #8E2DE2
+Button Gradient End  Violet                      #4A00E0
+
+Implement Core Code Files in this order:
+
+/* theme.js */
+/* App.js */
+/* CreatePot.jsx */
+/* PotDashboard.jsx */
+/* VotingUI.jsx */
+/* TransactionLog.jsx */
+/* pots.json */
+/* AppRoutes.js */
+
+Now that the files are uploaded, connect CreatePot and PotDashboard in the app flow. When a Pot is created, direct the user to the dashboard and display the Pot details. Connect all components. When a Pot is created, route to PotDashboard. Link dummy data from pots.json. Simulate deposits, votes, and display transaction logs. Use sandbox mode only — no real transactions.
+
+Next Steps: Backend Simulation + Test User Setup
+
+You’re helping build The Pot – a sandbox MVP group savings app. I’ve already shared the app overview, file structure, and initial components. These next files complete deposit simulations, voting logic, and mock user context.
+
+1. Simulated Backend Goals:
+• Read/write to pots.json as a mock database
+• Simulate deposits by incrementing balance
+• Track who deposited and when
+• Log withdrawal votes or admin approvals
+
+Files to add:
+/* DepositSim.jsx */ – simulate coin deposits
+/* DummyUserContext.js */ – provides mock logged-in user (e.g., “Alice”)
+/* VoteLog.json */ – tracks simulated votes for withdrawals
+
+Next:
+• Wrap the app in DummyUserProvider so the user context is accessible
+• Render DepositSim inside PotDashboard
+• When a deposit is made, increase Pot balance and log the transaction
+• Add logic to pull votes from VoteLog.json and render them in VotingUI
+
+Advanced Features Prompt:
+
+You’re helping expand The Pot sandbox MVP with advanced testing and presentation features. Below are grouped file features and instructions for completion. Build all items into my existing project structure.
+
+1. Basic Routing & Navigation
+• Use React Router or conditional rendering to switch between:
+  - CreatePot
+  - PotDashboard
+  - TransactionLog
+  - DepositSim
+  - FeedbackForm
+  - AdminPanel (coming up)
+• Add a simple Nav bar or side menu
+
+2. Add Global State Management
+/* PotContext.js */
+• Wrap the App in <PotProvider>
+• Replace any manual prop passing of Pot data with context values
+
+3. Session Persistence
+• Store transactions, deposits, and voteStatus in localStorage
+• On component mount, pull from localStorage and repopulate state
+• Update localStorage on any new activity
+
+4. Error Simulation Tools
+Add toggles or buttons inside AdminPanel.jsx that simulate:
+• Deposit failure (show “transaction failed”)
+• Rejected withdrawal
+• Time lock not yet expired
+• Invalid recipient error
+Use state toggles (simulateError: true/false) in context or Admin settings.
+
+5. Timed Release Logic
+Add a /* TimedRelease.jsx */ component:
+• Accepts a deadline timestamp
+• Uses countdown (e.g. useEffect + setInterval) to unlock the withdraw button
+• Until deadline passes, show: “Available in: X min Y sec”
+
+6. Admin Panel
+Add a /* AdminPanel.jsx */ component:
+Include:
+• Buttons to simulate roles (admin, voter, recipient)
+• Buttons to inject dummy errors (connect to error simulation above)
+• A toggle for “Live Mode Preview” (can activate app as if it’s real)
+
+7. UI Polish
+Add:
+• Emoji reactions on votes/deposits
+• Animated “coin drop” in DepositSim (basic CSS animation or Lottie)
+• Responsive CSS (media queries or flex-wrap) for mobile-friendliness
+• Logo in navbar or corner of dashboard
+
+8. Tester Feedback Form
+Use this file:
+/* FeedbackForm.jsx */
+• Route to /feedback
+• Submit feedback to console or optionally send to a webhook/form
+
+Final Instructions:
+Connect all files and render pages with routes. Use PotContext globally. Simulate full sandbox flow from Pot creation → deposit → voting or timed release → transaction history → feedback submission. All functions should run using dummy data only.
+
+Next Steps:
+1. Wrap App.js with <Router> and use AppRoutes as the root.
+2. Wrap the full app inside <PotProvider> from PotContext.js.
+3. Use DummyUserProvider if testing specific user logic like deposits or admin.
+4. Render TimedRelease inside PotDashboard based on Pot settings.
+5. Display AdminPanel in a route or toggle link visible only to testers.
+
+I’ve uploaded all remaining files for The Pot MVP. Connect AppRoutes.js to control navigation. Use PotContext for global state, and show TimedRelease if a pot has time lock. AdminPanel should control simulation of failures or role switching. All user actions should remain in dummy sandbox mode. Build the final UI flow using these inputs.

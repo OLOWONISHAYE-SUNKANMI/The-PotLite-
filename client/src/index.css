@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 267 68% 38%; /* #5B1FA6 - Royal Purple */
+    --foreground: 48 96% 64%; /* #FFD94A - Golden Yellow */
+    
+    --card: 269 74% 24%; /* #3D0F6C - Deep Plum */
+    --card-foreground: 270 100% 98%; /* #FAF8FF - Light Lavender */
+    
+    --popover: 269 74% 24%;
+    --popover-foreground: 270 100% 98%;
+    
+    --primary: 48 96% 64%; /* #FFD94A - Golden Yellow */
+    --primary-foreground: 269 74% 24%;
+    
+    --secondary: 269 74% 24%; /* #3D0F6C - Deep Plum */
+    --secondary-foreground: 270 100% 98%; /* #FAF8FF - Light Lavender */
+    
+    --muted: 269 50% 30%;
+    --muted-foreground: 270 60% 90%;
+    
+    --accent: 37 89% 57%; /* #F4B831 - Coin Gold */
+    --accent-foreground: 269 74% 24%;
+    
+    --destructive: 0 82% 71%; /* #FF6E6E - Soft Coral Red */
+    --destructive-foreground: 270 100% 98%;
+    
+    --success: 95 66% 72%; /* #B8E986 - Soft Lime Green */
+    
+    --border: 269 60% 35%;
+    --input: 269 60% 35%;
+    --ring: 48 96% 64%;
+    
+    --radius: 0.5rem;
+  }
+  
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+  
+  .btn-gradient {
+    @apply bg-gradient-to-r from-[#8E2DE2] to-[#4A00E0] text-secondary-foreground font-bold py-3 px-4 rounded-lg transition hover:opacity-90;
+  }
+  
+  .card {
+    @apply bg-card text-card-foreground rounded-lg shadow-md;
+  }
+  
+  .coin-drop {
+    animation: dropCoin 0.5s ease-in;
+  }
+  
+  @keyframes dropCoin {
+    0% { transform: translateY(-100px); opacity: 0; }
+    60% { transform: translateY(10px); opacity: 1; }
+    80% { transform: translateY(-5px); }
+    100% { transform: translateY(0); }
+  }
+  
+  .pulse {
+    animation: pulse 2s infinite;
+  }
+  
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+  
+  .slide-in {
+    animation: slideIn 0.3s ease-out;
+  }
+  
+  @keyframes slideIn {
+    0% { transform: translateX(-20px); opacity: 0; }
+    100% { transform: translateX(0); opacity: 1; }
+  }
+}

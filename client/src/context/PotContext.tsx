@@ -2,6 +2,9 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import { PotType, TransactionType, generateId } from "@/lib/utils";
 
 interface PotContextType {
+  personalPot: {
+    balance: number;
+  };
   pots: PotType[];
   completedPots: PotType[];
   transactions: TransactionType[];
@@ -19,6 +22,9 @@ interface PotContextType {
   completePot: (potId: string) => void;
   addTransaction: (transaction: TransactionType) => void;
   updatePotBalance: (potId: string, amount: number) => void;
+  updatePersonalPotBalance: (amount: number) => void;
+  depositFromPersonalToPot: (potId: string, amount: number) => void;
+  withdrawFromPotToPersonal: (potId: string, amount: number) => void;
   addFeedback: (feedback: any) => void;
   resetAllData: () => void;
   generateRandomScenario: () => void;
@@ -152,6 +158,11 @@ interface PotProviderProps {
 
 export const PotProvider = ({ children }: PotProviderProps) => {
   // Initialize state from localStorage or defaults
+  const [personalPot, setPersonalPot] = useState(() => {
+    const storedPersonalPot = localStorage.getItem("thePot_personalPot");
+    return storedPersonalPot ? JSON.parse(storedPersonalPot) : { balance: 1000 }; // Default 1000 coins for demo
+  });
+  
   const [pots, setPots] = useState<PotType[]>(() => {
     const storedPots = localStorage.getItem("thePot_pots");
     const initialPots = storedPots ? JSON.parse(storedPots) : defaultPots;
@@ -186,6 +197,10 @@ export const PotProvider = ({ children }: PotProviderProps) => {
   const completedPots = pots.filter(pot => pot.status === 'completed');
   
   // Update localStorage when state changes
+  useEffect(() => {
+    localStorage.setItem("thePot_personalPot", JSON.stringify(personalPot));
+  }, [personalPot]);
+  
   useEffect(() => {
     localStorage.setItem("thePot_pots", JSON.stringify(pots));
   }, [pots]);
@@ -256,6 +271,96 @@ export const PotProvider = ({ children }: PotProviderProps) => {
       }
       return pot;
     }));
+  };
+  
+  // Personal pot operations
+  const updatePersonalPotBalance = (amount: number) => {
+    setPersonalPot((prev: { balance: number }) => ({
+      ...prev,
+      balance: prev.balance + amount
+    }));
+    
+    // Add a transaction record if needed
+    addTransaction({
+      id: generateId(),
+      potId: 'personal',
+      type: amount > 0 ? 'deposit' : 'withdrawal',
+      amount: Math.abs(amount),
+      user: "Current User",
+      description: amount > 0 ? "Added to personal pot" : "Withdrew from personal pot",
+      timestamp: new Date().toISOString(),
+      balanceAfter: personalPot.balance + amount,
+      status: "completed"
+    });
+  };
+  
+  // Transfer from personal pot to a group pot
+  const depositFromPersonalToPot = (potId: string, amount: number) => {
+    // First check if there's enough in personal pot
+    if (personalPot.balance < amount) {
+      return false;
+    }
+    
+    // Deduct from personal pot
+    setPersonalPot((prev: { balance: number }) => ({
+      ...prev,
+      balance: prev.balance - amount
+    }));
+    
+    // Add to group pot
+    updatePotBalance(potId, amount);
+    
+    // Add a transaction record
+    addTransaction({
+      id: generateId(),
+      potId,
+      type: 'deposit',
+      amount,
+      user: "Current User",
+      description: "Transferred from personal pot",
+      timestamp: new Date().toISOString(),
+      balanceAfter: pots.find(p => p.id === potId)!.currentBalance + amount,
+      status: "completed"
+    });
+    
+    return true;
+  };
+  
+  // Transfer from pot to personal pot
+  const withdrawFromPotToPersonal = (potId: string, amount: number) => {
+    const pot = pots.find(p => p.id === potId);
+    if (!pot || pot.currentBalance < amount) {
+      return false;
+    }
+    
+    // Deduct from group pot
+    updatePotBalance(potId, -amount);
+    
+    // Add to personal pot
+    setPersonalPot((prev: { balance: number }) => ({
+      ...prev,
+      balance: prev.balance + amount
+    }));
+    
+    // Add a transaction record
+    addTransaction({
+      id: generateId(),
+      potId,
+      type: 'withdrawal',
+      amount,
+      user: "Current User",
+      description: "Transferred to personal pot",
+      timestamp: new Date().toISOString(),
+      balanceAfter: pot.currentBalance - amount,
+      status: "completed"
+    });
+    
+    // Check if pot goal is reached and pot is emptied
+    if (pot.currentBalance - amount === 0 && pot.goalAmount <= pot.currentBalance) {
+      completePot(potId);
+    }
+    
+    return true;
   };
   
   // Feedback operations
@@ -411,6 +516,7 @@ export const PotProvider = ({ children }: PotProviderProps) => {
   return (
     <PotContext.Provider
       value={{
+        personalPot,
         pots: activePots,
         completedPots,
         transactions,
@@ -423,6 +529,9 @@ export const PotProvider = ({ children }: PotProviderProps) => {
         completePot,
         addTransaction,
         updatePotBalance,
+        updatePersonalPotBalance,
+        depositFromPersonalToPot,
+        withdrawFromPotToPersonal,
         addFeedback,
         resetAllData,
         generateRandomScenario,

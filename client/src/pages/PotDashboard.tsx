@@ -11,13 +11,36 @@ import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { cn, formatTimestamp, PotType } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowUp, ArrowDown, Plus, Info, Clock, Users, CreditCard } from "lucide-react";
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 export default function PotDashboard() {
-  const { pots, completedPots, transactions, simulateErrors, completePot } = usePot();
+  const { 
+    personalPot, 
+    pots, 
+    completedPots, 
+    transactions, 
+    simulateErrors, 
+    completePot,
+    updatePersonalPotBalance,
+    depositFromPersonalToPot,
+    withdrawFromPotToPersonal
+  } = usePot();
   const { currentUser } = useDummyUser();
   const { toast } = useToast();
   const [selectedTab, setSelectedTab] = useState<string>("active");
   const [selectedPot, setSelectedPot] = useState<string | null>(null);
+  const [potDetailTab, setPotDetailTab] = useState<string>("summary");
+  const [depositAmount, setDepositAmount] = useState<number>(0);
+  const [withdrawAmount, setWithdrawAmount] = useState<number>(0);
   
   // No pots to display
   const noActivePots = pots.length === 0;

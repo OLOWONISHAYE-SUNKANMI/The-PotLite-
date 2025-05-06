@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { usePot } from "@/context/PotContext";
 import { useDummyUser } from "@/context/DummyUserContext";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,18 +9,32 @@ import TimedRelease from "@/components/TimedRelease";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
-import { cn, formatTimestamp } from "@/lib/utils";
+import { cn, formatTimestamp, PotType } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function PotDashboard() {
-  const { pots, transactions, simulateErrors } = usePot();
+  const { pots, completedPots, transactions, simulateErrors, completePot } = usePot();
   const { currentUser } = useDummyUser();
   const { toast } = useToast();
+  const [selectedTab, setSelectedTab] = useState<string>("active");
+  const [selectedPot, setSelectedPot] = useState<string | null>(null);
   
-  // Get the first pot or use a default if no pots exist
-  const pot = pots.length > 0 ? pots[0] : null;
+  // No pots to display
+  const noActivePots = pots.length === 0;
+  const noCompletedPots = completedPots.length === 0;
   
-  // If no pots, show a message to create one
-  if (!pot) {
+  // Get the currently selected pot or default to the first one in the active/completed list
+  const pot = selectedTab === "active"
+    ? (selectedPot ? pots.find(p => p.id === selectedPot) || (pots.length > 0 ? pots[0] : null) : (pots.length > 0 ? pots[0] : null))
+    : (selectedPot ? completedPots.find(p => p.id === selectedPot) || (completedPots.length > 0 ? completedPots[0] : null) : (completedPots.length > 0 ? completedPots[0] : null));
+  
+  // When switching tabs, reset the selected pot
+  useEffect(() => {
+    setSelectedPot(null);
+  }, [selectedTab]);
+  
+  // If no pots in either tab, show a message to create one
+  if (noActivePots && noCompletedPots) {
     return (
       <div className="slide-in">
         <div className="mb-6">
@@ -42,211 +57,345 @@ export default function PotDashboard() {
     );
   }
   
-  // Calculate progress percentage
-  const progressPercentage = Math.min(100, Math.round((pot.currentBalance / pot.goalAmount) * 100));
-  const remaining = pot.goalAmount - pot.currentBalance;
+  // Calculate progress percentage and other pot-related values (with null checks)
+  const progressPercentage = pot ? Math.min(100, Math.round((pot.currentBalance / pot.goalAmount) * 100)) : 0;
+  const remaining = pot ? pot.goalAmount - pot.currentBalance : 0;
   
   // Get recent transactions for this pot
-  const potTransactions = transactions
+  const potTransactions = pot ? transactions
     .filter(t => t.potId === pot.id)
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-    .slice(0, 3);
+    .slice(0, 3) : [];
   
   // Determine if we should show timed release component
-  const showTimedRelease = pot.withdrawalMethod === "timed" && pot.releaseDate;
+  const showTimedRelease = pot && pot.withdrawalMethod === "timed" && pot.releaseDate;
   
   return (
     <div className="slide-in">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-primary">{pot.name}</h1>
+        <h1 className="text-2xl font-bold text-primary">Your Pots</h1>
         <p className="text-secondary-foreground">
-          {pot.payoutStructure === "one-to-many" ? "One-to-Many" : 
-           pot.payoutStructure === "many-to-one" ? "Many-to-One" : "Many-to-Selected"} Pot • 
-          {pot.withdrawalMethod === "democratic" ? " Democratic Vote" :
-           pot.withdrawalMethod === "admin" ? " Admin Approval" : " Timed Release"}
+          View and manage your active and completed pots
         </p>
       </div>
       
-      {/* Pot Summary Card */}
-      <Card className="mb-6">
-        <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row justify-between items-center mb-4">
-            <div className="mb-4 md:mb-0">
-              <span className="text-secondary-foreground text-sm">Goal</span>
-              <div className="flex items-baseline">
-                <h2 className="text-4xl font-bold text-accent mr-2">₡ {pot.goalAmount}</h2>
-                <span className="text-sm text-secondary-foreground">dummy coins</span>
+      <Tabs 
+        defaultValue="active" 
+        className="mb-6" 
+        value={selectedTab}
+        onValueChange={setSelectedTab}
+      >
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="active" className="text-base">
+            Active Pots {pots.length > 0 && <span className="ml-2 text-xs bg-primary/20 px-2 py-0.5 rounded-full">{pots.length}</span>}
+          </TabsTrigger>
+          <TabsTrigger value="completed" className="text-base">
+            Cleaned Pots {completedPots.length > 0 && <span className="ml-2 text-xs bg-primary/20 px-2 py-0.5 rounded-full">{completedPots.length}</span>}
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="active" className="mt-4">
+          {noActivePots ? (
+            <Card className="p-6 text-center">
+              <div className="flex flex-col items-center justify-center space-y-4 py-8">
+                <h2 className="text-xl font-bold text-primary">No Active Pots</h2>
+                <p className="text-secondary-foreground">Create your first Pot to start saving together</p>
+                <Link href="/create">
+                  <Button className="btn-gradient mt-2">
+                    Create a New Pot
+                  </Button>
+                </Link>
               </div>
-            </div>
-            <div className="bg-secondary p-4 rounded-lg">
-              <span className="text-secondary-foreground text-sm">Current Balance</span>
-              <div className="flex items-baseline">
-                <h2 className="text-4xl font-bold text-primary">₡ {pot.currentBalance}</h2>
-                <span className="text-sm text-secondary-foreground ml-2">dummy coins</span>
-              </div>
-            </div>
-          </div>
-          
-          {/* Progress Bar */}
-          <Progress value={progressPercentage} className="h-4 mb-4" />
-          
-          <div className="flex justify-between text-sm mb-6">
-            <span className="text-secondary-foreground">{progressPercentage}% Complete</span>
-            <span className="text-secondary-foreground">₡ {remaining} left</span>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div className="bg-secondary rounded-lg p-3">
-              <div className="text-sm text-secondary-foreground mb-1">Recipients</div>
-              <div className="font-medium text-primary">
-                {pot.payoutStructure === "many-to-one"
-                  ? "Sarah (Single Recipient)"
-                  : pot.payoutStructure === "one-to-many"
-                    ? "All Members"
-                    : "Selected Members"}
-              </div>
-            </div>
-            <div className="bg-secondary rounded-lg p-3">
-              <div className="text-sm text-secondary-foreground mb-1">Contributors</div>
-              <div className="font-medium text-primary">{pot.members.length} Members</div>
-            </div>
-            <div className="bg-secondary rounded-lg p-3">
-              <div className="text-sm text-secondary-foreground mb-1">Withdrawal Method</div>
-              <div className="font-medium text-primary">
-                {pot.withdrawalMethod === "democratic"
-                  ? `Democratic (${pot.voteThreshold}% needed)`
-                  : pot.withdrawalMethod === "admin"
-                    ? "Admin Approval"
-                    : "Timed Release"}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-      
-      {/* Deposit Simulator */}
-      <DepositSim potId={pot.id} />
-      
-      {/* Voting UI (if pot has democratic withdrawal) */}
-      {pot.withdrawalMethod === "democratic" && (
-        <VotingUI potId={pot.id} />
-      )}
-      
-      {/* Admin Approval UI (if pot has admin withdrawal and user is admin) */}
-      {pot.withdrawalMethod === "admin" && pot.creator === currentUser && (
-        <Card className="mb-6">
-          <CardContent className="p-6">
-            <h2 className="text-xl font-bold text-primary mb-4">Admin Approval</h2>
-            <div className="bg-secondary rounded-lg p-4">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-3">
-                <div>
-                  <h3 className="font-medium text-primary">Sarah requested withdrawal</h3>
-                  <p className="text-sm text-secondary-foreground">₡ 200 for booking hotel rooms</p>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+              {pots.map(activePot => (
+                <div 
+                  key={activePot.id} 
+                  className={`bg-card border rounded-xl p-4 cursor-pointer transition-all hover:shadow-md ${selectedPot === activePot.id ? 'ring-2 ring-primary' : ''}`}
+                  onClick={() => setSelectedPot(activePot.id)}
+                >
+                  <h3 className="font-bold text-lg text-primary">{activePot.name}</h3>
+                  <div className="mt-2 flex justify-between items-center">
+                    <div className="text-sm text-secondary-foreground">Goal: ₡ {activePot.goalAmount}</div>
+                    <div className="text-sm text-accent font-medium">₡ {activePot.currentBalance}</div>
+                  </div>
+                  <Progress 
+                    value={Math.min(100, Math.round((activePot.currentBalance / activePot.goalAmount) * 100))} 
+                    className="h-2 mt-2" 
+                  />
                 </div>
-                <div className="mt-2 md:mt-0">
-                  <span className="inline-block px-2 py-1 bg-background rounded text-xs text-secondary-foreground">
-                    Pending Approval
-                  </span>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="completed" className="mt-4">
+          {noCompletedPots ? (
+            <Card className="p-6 text-center">
+              <div className="flex flex-col items-center justify-center space-y-4 py-8">
+                <h2 className="text-xl font-bold text-primary">No Cleaned Pots</h2>
+                <p className="text-secondary-foreground">Complete an active pot to see it here</p>
+                {pots.length > 0 && (
+                  <div className="text-center mt-2">
+                    <p className="text-secondary-foreground mb-2">Have an active pot that's ready to be completed?</p>
+                    <Button 
+                      onClick={() => {
+                        if (pots[0]) {
+                          completePot(pots[0].id);
+                          toast({
+                            title: "Pot Completed",
+                            description: `${pots[0].name} has been cleaned and funds paid out.`,
+                          });
+                        }
+                      }}
+                      className="bg-primary hover:bg-primary/90"
+                    >
+                      Complete an Active Pot
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+              {completedPots.map(completedPot => (
+                <div 
+                  key={completedPot.id} 
+                  className={`bg-card border rounded-xl p-4 cursor-pointer transition-all hover:shadow-md ${selectedPot === completedPot.id ? 'ring-2 ring-primary' : ''}`}
+                  onClick={() => setSelectedPot(completedPot.id)}
+                >
+                  <h3 className="font-bold text-lg text-primary">{completedPot.name}</h3>
+                  <div className="flex items-center mt-1">
+                    <span className="inline-block px-2 py-1 bg-[#B8E986]/20 text-[#B8E986] rounded text-xs mr-2">
+                      Completed
+                    </span>
+                    <span className="text-xs text-secondary-foreground">
+                      {completedPot.completedDate ? formatTimestamp(completedPot.completedDate) : ''}
+                    </span>
+                  </div>
+                  <div className="mt-2 text-sm text-secondary-foreground">
+                    Goal reached: ₡ {completedPot.goalAmount}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+      
+      {/* Pot details - only shown if we have a selected pot */}
+      {pot ? (
+        <>
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-primary">{pot.name}</h2>
+            <p className="text-secondary-foreground">
+              {pot.payoutStructure === "one-to-many" ? "One-to-Many" : 
+              pot.payoutStructure === "many-to-one" ? "Many-to-One" : "Many-to-Selected"} Pot • 
+              {pot.withdrawalMethod === "democratic" ? " Democratic Vote" :
+              pot.withdrawalMethod === "admin" ? " Admin Approval" : " Timed Release"}
+              {pot.status === 'completed' && " • Completed"}
+            </p>
+          </div>
+          
+          {/* Pot Summary Card */}
+          <Card className="mb-6">
+            <CardContent className="p-6">
+              <div className="flex flex-col md:flex-row justify-between items-center mb-4">
+                <div className="mb-4 md:mb-0">
+                  <span className="text-secondary-foreground text-sm">Goal</span>
+                  <div className="flex items-baseline">
+                    <h2 className="text-4xl font-bold text-accent mr-2">₡ {pot.goalAmount}</h2>
+                    <span className="text-sm text-secondary-foreground">dummy coins</span>
+                  </div>
+                </div>
+                <div className="bg-secondary p-4 rounded-lg">
+                  <span className="text-secondary-foreground text-sm">Current Balance</span>
+                  <div className="flex items-baseline">
+                    <h2 className="text-4xl font-bold text-primary">₡ {pot.currentBalance}</h2>
+                    <span className="text-sm text-secondary-foreground ml-2">dummy coins</span>
+                  </div>
                 </div>
               </div>
               
-              {/* Admin buttons */}
-              <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-3 mt-3">
-                <Button 
-                  className="flex-1 bg-[#B8E986] text-secondary font-bold hover:bg-[#A8D976]"
-                  onClick={() => {
-                    if (simulateErrors.withdrawalRejection) {
-                      toast({
-                        title: "Error",
-                        description: "The withdrawal was blocked due to suspicious activity",
-                        variant: "destructive",
-                      });
-                    } else {
-                      toast({
-                        title: "Success",
-                        description: "Withdrawal approved",
-                      });
-                    }
-                  }}
-                >
-                  <span className="mr-2">✓</span> Approve
-                </Button>
-                <Button 
-                  className="flex-1 bg-destructive text-secondary font-bold hover:bg-destructive/90"
-                  onClick={() => {
-                    toast({
-                      title: "Rejected",
-                      description: "Withdrawal request was rejected",
-                    });
-                  }}
-                >
-                  <span className="mr-2">✕</span> Reject
-                </Button>
+              {/* Progress Bar */}
+              <Progress value={progressPercentage} className="h-4 mb-4" />
+              
+              <div className="flex justify-between text-sm mb-6">
+                <span className="text-secondary-foreground">{progressPercentage}% Complete</span>
+                <span className="text-secondary-foreground">₡ {remaining} left</span>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-      
-      {/* Timed Release (if pot has timed withdrawal) */}
-      {showTimedRelease && (
-        <TimedRelease releaseDate={pot.releaseDate!} potId={pot.id} />
-      )}
-      
-      {/* Transaction Log */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold text-primary">Recent Activity</h2>
-            <Link href="/transactions">
-              <a className="text-primary text-sm hover:underline">View All</a>
-            </Link>
-          </div>
-          
-          <div className="space-y-3">
-            {potTransactions.length > 0 ? (
-              potTransactions.map(transaction => (
-                <div key={transaction.id} className="bg-secondary rounded-lg p-3 slide-in">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <div className="font-medium text-primary">
-                        {transaction.type === "deposit" 
-                          ? `${transaction.user} deposited ₡ ${transaction.amount}`
-                          : transaction.type === "withdrawal"
-                            ? `${transaction.user} withdrew ₡ ${transaction.amount}`
-                            : transaction.type === "vote"
-                              ? `${transaction.user} voted on withdrawal`
-                              : `${transaction.user} requested withdrawal of ₡ ${transaction.amount}`}
-                      </div>
-                      <div className="text-sm text-secondary-foreground">
-                        {formatTimestamp(transaction.timestamp)}
-                      </div>
-                    </div>
-                    <span className={cn(
-                      "inline-block px-2 py-1 rounded text-xs",
-                      transaction.type === "deposit" 
-                        ? "bg-[#B8E986]/20 text-[#B8E986]" 
-                        : transaction.type === "withdrawal"
-                          ? "bg-destructive/20 text-destructive"
-                          : "bg-background/20 text-primary"
-                    )}>
-                      {transaction.type === "deposit" 
-                        ? `+ ₡ ${transaction.amount}` 
-                        : transaction.type === "withdrawal"
-                          ? `- ₡ ${transaction.amount}`
-                          : transaction.type}
-                    </span>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div className="bg-secondary rounded-lg p-3">
+                  <div className="text-sm text-secondary-foreground mb-1">Recipients</div>
+                  <div className="font-medium text-primary">
+                    {pot.payoutStructure === "many-to-one"
+                      ? "Sarah (Single Recipient)"
+                      : pot.payoutStructure === "one-to-many"
+                        ? "All Members"
+                        : "Selected Members"}
                   </div>
                 </div>
-              ))
-            ) : (
-              <div className="text-center py-4 text-secondary-foreground">
-                No recent activity
+                <div className="bg-secondary rounded-lg p-3">
+                  <div className="text-sm text-secondary-foreground mb-1">Contributors</div>
+                  <div className="font-medium text-primary">{pot.members.length} Members</div>
+                </div>
+                <div className="bg-secondary rounded-lg p-3">
+                  <div className="text-sm text-secondary-foreground mb-1">Withdrawal Method</div>
+                  <div className="font-medium text-primary">
+                    {pot.withdrawalMethod === "democratic"
+                      ? `Democratic (${pot.voteThreshold}% needed)`
+                      : pot.withdrawalMethod === "admin"
+                        ? "Admin Approval"
+                        : "Timed Release"}
+                  </div>
+                </div>
               </div>
-            )}
+            </CardContent>
+          </Card>
+          
+          {/* Only show interactive components for active pots */}
+          {pot.status !== 'completed' && (
+            <>
+              {/* Deposit Simulator */}
+              <DepositSim potId={pot.id} />
+              
+              {/* Voting UI (if pot has democratic withdrawal) */}
+              {pot.withdrawalMethod === "democratic" && (
+                <VotingUI potId={pot.id} />
+              )}
+              
+              {/* Admin Approval UI (if pot has admin withdrawal and user is admin) */}
+              {pot.withdrawalMethod === "admin" && pot.creator === currentUser && (
+                <Card className="mb-6">
+                  <CardContent className="p-6">
+                    <h2 className="text-xl font-bold text-primary mb-4">Admin Approval</h2>
+                    <div className="bg-secondary rounded-lg p-4">
+                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-3">
+                        <div>
+                          <h3 className="font-medium text-primary">Sarah requested withdrawal</h3>
+                          <p className="text-sm text-secondary-foreground">₡ 200 for booking hotel rooms</p>
+                        </div>
+                        <div className="mt-2 md:mt-0">
+                          <span className="inline-block px-2 py-1 bg-background rounded text-xs text-secondary-foreground">
+                            Pending Approval
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Admin buttons */}
+                      <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-3 mt-3">
+                        <Button 
+                          className="flex-1 bg-[#B8E986] text-secondary font-bold hover:bg-[#A8D976]"
+                          onClick={() => {
+                            if (simulateErrors.withdrawalRejection) {
+                              toast({
+                                title: "Error",
+                                description: "The withdrawal was blocked due to suspicious activity",
+                                variant: "destructive",
+                              });
+                            } else {
+                              toast({
+                                title: "Success",
+                                description: "Withdrawal approved",
+                              });
+                            }
+                          }}
+                        >
+                          <span className="mr-2">✓</span> Approve
+                        </Button>
+                        <Button 
+                          className="flex-1 bg-destructive text-secondary font-bold hover:bg-destructive/90"
+                          onClick={() => {
+                            toast({
+                              title: "Rejected",
+                              description: "Withdrawal request was rejected",
+                            });
+                          }}
+                        >
+                          <span className="mr-2">✕</span> Reject
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {/* Timed Release (if pot has timed withdrawal) */}
+              {showTimedRelease && (
+                <TimedRelease releaseDate={pot.releaseDate!} potId={pot.id} />
+              )}
+            </>
+          )}
+          
+          {/* Transaction Log */}
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-primary">Recent Activity</h2>
+                <Link href="/transactions" className="text-primary text-sm hover:underline">
+                  View All
+                </Link>
+              </div>
+              
+              <div className="space-y-3">
+                {potTransactions.length > 0 ? (
+                  potTransactions.map(transaction => (
+                    <div key={transaction.id} className="bg-secondary rounded-lg p-3 slide-in">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="font-medium text-primary">
+                            {transaction.type === "deposit" 
+                              ? `${transaction.user} deposited ₡ ${transaction.amount}`
+                              : transaction.type === "withdrawal"
+                                ? `${transaction.user} withdrew ₡ ${transaction.amount}`
+                                : transaction.type === "vote"
+                                  ? `${transaction.user} voted on withdrawal`
+                                  : `${transaction.user} requested withdrawal of ₡ ${transaction.amount}`}
+                          </div>
+                          <div className="text-sm text-secondary-foreground">
+                            {formatTimestamp(transaction.timestamp)}
+                          </div>
+                        </div>
+                        <span className={cn(
+                          "inline-block px-2 py-1 rounded text-xs",
+                          transaction.type === "deposit" 
+                            ? "bg-[#B8E986]/20 text-[#B8E986]" 
+                            : transaction.type === "withdrawal"
+                              ? "bg-destructive/20 text-destructive"
+                              : "bg-background/20 text-primary"
+                        )}>
+                          {transaction.type === "deposit" 
+                            ? `+ ₡ ${transaction.amount}` 
+                            : transaction.type === "withdrawal"
+                              ? `- ₡ ${transaction.amount}`
+                              : transaction.type}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-4 text-secondary-foreground">
+                    No recent activity
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      ) : (
+        <Card className="p-6 text-center">
+          <div className="py-8">
+            <h2 className="text-xl font-bold text-primary mb-2">Select a Pot</h2>
+            <p className="text-secondary-foreground">
+              {selectedTab === "active" ? 
+                "Select an active pot from above to view details or create a new pot." : 
+                "Select a completed pot from above to view its details."}
+            </p>
           </div>
-        </CardContent>
-      </Card>
+        </Card>
+      )}
     </div>
   );
 }

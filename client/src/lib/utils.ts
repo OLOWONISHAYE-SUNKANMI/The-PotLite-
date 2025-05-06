@@ -44,6 +44,8 @@ export type PotType = {
   members: string[];
   recipients: string[];
   createdAt: string;
+  status?: 'active' | 'completed';
+  completedDate?: string;
 };
 
 export type TransactionType = {

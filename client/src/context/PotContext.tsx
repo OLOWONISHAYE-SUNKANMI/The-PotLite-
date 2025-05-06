@@ -3,6 +3,7 @@ import { PotType, TransactionType, generateId } from "@/lib/utils";
 
 interface PotContextType {
   pots: PotType[];
+  completedPots: PotType[];
   transactions: TransactionType[];
   feedback: any[];
   simulateErrors: {
@@ -15,6 +16,7 @@ interface PotContextType {
   addPot: (pot: PotType) => void;
   updatePot: (pot: PotType) => void;
   deletePot: (potId: string) => void;
+  completePot: (potId: string) => void;
   addTransaction: (transaction: TransactionType) => void;
   updatePotBalance: (potId: string, amount: number) => void;
   addFeedback: (feedback: any) => void;
@@ -122,7 +124,25 @@ const defaultPots: PotType[] = [
     createdBy: "Current User",
     members: ["Current User", "Mike", "Alex", "Jessica", "Sarah", "Emma", "David"],
     recipients: ["Sarah"],
-    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days ago
+    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days ago
+    status: 'active'
+  },
+  {
+    id: "pot2",
+    name: "Birthday Gift",
+    description: "Group gift for Emma's birthday",
+    goalAmount: 200, 
+    currentBalance: 0, // Already paid out
+    payoutStructure: "many-to-one",
+    withdrawalMethod: "democratic",
+    voteThreshold: 75,
+    creator: "Current User",
+    createdBy: "Current User",
+    members: ["Current User", "Mike", "Alex", "Jessica", "Sarah", "David"],
+    recipients: ["Emma"],
+    createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days ago
+    status: 'completed',
+    completedDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString() // 10 days ago
   }
 ];
 
@@ -134,7 +154,12 @@ export const PotProvider = ({ children }: PotProviderProps) => {
   // Initialize state from localStorage or defaults
   const [pots, setPots] = useState<PotType[]>(() => {
     const storedPots = localStorage.getItem("thePot_pots");
-    return storedPots ? JSON.parse(storedPots) : defaultPots;
+    const initialPots = storedPots ? JSON.parse(storedPots) : defaultPots;
+    // Ensure all pots have a status (default to 'active')
+    return initialPots.map((pot: PotType) => ({
+      ...pot,
+      status: pot.status || 'active'
+    }));
   });
   
   const [transactions, setTransactions] = useState<TransactionType[]>(() => {
@@ -155,6 +180,10 @@ export const PotProvider = ({ children }: PotProviderProps) => {
   });
   
   const [liveMode, setLiveMode] = useState(false);
+  
+  // Computed state - filter active and completed pots
+  const activePots = pots.filter(pot => pot.status === 'active' || !pot.status);
+  const completedPots = pots.filter(pot => pot.status === 'completed');
   
   // Update localStorage when state changes
   useEffect(() => {
@@ -182,6 +211,35 @@ export const PotProvider = ({ children }: PotProviderProps) => {
     setPots(pots.filter(pot => pot.id !== potId));
     // Also delete associated transactions
     setTransactions(transactions.filter(tx => tx.potId !== potId));
+  };
+  
+  // Mark a pot as completed
+  const completePot = (potId: string) => {
+    setPots(pots.map(pot => {
+      if (pot.id === potId) {
+        // Add a completion transaction
+        addTransaction({
+          id: generateId(),
+          potId,
+          type: 'withdrawal',
+          amount: pot.currentBalance,
+          user: pot.recipients[0] || "Current User",
+          description: "Final payout - pot completed",
+          timestamp: new Date().toISOString(),
+          status: "completed",
+          balanceAfter: 0
+        });
+        
+        // Mark the pot as completed and set the completion date
+        return { 
+          ...pot, 
+          status: 'completed', 
+          completedDate: new Date().toISOString(),
+          currentBalance: 0 
+        };
+      }
+      return pot;
+    }));
   };
   
   // Transaction operations
@@ -353,7 +411,8 @@ export const PotProvider = ({ children }: PotProviderProps) => {
   return (
     <PotContext.Provider
       value={{
-        pots,
+        pots: activePots,
+        completedPots,
         transactions,
         feedback,
         simulateErrors,
@@ -361,6 +420,7 @@ export const PotProvider = ({ children }: PotProviderProps) => {
         addPot,
         updatePot,
         deletePot,
+        completePot,
         addTransaction,
         updatePotBalance,
         addFeedback,

@@ -97,7 +97,8 @@ export default function CreatePot() {
         : payoutStructure === "many-to-one"
           ? ["Sarah"] // Default for demo
           : ["Selected Members"], // For many-to-selected
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      status: 'active'
     };
     
     addPot(newPot);

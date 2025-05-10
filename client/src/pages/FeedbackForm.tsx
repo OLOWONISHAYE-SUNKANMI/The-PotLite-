@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
@@ -14,11 +15,24 @@ export default function FeedbackForm() {
   const { toast } = useToast();
   const { addFeedback } = usePot();
   
+  // Form fields
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [subscribeToUpdates, setSubscribeToUpdates] = useState(false);
   const [rating, setRating] = useState<number>(4); // Default to 4 (smile)
   const [likedFeatures, setLikedFeatures] = useState<string[]>([]);
   const [improvements, setImprovements] = useState("");
   const [useReal, setUseReal] = useState<string>("yes");
   const [suggestions, setSuggestions] = useState("");
+  
+  // Style for the selected emoji
+  const getEmojiStyle = (emojiRating: number) => {
+    return `text-4xl cursor-pointer transition-transform ${
+      rating === emojiRating 
+        ? 'text-primary scale-125 shadow-lg' 
+        : 'text-secondary-foreground hover:text-primary hover:scale-110'
+    }`;
+  };
   
   const handleLikedFeatureToggle = (feature: string) => {
     if (likedFeatures.includes(feature)) {
@@ -32,27 +46,52 @@ export default function FeedbackForm() {
     setRating(newRating);
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const feedback = {
-      id: Math.random().toString(36).substring(2, 10),
+      name,
+      email,
+      subscribeToUpdates,
       rating,
       likedFeatures,
       improvements,
       useReal,
       suggestions,
-      timestamp: new Date().toISOString()
     };
     
-    addFeedback(feedback);
-    
-    toast({
-      title: "Thank you!",
-      description: "Your feedback has been submitted successfully."
-    });
-    
-    navigate("/");
+    try {
+      // Save to the backend database
+      await fetch("/api/feedback", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(feedback),
+      });
+      
+      // Also save to local context
+      addFeedback({
+        ...feedback,
+        id: Math.random().toString(36).substring(2, 10),
+        timestamp: new Date().toISOString()
+      });
+      
+      toast({
+        title: "Thank you!",
+        description: "Your feedback has been submitted successfully."
+      });
+      
+      navigate("/");
+    } catch (error) {
+      console.error("Failed to submit feedback:", error);
+      
+      toast({
+        title: "Something went wrong",
+        description: "Unable to submit your feedback. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
   
   return (
@@ -68,39 +107,39 @@ export default function FeedbackForm() {
             <div className="space-y-6">
               <div>
                 <Label className="block text-secondary-foreground text-sm mb-2">How would you rate your experience?</Label>
-                <div className="flex space-x-4">
+                <div className="flex space-x-4 justify-center my-4">
                   <button 
                     type="button" 
                     onClick={() => handleRatingSelect(1)}
-                    className={`text-4xl cursor-pointer hover:text-primary ${rating === 1 ? 'text-primary' : 'text-secondary-foreground'}`}
+                    className={getEmojiStyle(1)}
                   >
                     😞
                   </button>
                   <button 
                     type="button" 
                     onClick={() => handleRatingSelect(2)}
-                    className={`text-4xl cursor-pointer hover:text-primary ${rating === 2 ? 'text-primary' : 'text-secondary-foreground'}`}
+                    className={getEmojiStyle(2)}
                   >
                     😐
                   </button>
                   <button 
                     type="button" 
                     onClick={() => handleRatingSelect(3)}
-                    className={`text-4xl cursor-pointer hover:text-primary ${rating === 3 ? 'text-primary' : 'text-secondary-foreground'}`}
+                    className={getEmojiStyle(3)}
                   >
                     🙂
                   </button>
                   <button 
                     type="button" 
                     onClick={() => handleRatingSelect(4)}
-                    className={`text-4xl cursor-pointer hover:text-primary ${rating === 4 ? 'text-primary' : 'text-secondary-foreground'}`}
+                    className={getEmojiStyle(4)}
                   >
                     😄
                   </button>
                   <button 
                     type="button" 
                     onClick={() => handleRatingSelect(5)}
-                    className={`text-4xl cursor-pointer hover:text-primary ${rating === 5 ? 'text-primary' : 'text-secondary-foreground'}`}
+                    className={getEmojiStyle(5)}
                   >
                     🤩
                   </button>

@@ -53,6 +53,9 @@ export const transactions = pgTable("transactions", {
 export const feedback = pgTable("feedback", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id),
+  name: text("name"),
+  email: text("email"),
+  subscribeToUpdates: boolean("subscribe_to_updates").default(false),
   rating: integer("rating").notNull(),
   likedFeatures: json("liked_features").$type<string[]>(),
   improvements: text("improvements"),

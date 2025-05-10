@@ -105,7 +105,53 @@ export default function FeedbackForm() {
         <CardContent className="p-6">
           <form onSubmit={handleSubmit}>
             <div className="space-y-6">
-              <div>
+              {/* Contact Information */}
+              <div className="space-y-4">
+                <h3 className="font-medium text-primary">Your Contact Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="name" className="block text-secondary-foreground text-sm mb-2">
+                      Your Name
+                    </Label>
+                    <Input
+                      id="name"
+                      type="text"
+                      placeholder="Enter your name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full bg-secondary border border-primary rounded-lg text-secondary-foreground"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="email" className="block text-secondary-foreground text-sm mb-2">
+                      Email Address
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="Enter your email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full bg-secondary border border-primary rounded-lg text-secondary-foreground"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2 mt-2">
+                  <Checkbox 
+                    id="subscribe" 
+                    checked={subscribeToUpdates}
+                    onCheckedChange={(checked) => setSubscribeToUpdates(checked === true)}
+                  />
+                  <label 
+                    htmlFor="subscribe" 
+                    className="text-secondary-foreground text-sm cursor-pointer"
+                  >
+                    Subscribe to email updates about The Pot's new features and opportunities
+                  </label>
+                </div>
+              </div>
+
+              <div className="border-t border-gray-200 my-6 pt-6">
                 <Label className="block text-secondary-foreground text-sm mb-2">How would you rate your experience?</Label>
                 <div className="flex space-x-4 justify-center my-4">
                   <button 

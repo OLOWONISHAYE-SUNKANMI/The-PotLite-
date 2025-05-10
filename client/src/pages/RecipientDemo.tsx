@@ -168,8 +168,8 @@ export default function RecipientDemo() {
         </Alert>
       )}
       
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <Card className="md:col-span-3">
+      <div className="mb-6">
+        <Card>
           <CardHeader className="bg-secondary/50">
             <div className="flex justify-between items-start">
               <div>
@@ -336,39 +336,6 @@ export default function RecipientDemo() {
                 </div>
               </TabsContent>
             </Tabs>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-md">Personal Pot</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold mb-4">${personalBalance}</p>
-            
-            <div className="space-y-3">
-              <Label htmlFor="deposit-amount">Deposit Amount</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2">$</span>
-                <Input
-                  id="deposit-amount"
-                  className="pl-8"
-                  type="number"
-                  value={depositAmount}
-                  onChange={(e) => setDepositAmount(e.target.value)}
-                  min="1"
-                  max={personalBalance.toString()}
-                />
-              </div>
-              <Button 
-                className="w-full" 
-                variant="outline"
-                onClick={handleDeposit}
-                disabled={!depositAmount || parseFloat(depositAmount) <= 0 || parseFloat(depositAmount) > personalBalance}
-              >
-                <FaWallet className="mr-2" /> Deposit to Pot
-              </Button>
-            </div>
           </CardContent>
         </Card>
       </div>

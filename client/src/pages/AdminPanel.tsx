@@ -70,24 +70,12 @@ export default function AdminPanel() {
           <h2 className="text-xl font-bold text-primary mb-4">Simulate User Role</h2>
           
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex justify-center">
               <Button 
-                className="bg-secondary hover:bg-secondary/80 border-2 border-primary text-primary font-bold"
+                className="bg-secondary hover:bg-secondary/80 border-2 border-primary text-primary font-bold w-full md:w-1/3"
                 onClick={() => handleRoleChange("admin")}
               >
                 <FaCrown className="mr-2" /> Admin Role
-              </Button>
-              <Button 
-                className="bg-secondary hover:bg-secondary/80 text-secondary-foreground font-bold"
-                onClick={() => handleRoleChange("voter")}
-              >
-                <FaUserFriends className="mr-2" /> Voter Role
-              </Button>
-              <Button 
-                className="bg-secondary hover:bg-secondary/80 text-secondary-foreground font-bold"
-                onClick={() => handleRoleChange("recipient")}
-              >
-                <FaHandHoldingUsd className="mr-2" /> Recipient Role
               </Button>
             </div>
             

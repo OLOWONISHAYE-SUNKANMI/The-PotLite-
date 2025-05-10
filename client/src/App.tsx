@@ -1,7 +1,7 @@
 import { Switch, Route, useLocation } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "./context/DummyUserContext";
-import { PotProvider } from "./context/PotContext";
+import { PotProvider, usePot } from "./context/PotContext";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import CreatePot from "./pages/CreatePot";
@@ -14,21 +14,25 @@ import NotFound from "./pages/not-found";
 import ScrollToTop from "./components/ScrollToTop";
 import { useEffect, useState } from "react";
 
-function Router() {
+function AppRouter() {
   const [location, setLocation] = useLocation();
   const [isLoading, setIsLoading] = useState(true);
+  const { pots, hasSeenOnboarding } = usePot();
   
   useEffect(() => {
-    // Check if user has completed onboarding
-    const hasSeenOnboarding = localStorage.getItem('hasSeenOnboarding') === 'true';
+    // Avoid redirects from the onboarding page
+    if (location === '/onboarding') {
+      setIsLoading(false);
+      return;
+    }
     
-    // If the user is accessing the root path and hasn't seen onboarding, redirect to onboarding
-    if (location === '/' && !hasSeenOnboarding) {
+    // If the user is accessing the root path and hasn't seen onboarding and has no pots, redirect to onboarding
+    if (location === '/' && !hasSeenOnboarding && pots.length === 0) {
       setLocation('/onboarding');
     }
     
     setIsLoading(false);
-  }, [location, setLocation]);
+  }, [location, setLocation, pots.length, hasSeenOnboarding]);
   
   if (isLoading) return null;
   
@@ -46,13 +50,17 @@ function Router() {
 }
 
 function AppContent() {
+  const { pots, hasSeenOnboarding } = usePot();
+  const [location] = useLocation();
+  const isOnboarding = location === '/onboarding' || (!hasSeenOnboarding && pots.length === 0);
+  
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
-      <main className="flex-grow">
-        <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+      <main className={`flex-grow ${isOnboarding ? 'flex items-center justify-center' : ''}`}>
+        <div className={`${isOnboarding ? 'w-full max-w-2xl' : 'max-w-7xl'} mx-auto px-4 py-6 sm:px-6 lg:px-8`}>
           <ScrollToTop />
-          <Router />
+          <AppRouter />
         </div>
       </main>
       <Footer />

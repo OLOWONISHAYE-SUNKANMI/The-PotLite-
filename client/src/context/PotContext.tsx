@@ -194,6 +194,11 @@ export const PotProvider = ({ children }: PotProviderProps) => {
   
   const [liveMode, setLiveMode] = useState(false);
   
+  // Onboarding state
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState(() => {
+    return localStorage.getItem("hasSeenOnboarding") === "true" || pots.length > 0;
+  });
+  
   // Computed state - filter active and completed pots
   const activePots = pots.filter(pot => pot.status === 'active' || !pot.status);
   const completedPots = pots.filter(pot => pot.status === 'completed');
@@ -541,7 +546,9 @@ export const PotProvider = ({ children }: PotProviderProps) => {
         toggleSimulateWithdrawalRejection,
         toggleSimulateTimeLock,
         toggleSimulateInvalidRecipient,
-        toggleLiveMode
+        toggleLiveMode,
+        hasSeenOnboarding,
+        setHasSeenOnboarding
       }}
     >
       {children}

@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { usePot } from "@/context/PotContext";
 import { useDummyUser } from "@/context/DummyUserContext";
 import { useLocation } from "wouter";
+import ErrorSimulationHandler from "@/components/ErrorSimulationHandler";
 import { FaCrown, FaUserFriends, FaHandHoldingUsd, FaExclamationCircle, FaBan, FaClock, FaUserSlash, FaRedo, FaMagic, FaVoteYea, FaMoneyBillWave } from "react-icons/fa";
 
 export default function AdminPanel() {
@@ -110,6 +111,10 @@ export default function AdminPanel() {
       <Card className="mb-6">
         <CardContent className="p-6">
           <h2 className="text-xl font-bold text-primary mb-4">Error Simulation</h2>
+          <p className="text-muted-foreground mb-4">
+            Use these controls to simulate error states for testing. When toggled, these errors will affect the application behavior.
+          </p>
+          
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Button 
@@ -137,6 +142,9 @@ export default function AdminPanel() {
                 <FaUserSlash className="mr-2" /> Simulate Invalid Recipient
               </Button>
             </div>
+            
+            {/* Error Simulation Visual Preview */}
+            <ErrorSimulationHandler />
           </div>
         </CardContent>
       </Card>

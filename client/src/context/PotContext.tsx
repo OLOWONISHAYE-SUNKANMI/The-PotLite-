@@ -16,6 +16,7 @@ interface PotContextType {
     invalidRecipient: boolean;
   };
   liveMode: boolean;
+  hasSeenOnboarding: boolean;
   addPot: (pot: PotType) => void;
   updatePot: (pot: PotType) => void;
   deletePot: (potId: string) => void;
@@ -33,6 +34,7 @@ interface PotContextType {
   toggleSimulateTimeLock: () => void;
   toggleSimulateInvalidRecipient: () => void;
   toggleLiveMode: () => void;
+  setHasSeenOnboarding: (value: boolean) => void;
 }
 
 const PotContext = createContext<PotContextType | undefined>(undefined);

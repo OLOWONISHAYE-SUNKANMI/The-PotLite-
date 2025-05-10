@@ -10,6 +10,8 @@ import TransactionLog from "./pages/TransactionLog";
 import FeedbackForm from "./pages/FeedbackForm";
 import AdminPanel from "./pages/AdminPanel";
 import Onboarding from "./pages/Onboarding";
+import VoterDemo from "./pages/VoterDemo";
+import RecipientDemo from "./pages/RecipientDemo";
 import NotFound from "./pages/not-found";
 import ScrollToTop from "./components/ScrollToTop";
 import { useEffect, useState } from "react";
@@ -44,6 +46,8 @@ function AppRouter() {
       <Route path="/transactions" component={TransactionLog} />
       <Route path="/feedback" component={FeedbackForm} />
       <Route path="/admin" component={AdminPanel} />
+      <Route path="/voter-demo" component={VoterDemo} />
+      <Route path="/recipient-demo" component={RecipientDemo} />
       <Route component={NotFound} />
     </Switch>
   );

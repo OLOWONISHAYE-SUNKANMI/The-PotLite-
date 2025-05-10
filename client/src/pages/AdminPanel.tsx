@@ -5,7 +5,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { usePot } from "@/context/PotContext";
 import { useDummyUser } from "@/context/DummyUserContext";
-import { FaCrown, FaUserFriends, FaHandHoldingUsd, FaExclamationCircle, FaBan, FaClock, FaUserSlash, FaRedo, FaMagic } from "react-icons/fa";
+import { useLocation } from "wouter";
+import { FaCrown, FaUserFriends, FaHandHoldingUsd, FaExclamationCircle, FaBan, FaClock, FaUserSlash, FaRedo, FaMagic, FaVoteYea, FaMoneyBillWave } from "react-icons/fa";
 
 export default function AdminPanel() {
   const { 
@@ -22,6 +23,7 @@ export default function AdminPanel() {
   
   const { setUserRole } = useDummyUser();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   
   // Handle role selection
   const handleRoleChange = (role: "admin" | "voter" | "recipient") => {
@@ -66,6 +68,7 @@ export default function AdminPanel() {
       <Card className="mb-6">
         <CardContent className="p-6">
           <h2 className="text-xl font-bold text-primary mb-4">Simulate User Role</h2>
+          
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Button 
@@ -86,6 +89,30 @@ export default function AdminPanel() {
               >
                 <FaHandHoldingUsd className="mr-2" /> Recipient Role
               </Button>
+            </div>
+            
+            <div className="pt-4 border-t">
+              <h3 className="text-lg font-medium text-primary mb-3">Role Demo Pages</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Experience interactive demos that simulate the specific interfaces and actions available to different roles:
+              </p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Button 
+                  variant="outline"
+                  className="border-2 border-secondary"
+                  onClick={() => setLocation('/voter-demo')}
+                >
+                  <FaVoteYea className="mr-2" /> Voter Role Demo
+                </Button>
+                <Button 
+                  variant="outline"
+                  className="border-2 border-secondary"
+                  onClick={() => setLocation('/recipient-demo')}
+                >
+                  <FaMoneyBillWave className="mr-2" /> Recipient Role Demo
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>

@@ -72,23 +72,23 @@ export default function ErrorSimulationHandler() {
     
       if (type === 'deposit') {
         toggleSimulateDepositFailure();
-        setTimeout(() => toggleSimulateDepositFailure(), 3000);
+        setTimeout(() => toggleSimulateDepositFailure(), 10000);
       } else if (type === 'withdrawal') {
         toggleSimulateWithdrawalRejection();
-        setTimeout(() => toggleSimulateWithdrawalRejection(), 4000);
+        setTimeout(() => toggleSimulateWithdrawalRejection(), 10000);
       } else if (type === 'timelock') {
         toggleSimulateTimeLock();
         setCountdown(180);
-        setTimeout(() => toggleSimulateTimeLock(), 5000);
+        setTimeout(() => toggleSimulateTimeLock(), 10000);
       } else if (type === 'recipient') {
         toggleSimulateInvalidRecipient();
-        setTimeout(() => toggleSimulateInvalidRecipient(), 4000);
+        setTimeout(() => toggleSimulateInvalidRecipient(), 10000);
       }
     
-      // Auto clear the visual error after a certain time
+      // Auto clear the visual error after 10 seconds
       setTimeout(() => {
         setActiveError(null);
-      }, 5000);
+      }, 10000);
     }, 50);
   };
   

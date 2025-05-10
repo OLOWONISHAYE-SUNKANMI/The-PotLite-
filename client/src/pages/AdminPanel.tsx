@@ -112,37 +112,10 @@ export default function AdminPanel() {
         <CardContent className="p-6">
           <h2 className="text-xl font-bold text-primary mb-4">Error Simulation</h2>
           <p className="text-muted-foreground mb-4">
-            Use these controls to simulate error states for testing. When toggled, these errors will affect the application behavior.
+            Click on any error type below to see how it would appear to users. These simulations show what users experience when encountering errors.
           </p>
           
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Button 
-                className={`bg-secondary hover:bg-secondary/80 text-secondary-foreground font-bold ${simulateErrors.depositFailure ? 'border-2 border-destructive' : ''}`}
-                onClick={toggleSimulateDepositFailure}
-              >
-                <FaExclamationCircle className="mr-2" /> Simulate Deposit Failure
-              </Button>
-              <Button 
-                className={`bg-secondary hover:bg-secondary/80 text-secondary-foreground font-bold ${simulateErrors.withdrawalRejection ? 'border-2 border-destructive' : ''}`}
-                onClick={toggleSimulateWithdrawalRejection}
-              >
-                <FaBan className="mr-2" /> Simulate Withdrawal Rejection
-              </Button>
-              <Button 
-                className={`bg-secondary hover:bg-secondary/80 text-secondary-foreground font-bold ${simulateErrors.timeLock ? 'border-2 border-destructive' : ''}`}
-                onClick={toggleSimulateTimeLock}
-              >
-                <FaClock className="mr-2" /> Simulate Time Lock Error
-              </Button>
-              <Button 
-                className={`bg-secondary hover:bg-secondary/80 text-secondary-foreground font-bold ${simulateErrors.invalidRecipient ? 'border-2 border-destructive' : ''}`}
-                onClick={toggleSimulateInvalidRecipient}
-              >
-                <FaUserSlash className="mr-2" /> Simulate Invalid Recipient
-              </Button>
-            </div>
-            
             {/* Error Simulation Visual Preview */}
             <ErrorSimulationHandler />
           </div>

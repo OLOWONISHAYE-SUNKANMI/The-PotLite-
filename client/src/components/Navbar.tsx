@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useMobile } from "@/hooks/use-mobile";
@@ -10,19 +10,43 @@ type NavLinkProps = {
   href: string;
   children: React.ReactNode;
   currentPath: string;
+  onClick?: () => void;
 };
 
-const NavLink = ({ href, children, currentPath }: NavLinkProps) => {
+const NavLink = ({ href, children, currentPath, onClick }: NavLinkProps) => {
   const isActive = currentPath === href;
   
   return (
     <Link href={href}>
-      <a className={cn(
-        "px-3 py-2 rounded-md text-sm font-medium",
-        isActive 
-          ? "text-primary" 
-          : "text-secondary-foreground hover:text-primary"
-      )}>
+      <a 
+        className={cn(
+          "px-3 py-2 rounded-md text-sm font-medium",
+          isActive 
+            ? "text-primary" 
+            : "text-secondary-foreground hover:text-primary"
+        )}
+        onClick={onClick}
+      >
+        {children}
+      </a>
+    </Link>
+  );
+};
+
+const MobileNavLink = ({ href, children, currentPath, onClick }: NavLinkProps) => {
+  const isActive = currentPath === href;
+  
+  return (
+    <Link href={href}>
+      <a 
+        className={cn(
+          "block px-3 py-2 rounded-md text-base font-medium",
+          isActive 
+            ? "text-primary" 
+            : "text-secondary-foreground hover:text-primary"
+        )}
+        onClick={onClick}
+      >
         {children}
       </a>
     </Link>
@@ -41,6 +65,10 @@ const Navbar = () => {
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
+  
+  const closeMenu = useCallback(() => {
+    setIsMenuOpen(false);
+  }, []);
   
   return (
     <nav className="sticky top-0 z-50 bg-secondary shadow-lg">
@@ -89,56 +117,21 @@ const Navbar = () => {
       {!isOnboarding && (
         <div className={cn("md:hidden bg-secondary pb-3 px-4", isMenuOpen ? "block" : "hidden")}>
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-            <Link href="/">
-              <a className={cn(
-                "block px-3 py-2 rounded-md text-base font-medium",
-                location === "/" 
-                  ? "text-primary" 
-                  : "text-secondary-foreground hover:text-primary"
-              )}>
-                Dashboard
-              </a>
-            </Link>
-            <Link href="/create">
-              <a className={cn(
-                "block px-3 py-2 rounded-md text-base font-medium",
-                location === "/create" 
-                  ? "text-primary" 
-                  : "text-secondary-foreground hover:text-primary"
-              )}>
-                Create Pot
-              </a>
-            </Link>
-            <Link href="/transactions">
-              <a className={cn(
-                "block px-3 py-2 rounded-md text-base font-medium",
-                location === "/transactions" 
-                  ? "text-primary" 
-                  : "text-secondary-foreground hover:text-primary"
-              )}>
-                Transactions
-              </a>
-            </Link>
-            <Link href="/feedback">
-              <a className={cn(
-                "block px-3 py-2 rounded-md text-base font-medium",
-                location === "/feedback" 
-                  ? "text-primary" 
-                  : "text-secondary-foreground hover:text-primary"
-              )}>
-                Feedback
-              </a>
-            </Link>
-            <Link href="/admin">
-              <a className={cn(
-                "block px-3 py-2 rounded-md text-base font-medium",
-                location === "/admin" 
-                  ? "text-primary" 
-                  : "text-secondary-foreground hover:text-primary"
-              )}>
-                Admin
-              </a>
-            </Link>
+            <MobileNavLink href="/" currentPath={location} onClick={closeMenu}>
+              Dashboard
+            </MobileNavLink>
+            <MobileNavLink href="/create" currentPath={location} onClick={closeMenu}>
+              Create Pot
+            </MobileNavLink>
+            <MobileNavLink href="/transactions" currentPath={location} onClick={closeMenu}>
+              Transactions
+            </MobileNavLink>
+            <MobileNavLink href="/feedback" currentPath={location} onClick={closeMenu}>
+              Feedback
+            </MobileNavLink>
+            <MobileNavLink href="/admin" currentPath={location} onClick={closeMenu}>
+              Admin
+            </MobileNavLink>
           </div>
         </div>
       )}

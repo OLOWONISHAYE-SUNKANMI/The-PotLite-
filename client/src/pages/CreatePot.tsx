@@ -8,9 +8,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { generateId } from "@/lib/utils";
-import { FaPlus, FaTimes } from "react-icons/fa";
+import { FaPlus, FaTimes, FaCoins, FaUtensils, FaCaretDown, FaUserPlus, FaInfo } from "react-icons/fa";
 
 type Member = {
   id: string;
@@ -373,11 +375,25 @@ export default function CreatePot() {
               
               {/* Invite Members */}
               <div>
-                <h2 className="text-xl font-bold text-primary mb-4">Invite Members</h2>
+                <h2 className="text-xl font-bold text-primary mb-4 flex items-center">
+                  Invite Members
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="sm" className="ml-2 h-6 w-6 rounded-full p-0">
+                          <FaInfo className="h-3 w-3 text-primary" />
+                          <span className="sr-only">Member Settings Info</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Configure who contributes and receives payouts from this Pot</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </h2>
                 <div className="space-y-4">
-                  <div>
-                    <Label className="block text-secondary-foreground text-sm mb-2">Add by Email or Phone</Label>
-                    <div className="flex">
+                  <div className="flex flex-col md:flex-row gap-2">
+                    <div className="flex flex-1">
                       <Input 
                         type="text" 
                         placeholder="Email or phone number" 
@@ -393,26 +409,164 @@ export default function CreatePot() {
                         <FaPlus className="mr-2" /> Add
                       </Button>
                     </div>
+                    
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="bg-secondary border border-primary text-secondary-foreground">
+                          <FaUserPlus className="mr-2" /> Recent Members <FaCaretDown className="ml-2" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-56 p-0">
+                        <div className="bg-secondary border border-primary rounded-md overflow-hidden">
+                          {recentMembers.map(contact => (
+                            <Button
+                              key={contact}
+                              variant="ghost"
+                              className="w-full justify-start rounded-none border-b border-primary/10 text-sm p-3"
+                              onClick={() => handleAddRecentMember(contact)}
+                            >
+                              {contact}
+                            </Button>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   
-                  {/* Added members list */}
+                  {/* Member Table */}
                   {members.length > 0 && (
                     <div className="bg-secondary rounded-lg p-4">
-                      <h3 className="font-medium text-primary mb-2">Added Members</h3>
-                      <div className="space-y-2">
-                        {members.map(member => (
-                          <div key={member.id} className="flex justify-between items-center">
-                            <span className="text-secondary-foreground">{member.contact}</span>
-                            <button 
-                              type="button"
-                              onClick={() => handleRemoveMember(member.id)}
-                              className="text-destructive hover:text-red-400"
-                              aria-label="Remove member"
-                            >
-                              <FaTimes />
-                            </button>
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-medium text-primary">Added Members</h3>
+                        <div className="flex items-center space-x-4 text-xs text-secondary-foreground">
+                          <div className="flex items-center">
+                            <FaUtensils className="text-gray-400 mr-1" /> = No Contribution
                           </div>
-                        ))}
+                          <div className="flex items-center">
+                            <FaUtensils className="text-amber-400 mr-1" /> = Has Contribution
+                          </div>
+                          <div className="flex items-center ml-2">
+                            <FaCoins className="text-gray-400 mr-1" /> = No Payout
+                          </div>
+                          <div className="flex items-center">
+                            <FaCoins className="text-amber-400 mr-1" /> = Receives Payout
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Table */}
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse">
+                          <thead>
+                            <tr className="text-left border-b border-primary/20">
+                              <th className="pb-2 font-medium text-primary">Contact</th>
+                              <th className="pb-2 font-medium text-primary text-center">Contribution?</th>
+                              <th className="pb-2 font-medium text-primary text-center">Payout?</th>
+                              <th className="pb-2 font-medium text-primary text-center">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {members.map(member => (
+                              <tr key={member.id} className="border-b border-primary/10 hover:bg-primary/5">
+                                <td className="py-2 text-secondary-foreground">{member.contact}</td>
+                                
+                                {/* Contribution Column */}
+                                <td className="py-2">
+                                  <div className="flex flex-col items-center justify-center">
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleMemberContribution(member.contact)}
+                                      className="p-1 rounded-full focus:outline-none transition-transform hover:scale-110"
+                                      aria-label={
+                                        memberContributions[member.contact] 
+                                          ? "Remove contribution" 
+                                          : "Add contribution"
+                                      }
+                                    >
+                                      <FaUtensils 
+                                        className={
+                                          memberContributions[member.contact] !== undefined
+                                            ? "text-amber-400" 
+                                            : "text-gray-400"
+                                        } 
+                                        size={20} 
+                                      />
+                                    </button>
+                                    
+                                    {memberContributions[member.contact] !== undefined && (
+                                      <div className="mt-1">
+                                        <Input
+                                          type="number"
+                                          min="0"
+                                          value={memberContributions[member.contact] || ""}
+                                          onChange={(e) => setMemberContributionAmount(
+                                            member.contact, 
+                                            Number(e.target.value)
+                                          )}
+                                          className="w-20 h-7 text-sm text-center"
+                                          placeholder="$"
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
+                                
+                                {/* Payout Column */}
+                                <td className="py-2">
+                                  <div className="flex flex-col items-center justify-center">
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleMemberPayout(member.contact)}
+                                      className="p-1 rounded-full focus:outline-none transition-transform hover:scale-110"
+                                      aria-label={
+                                        memberPayouts[member.contact] 
+                                          ? "Remove payout" 
+                                          : "Add payout"
+                                      }
+                                    >
+                                      <FaCoins 
+                                        className={
+                                          memberPayouts[member.contact] !== undefined
+                                            ? "text-amber-400" 
+                                            : "text-gray-400"
+                                        } 
+                                        size={20} 
+                                      />
+                                    </button>
+                                    
+                                    {memberPayouts[member.contact] !== undefined && (
+                                      <div className="mt-1">
+                                        <Input
+                                          type="number"
+                                          min="0"
+                                          value={memberPayouts[member.contact] || ""}
+                                          onChange={(e) => setMemberPayoutAmount(
+                                            member.contact, 
+                                            Number(e.target.value)
+                                          )}
+                                          className="w-20 h-7 text-sm text-center"
+                                          placeholder="$"
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
+                                
+                                {/* Actions Column */}
+                                <td className="py-2 text-center">
+                                  <button 
+                                    type="button"
+                                    onClick={() => handleRemoveMember(member.id)}
+                                    className="text-destructive p-1 rounded-full hover:bg-destructive/10 transition-colors"
+                                    aria-label="Remove member"
+                                  >
+                                    <FaTimes />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
                   )}

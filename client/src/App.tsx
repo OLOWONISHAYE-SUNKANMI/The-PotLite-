@@ -14,6 +14,8 @@ import VoterDemo from "./pages/VoterDemo";
 import RecipientDemo from "./pages/RecipientDemo";
 import NotFound from "./pages/not-found";
 import ScrollToTop from "./components/ScrollToTop";
+import FeatureChecklist from "./components/FeatureChecklist";
+import FeedbackModal from "./components/FeedbackModal";
 import { useEffect, useState } from "react";
 
 function AppRouter() {
@@ -57,6 +59,20 @@ function AppContent() {
   const { pots, hasSeenOnboarding } = usePot();
   const [location] = useLocation();
   const isOnboarding = location === '/onboarding' || (!hasSeenOnboarding && pots.length === 0);
+  const [showChecklist, setShowChecklist] = useState(true);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  
+  // Function to handle when checklist is completed
+  const handleChecklistComplete = () => {
+    setShowFeedbackModal(true);
+  };
+  
+  // Function to handle when feedback modal is closed
+  const handleFeedbackModalClose = () => {
+    setShowFeedbackModal(false);
+    // Hide the checklist after feedback is submitted
+    setShowChecklist(false);
+  };
   
   return (
     <div className="flex flex-col min-h-screen">
@@ -64,7 +80,21 @@ function AppContent() {
       <main className={`flex-grow ${isOnboarding ? 'flex items-center justify-center' : ''}`}>
         <div className={`${isOnboarding ? 'w-full max-w-2xl' : 'max-w-7xl'} mx-auto px-4 py-6 sm:px-6 lg:px-8`}>
           <ScrollToTop />
+          
+          {/* Show the feature checklist if not in onboarding and checklist is visible */}
+          {!isOnboarding && showChecklist && (
+            <div className="mb-6">
+              <FeatureChecklist onComplete={handleChecklistComplete} />
+            </div>
+          )}
+          
           <AppRouter />
+          
+          {/* Feedback modal when all checklist items are completed */}
+          <FeedbackModal 
+            open={showFeedbackModal} 
+            onClose={handleFeedbackModalClose} 
+          />
         </div>
       </main>
       <Footer />

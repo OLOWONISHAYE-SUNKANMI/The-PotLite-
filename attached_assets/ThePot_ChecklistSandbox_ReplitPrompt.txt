@@ -1,0 +1,71 @@
+
+You’re updating The Pot Sandbox MVP to transition from a freeform demo to a guided, checklist-driven test experience. This new approach improves usability validation and clearly educates test users about core features.
+
+---
+
+## ✅ CORE UPDATE: ADD A CHECKLIST WALKTHROUGH
+
+### 1. Checklist Interface
+Create a UI component called `FeatureChecklist.jsx` that appears when users launch the Sandbox MVP.
+
+Checklist Items:
+- [ ] Create a Pot and Invite Members
+- [ ] Deposit into an Active Pot
+- [ ] Request a Withdrawal (if conditions met)
+- [ ] Request a Goal Change in an Active Pot
+- [ ] Cast Your Vote on a Withdrawal Request
+
+Each item is:
+- Initially unchecked
+- Becomes checked when the action is completed
+- Clickable to highlight where in the app to go or to open the related scenario modal
+
+### 2. Scenario-Based Pot Creation Flow
+When users click “Create a Pot,” prompt them to choose from one of these preset use cases:
+
+**Use Cases + Example Scenarios:**
+- **Bills / Rent** → “You and 4 students share a townhouse, splitting Netflix & Prime bills ($30 total split 5 ways).”
+- **Trip Planning** → “You and 3 friends are booking an Airbnb and decorations for a celebration ($1,200 split 4 ways).”
+- **Gift Collaboration** → “You and 2 coworkers want to buy a $150 gift basket for your boss.”
+- **Team Fundraiser** → “A basketball team needs $500 for jerseys. Everyone contributes.”
+- **Club Dues / Deposit** → “Your university club collects $25/month from 10 members.”
+
+Offer the user:
+- “Start Pot with This Scenario” (pre-fills Pot form and use case)
+- OR “Create Your Own Custom Pot for This Category”
+
+---
+
+### 3. Preloaded Dummy User Toggle
+On the scenario selection modal, give the user the option to:
+- ✅ “Add Dummy Test Members” to simulate invite/join experience
+These should include dummy names like “Jordan”, “Avery”, “Kai” and allow role interaction (admin, voter, recipient).
+
+---
+
+### 4. Mandatory Feedback Modal
+Once all 5 checklist items are completed:
+- Display a popup that says:
+
+**🎉 You’ve completed The Pot Sandbox Test!**
+“Thanks for testing the core features of The Pot. Please leave a few thoughts before exiting.”
+
+Include:
+- Text input: “Was the experience easy to understand?”
+- Text input: “Which feature stood out to you the most?”
+- Text input: “Would you use this for your own groups?”
+- Submit Button → Send feedback to console or dummy endpoint
+
+Do not allow users to exit without submitting the form.
+
+---
+
+## GENERAL STYLING + FLOW NOTES
+- Maintain the existing Pot color scheme (Purple: #5B1FA6, Gold: #FFD94A)
+- Keep transitions smooth between checklist → modal → dashboard
+- All sandbox data remains dummy/non-persistent
+- Reuse context or props from existing `CreatePot.jsx` and `PotDashboard.jsx` where applicable
+
+---
+
+Let me know when this new guided experience is connected to the MVP entry point and routes are added as needed.

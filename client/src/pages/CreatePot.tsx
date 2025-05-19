@@ -26,11 +26,14 @@ export default function CreatePot() {
   const [description, setDescription] = useState("");
   const [goalAmount, setGoalAmount] = useState<number>(500);
   const [payoutStructure, setPayoutStructure] = useState<"one-to-many" | "many-to-one" | "many-to-selected">("one-to-many");
-  const [withdrawalMethod, setWithdrawalMethod] = useState<"democratic" | "admin" | "timed">("democratic");
+  const [withdrawalMethod, setWithdrawalMethod] = useState<"democratic" | "admin" | "timed" | "auto-withdraw">("democratic");
   const [voteThreshold, setVoteThreshold] = useState<string>("75");
   const [releaseDate, setReleaseDate] = useState<string>("");
   const [memberInput, setMemberInput] = useState("");
   const [members, setMembers] = useState<Member[]>([]);
+  const [recentMembers] = useState<string[]>(["john@example.com", "sarah@example.com", "mike@example.com", "alex@example.com"]);
+  const [memberContributions, setMemberContributions] = useState<Record<string, number>>({});
+  const [memberPayouts, setMemberPayouts] = useState<Record<string, number>>({});
   
   const handleAddMember = () => {
     if (!memberInput.trim()) return;
@@ -44,8 +47,73 @@ export default function CreatePot() {
     setMemberInput("");
   };
   
+  const handleAddRecentMember = (contact: string) => {
+    // Check if this member is already added
+    if (members.some(m => m.contact === contact)) {
+      return;
+    }
+    
+    const newMember = {
+      id: generateId(),
+      contact,
+    };
+    
+    setMembers([...members, newMember]);
+  };
+  
   const handleRemoveMember = (id: string) => {
     setMembers(members.filter(member => member.id !== id));
+    
+    // Also remove any contributions or payouts for this member
+    const member = members.find(m => m.id === id);
+    if (member) {
+      const updatedContributions = { ...memberContributions };
+      const updatedPayouts = { ...memberPayouts };
+      
+      delete updatedContributions[member.contact];
+      delete updatedPayouts[member.contact];
+      
+      setMemberContributions(updatedContributions);
+      setMemberPayouts(updatedPayouts);
+    }
+  };
+  
+  const toggleMemberContribution = (contact: string) => {
+    const updatedContributions = { ...memberContributions };
+    
+    if (updatedContributions[contact]) {
+      delete updatedContributions[contact];
+    } else {
+      updatedContributions[contact] = 0; // Default value, will be updated with input
+    }
+    
+    setMemberContributions(updatedContributions);
+  };
+  
+  const setMemberContributionAmount = (contact: string, amount: number) => {
+    setMemberContributions({
+      ...memberContributions,
+      [contact]: amount
+    });
+  };
+  
+  const toggleMemberPayout = (contact: string) => {
+    const updatedPayouts = { ...memberPayouts };
+    
+    if (updatedPayouts[contact]) {
+      delete updatedPayouts[contact];
+    } else {
+      updatedPayouts[contact] = 0; // Default value, will be updated with input
+    }
+    
+    setMemberPayouts(updatedPayouts);
+  };
+  
+  const setMemberPayoutAmount = (contact: string, amount: number) => {
+    setMemberPayouts({
+      ...memberPayouts,
+      [contact]: amount
+    });
   };
   
   const handleSubmit = (e: React.FormEvent) => {
@@ -78,6 +146,21 @@ export default function CreatePot() {
       return;
     }
     
+    // Determine recipients based on payouts and payout structure
+    let potRecipients: string[] = [];
+    
+    if (Object.keys(memberPayouts).length > 0) {
+      // Use members that have been marked as recipients with payout amounts
+      potRecipients = Object.keys(memberPayouts);
+    } else {
+      // Fall back to default logic
+      potRecipients = payoutStructure === "one-to-many" 
+        ? members.map(m => m.contact)
+        : payoutStructure === "many-to-one"
+          ? ["Sarah"] // Default for demo
+          : ["Selected Members"]; // For many-to-selected
+    }
+    
     // Create a new pot
     const newPot = {
       id: generateId(),
@@ -92,13 +175,11 @@ export default function CreatePot() {
       creator: "Current User", // Simulated current user
       createdBy: "Current User",
       members: ["Current User", ...members.map(m => m.contact)],
-      recipients: payoutStructure === "one-to-many" 
-        ? members.map(m => m.contact)
-        : payoutStructure === "many-to-one"
-          ? ["Sarah"] // Default for demo
-          : ["Selected Members"], // For many-to-selected
+      recipients: potRecipients,
+      memberContributions: Object.keys(memberContributions).length > 0 ? memberContributions : undefined,
+      memberPayouts: Object.keys(memberPayouts).length > 0 ? memberPayouts : undefined,
       createdAt: new Date().toISOString(),
-      status: 'active'
+      status: 'active' as const
     };
     
     addPot(newPot);
@@ -273,6 +354,17 @@ export default function CreatePot() {
                             />
                           </div>
                         )}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className={`bg-secondary rounded-lg p-4 ${withdrawalMethod === "auto-withdraw" ? "border-2 border-primary" : ""}`}>
+                    <div className="flex items-start">
+                      <RadioGroupItem value="auto-withdraw" id="auto-withdraw" className="mt-1" />
+                      <div className="ml-3">
+                        <Label htmlFor="auto-withdraw" className="font-medium text-primary">Auto-Withdraw</Label>
+                        <p className="text-sm text-secondary-foreground">Recipients will automatically receive payouts in their Personal Pot Wallet</p>
+                        <p className="text-xs text-secondary-foreground mt-1">Recipients will receive a notification when funds are deposited</p>
                       </div>
                     </div>
                   </div>

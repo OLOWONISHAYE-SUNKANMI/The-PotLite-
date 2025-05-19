@@ -37,12 +37,14 @@ export type PotType = {
   currentBalance: number;
   createdBy: string;
   payoutStructure: 'one-to-many' | 'many-to-one' | 'many-to-selected';
-  withdrawalMethod: 'democratic' | 'admin' | 'timed';
+  withdrawalMethod: 'democratic' | 'admin' | 'timed' | 'auto-withdraw';
   voteThreshold?: number;
   releaseDate?: string;
   creator: string;
   members: string[];
   recipients: string[];
+  memberContributions?: Record<string, number>;
+  memberPayouts?: Record<string, number>;
   createdAt: string;
   status?: 'active' | 'completed';
   completedDate?: string;

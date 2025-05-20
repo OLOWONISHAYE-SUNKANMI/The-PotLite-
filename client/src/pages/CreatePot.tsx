@@ -377,65 +377,62 @@ export default function CreatePot() {
                   onValueChange={(value) => setWithdrawalMethod(value as any)}
                   className="space-y-4"
                 >
-                  <div className={`bg-secondary rounded-lg p-4 ${withdrawalMethod === "democratic" ? "border-2 border-primary" : ""}`}>
-                    <div className="flex items-start">
-                      <RadioGroupItem value="democratic" id="democratic" className="mt-1" />
-                      <div className="ml-3">
-                        <Label htmlFor="democratic" className="font-medium text-primary">Democratic Vote</Label>
-                        <p className="text-sm text-secondary-foreground">All members must vote; requires majority approval</p>
-                        
-                        {withdrawalMethod === "democratic" && (
-                          <div className="mt-2">
-                            <Label className="block text-xs text-secondary-foreground mb-1">Required Approval Percentage</Label>
-                            <Select value={voteThreshold} onValueChange={setVoteThreshold}>
-                              <SelectTrigger className="w-full bg-secondary border border-primary text-secondary-foreground">
-                                <SelectValue placeholder="Select threshold" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="51">51% (Simple Majority)</SelectItem>
-                                <SelectItem value="66">66% (Two Thirds)</SelectItem>
-                                <SelectItem value="75">75% (Three Quarters)</SelectItem>
-                                <SelectItem value="100">100% (Unanimous)</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        )}
+                  {/* Democratic Vote - show for one-to-many and many-to-selected */}
+                  {(payoutStructure === "one-to-many" || payoutStructure === "many-to-selected") && (
+                    <div className={`bg-secondary rounded-lg p-4 ${withdrawalMethod === "democratic" ? "border-2 border-primary" : ""}`}>
+                      <div className="flex items-start">
+                        <RadioGroupItem value="democratic" id="democratic" className="mt-1" />
+                        <div className="ml-3">
+                          <Label htmlFor="democratic" className="font-medium text-primary">Democratic Vote</Label>
+                          <p className="text-sm text-secondary-foreground">All members must vote; requires majority approval</p>
+                          
+                          {withdrawalMethod === "democratic" && (
+                            <div className="mt-2">
+                              <Label className="block text-xs text-secondary-foreground mb-1">Required Approval Percentage</Label>
+                              <Select value={voteThreshold} onValueChange={setVoteThreshold}>
+                                <SelectTrigger className="w-full bg-secondary border border-primary text-secondary-foreground">
+                                  <SelectValue placeholder="Select threshold" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="51">51% (Simple Majority)</SelectItem>
+                                  <SelectItem value="66">66% (Two Thirds)</SelectItem>
+                                  <SelectItem value="75">75% (Three Quarters)</SelectItem>
+                                  <SelectItem value="100">100% (Unanimous)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                   
-                  <div className={`bg-secondary rounded-lg p-4 ${withdrawalMethod === "admin" ? "border-2 border-primary" : ""}`}>
-                    <div className="flex items-start">
-                      <RadioGroupItem value="admin" id="admin" className="mt-1" />
-                      <div className="ml-3">
-                        <Label htmlFor="admin" className="font-medium text-primary">Admin Approval</Label>
-                        <p className="text-sm text-secondary-foreground">Pot creator or appointed admin has sole authority to approve withdrawals</p>
+                  {/* Timed Release - show for one-to-many and many-to-one */}
+                  {(payoutStructure === "one-to-many" || payoutStructure === "many-to-one") && (
+                    <div className={`bg-secondary rounded-lg p-4 ${withdrawalMethod === "timed" ? "border-2 border-primary" : ""}`}>
+                      <div className="flex items-start">
+                        <RadioGroupItem value="timed" id="timed" className="mt-1" />
+                        <div className="ml-3 w-full">
+                          <Label htmlFor="timed" className="font-medium text-primary">Timed Release</Label>
+                          <p className="text-sm text-secondary-foreground">Funds locked until a specific date</p>
+                          
+                          {withdrawalMethod === "timed" && (
+                            <div className="mt-2">
+                              <Label className="block text-xs text-secondary-foreground mb-1">Release Date</Label>
+                              <Input 
+                                type="date" 
+                                value={releaseDate}
+                                onChange={e => setReleaseDate(e.target.value)}
+                                className="w-full bg-secondary border border-primary text-secondary-foreground"
+                              />
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                   
-                  <div className={`bg-secondary rounded-lg p-4 ${withdrawalMethod === "timed" ? "border-2 border-primary" : ""}`}>
-                    <div className="flex items-start">
-                      <RadioGroupItem value="timed" id="timed" className="mt-1" />
-                      <div className="ml-3 w-full">
-                        <Label htmlFor="timed" className="font-medium text-primary">Timed Release</Label>
-                        <p className="text-sm text-secondary-foreground">Funds locked until a specific date</p>
-                        
-                        {withdrawalMethod === "timed" && (
-                          <div className="mt-2">
-                            <Label className="block text-xs text-secondary-foreground mb-1">Release Date</Label>
-                            <Input 
-                              type="date" 
-                              value={releaseDate}
-                              onChange={e => setReleaseDate(e.target.value)}
-                              className="w-full bg-secondary border border-primary text-secondary-foreground"
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  
+                  {/* Auto-Withdraw - show for all payout structures */}
                   <div className={`bg-secondary rounded-lg p-4 ${withdrawalMethod === "auto-withdraw" ? "border-2 border-primary" : ""}`}>
                     <div className="flex items-start">
                       <RadioGroupItem value="auto-withdraw" id="auto-withdraw" className="mt-1" />
@@ -653,6 +650,13 @@ export default function CreatePot() {
                   )}
                 </div>
               </div>
+              
+              {/* Error Message */}
+              {potCreationError && (
+                <div className="my-4 p-3 bg-destructive/10 border border-destructive rounded-md text-destructive text-center">
+                  {potCreationError}
+                </div>
+              )}
               
               {/* Submit Button */}
               <div className="pt-4">

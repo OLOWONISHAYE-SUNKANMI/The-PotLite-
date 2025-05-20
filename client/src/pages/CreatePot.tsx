@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { usePot } from "@/context/PotContext";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,13 +29,35 @@ export default function CreatePot() {
   const [goalAmount, setGoalAmount] = useState<number>(500);
   const [payoutStructure, setPayoutStructure] = useState<"one-to-many" | "many-to-one" | "many-to-selected">("one-to-many");
   const [withdrawalMethod, setWithdrawalMethod] = useState<"democratic" | "admin" | "timed" | "auto-withdraw">("democratic");
+  
+  // Set allowed withdrawal methods based on payout structure
+  useEffect(() => {
+    // Reset withdrawal method if current one isn't allowed for the selected payout structure
+    if (payoutStructure === "one-to-many") {
+      if (withdrawalMethod === "admin") {
+        setWithdrawalMethod("democratic");
+      }
+    } else if (payoutStructure === "many-to-one") {
+      if (withdrawalMethod === "admin" || withdrawalMethod === "democratic") {
+        setWithdrawalMethod("timed");
+      }
+    } else if (payoutStructure === "many-to-selected") {
+      if (withdrawalMethod === "admin" || withdrawalMethod === "timed") {
+        setWithdrawalMethod("democratic");
+      }
+    }
+  }, [payoutStructure, withdrawalMethod]);
   const [voteThreshold, setVoteThreshold] = useState<string>("75");
   const [releaseDate, setReleaseDate] = useState<string>("");
   const [memberInput, setMemberInput] = useState("");
-  const [members, setMembers] = useState<Member[]>([]);
+  const [members, setMembers] = useState<Member[]>([
+    // Admin is included by default
+    { id: "admin-user", contact: "admin@thepot.com" }
+  ]);
   const [recentMembers] = useState<string[]>(["john@example.com", "sarah@example.com", "mike@example.com", "alex@example.com"]);
   const [memberContributions, setMemberContributions] = useState<Record<string, number>>({});
   const [memberPayouts, setMemberPayouts] = useState<Record<string, number>>({});
+  const [potCreationError, setPotCreationError] = useState<string>("");
   
   const handleAddMember = () => {
     if (!memberInput.trim()) return;
@@ -64,6 +86,16 @@ export default function CreatePot() {
   };
   
   const handleRemoveMember = (id: string) => {
+    // Don't allow removing the admin
+    if (id === "admin-user") {
+      toast({
+        title: "Cannot Remove Admin",
+        description: "The admin must remain a member of the pot.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setMembers(members.filter(member => member.id !== id));
     
     // Also remove any contributions or payouts for this member
@@ -83,9 +115,11 @@ export default function CreatePot() {
   const toggleMemberContribution = (contact: string) => {
     const updatedContributions = { ...memberContributions };
     
-    if (updatedContributions[contact]) {
+    if (updatedContributions[contact] !== undefined) {
+      // If contribution exists, remove it (deselect)
       delete updatedContributions[contact];
     } else {
+      // If no contribution, add it with default value (select)
       updatedContributions[contact] = 0; // Default value, will be updated with input
     }
     
@@ -102,9 +136,31 @@ export default function CreatePot() {
   const toggleMemberPayout = (contact: string) => {
     const updatedPayouts = { ...memberPayouts };
     
-    if (updatedPayouts[contact]) {
+    if (updatedPayouts[contact] !== undefined) {
+      // If payout exists, remove it (deselect)
       delete updatedPayouts[contact];
     } else {
+      // Check for Many-to-One rule: only one recipient allowed
+      if (payoutStructure === "many-to-one" && Object.keys(memberPayouts).length > 0) {
+        toast({
+          title: "Error",
+          description: "Only one recipient is allowed with Many-to-One payout structure.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Check for Many-to-Selected rule: cannot select all members
+      if (payoutStructure === "many-to-selected" && Object.keys(updatedPayouts).length >= members.length - 1) {
+        toast({
+          title: "Error",
+          description: "At least one member must be left without payout in Many-to-Selected structure.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // If no payout, add it with default value (select)
       updatedPayouts[contact] = 0; // Default value, will be updated with input
     }
     
@@ -120,6 +176,9 @@ export default function CreatePot() {
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Clear any previous error
+    setPotCreationError("");
     
     if (!name) {
       toast({
@@ -148,6 +207,23 @@ export default function CreatePot() {
       return;
     }
     
+    // Validate payout structure rules
+    if (payoutStructure === "many-to-one") {
+      if (Object.keys(memberPayouts).length !== 1) {
+        setPotCreationError("Many-to-One structure requires exactly one recipient");
+        setTimeout(() => setPotCreationError(""), 5000);
+        return;
+      }
+    }
+    
+    if (payoutStructure === "many-to-selected") {
+      if (Object.keys(memberPayouts).length >= members.length) {
+        setPotCreationError("Many-to-Selected structure requires at least one non-recipient member");
+        setTimeout(() => setPotCreationError(""), 5000);
+        return;
+      }
+    }
+    
     // Determine recipients based on payouts and payout structure
     let potRecipients: string[] = [];
     
@@ -174,9 +250,9 @@ export default function CreatePot() {
       withdrawalMethod,
       voteThreshold: withdrawalMethod === "democratic" ? parseFloat(voteThreshold) : undefined,
       releaseDate: withdrawalMethod === "timed" ? releaseDate : undefined,
-      creator: "Current User", // Simulated current user
-      createdBy: "Current User",
-      members: ["Current User", ...members.map(m => m.contact)],
+      creator: "admin@thepot.com", // Admin as creator
+      createdBy: "admin@thepot.com",
+      members: members.map(m => m.contact),
       recipients: potRecipients,
       memberContributions: Object.keys(memberContributions).length > 0 ? memberContributions : undefined,
       memberPayouts: Object.keys(memberPayouts).length > 0 ? memberPayouts : undefined,
@@ -438,18 +514,14 @@ export default function CreatePot() {
                     <div className="bg-secondary rounded-lg p-4">
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="font-medium text-primary">Added Members</h3>
-                        <div className="flex items-center space-x-4 text-xs text-secondary-foreground">
+                        <div className="flex items-center gap-3 text-xs text-secondary-foreground">
                           <div className="flex items-center">
-                            <FaUtensils className="text-gray-400 mr-1" /> = No Contribution
+                            <span className="inline-block w-3 h-3 bg-gray-400 rounded-sm mr-1"></span>
+                            <span>No contribution/payout</span>
                           </div>
                           <div className="flex items-center">
-                            <FaUtensils className="text-amber-400 mr-1" /> = Has Contribution
-                          </div>
-                          <div className="flex items-center ml-2">
-                            <FaCoins className="text-gray-400 mr-1" /> = No Payout
-                          </div>
-                          <div className="flex items-center">
-                            <FaCoins className="text-amber-400 mr-1" /> = Receives Payout
+                            <span className="inline-block w-3 h-3 bg-amber-400 rounded-sm mr-1"></span>
+                            <span>Will contribute/receive payout</span>
                           </div>
                         </div>
                       </div>

@@ -540,7 +540,16 @@ export default function CreatePot() {
                           <tbody>
                             {members.map(member => (
                               <tr key={member.id} className="border-b border-primary/10 hover:bg-primary/5">
-                                <td className="py-2 text-secondary-foreground">{member.contact}</td>
+                                <td className="py-2 text-secondary-foreground">
+                                  {member.id === "admin-user" ? (
+                                    <div className="flex items-center">
+                                      <span>{member.contact}</span>
+                                      <span className="text-amber-400 ml-2">👑</span>
+                                    </div>
+                                  ) : (
+                                    member.contact
+                                  )}
+                                </td>
                                 
                                 {/* Contribution Column */}
                                 <td className="py-2">

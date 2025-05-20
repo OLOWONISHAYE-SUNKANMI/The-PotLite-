@@ -24,6 +24,7 @@ export default function CreatePot() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   
+  const [selectedUseCase, setSelectedUseCase] = useState<string>("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [goalAmount, setGoalAmount] = useState<number>(500);
@@ -281,8 +282,54 @@ export default function CreatePot() {
         <CardContent className="p-6">
           <form onSubmit={handleSubmit}>
             <div className="space-y-6">
-              {/* Basic Pot Information */}
+              {/* Select Use Case */}
               <div>
+                <h2 className="text-xl font-bold text-primary mb-4">Select Use</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div 
+                    className={`bg-secondary rounded-lg p-4 cursor-pointer transition-all ${selectedUseCase === "bills-rent" ? "border-2 border-primary" : "border border-primary/30"}`}
+                    onClick={() => setSelectedUseCase("bills-rent")}
+                  >
+                    <div className="font-medium text-primary">Bills/Rent</div>
+                    <p className="text-sm text-secondary-foreground mt-1">Pay Group Shared Netflix Bill; Accumulate Shared Rental Payment in One Place!</p>
+                  </div>
+                  
+                  <div 
+                    className={`bg-secondary rounded-lg p-4 cursor-pointer transition-all ${selectedUseCase === "trip-planning" ? "border-2 border-primary" : "border border-primary/30"}`}
+                    onClick={() => setSelectedUseCase("trip-planning")}
+                  >
+                    <div className="font-medium text-primary">Trip Planning</div>
+                    <p className="text-sm text-secondary-foreground mt-1">Save for a Group trip Together; Manage Splitting Payments Amongst Each Other!</p>
+                  </div>
+                  
+                  <div 
+                    className={`bg-secondary rounded-lg p-4 cursor-pointer transition-all ${selectedUseCase === "gift-collaboration" ? "border-2 border-primary" : "border border-primary/30"}`}
+                    onClick={() => setSelectedUseCase("gift-collaboration")}
+                  >
+                    <div className="font-medium text-primary">Gift Collaboration</div>
+                    <p className="text-sm text-secondary-foreground mt-1">Collectively pay someone; Save Together to buy a Gift!</p>
+                  </div>
+                  
+                  <div 
+                    className={`bg-secondary rounded-lg p-4 cursor-pointer transition-all ${selectedUseCase === "event-fundraiser" ? "border-2 border-primary" : "border border-primary/30"}`}
+                    onClick={() => setSelectedUseCase("event-fundraiser")}
+                  >
+                    <div className="font-medium text-primary">Event Fundraiser</div>
+                    <p className="text-sm text-secondary-foreground mt-1">Contribute to Hosting an Event all in one place!</p>
+                  </div>
+                  
+                  <div 
+                    className={`bg-secondary rounded-lg p-4 cursor-pointer transition-all ${selectedUseCase === "team-club-dues" ? "border-2 border-primary" : "border border-primary/30"}`}
+                    onClick={() => setSelectedUseCase("team-club-dues")}
+                  >
+                    <div className="font-medium text-primary">Team/Club Dues</div>
+                    <p className="text-sm text-secondary-foreground mt-1">Collect Team Dues with Ease!</p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Basic Pot Information */}
+              <div className={selectedUseCase ? "" : "opacity-50 pointer-events-none"}>
                 <h2 className="text-xl font-bold text-primary mb-4">Basic Information</h2>
                 <div className="space-y-4">
                   <div>
@@ -325,7 +372,7 @@ export default function CreatePot() {
               </div>
               
               {/* Payout Structure */}
-              <div>
+              <div className={selectedUseCase ? "" : "opacity-50 pointer-events-none"}>
                 <h2 className="text-xl font-bold text-primary mb-4">Payout Structure</h2>
                 
                 <RadioGroup 
@@ -369,7 +416,7 @@ export default function CreatePot() {
               </div>
               
               {/* Withdrawal Approval */}
-              <div>
+              <div className={selectedUseCase ? "" : "opacity-50 pointer-events-none"}>
                 <h2 className="text-xl font-bold text-primary mb-4">Withdrawal Approval Method</h2>
                 
                 <RadioGroup 
@@ -447,7 +494,7 @@ export default function CreatePot() {
               </div>
               
               {/* Invite Members */}
-              <div>
+              <div className={selectedUseCase ? "" : "opacity-50 pointer-events-none"}>
                 <h2 className="text-xl font-bold text-primary mb-4 flex items-center">
                   Invite Members
                   <TooltipProvider>
@@ -660,8 +707,12 @@ export default function CreatePot() {
               
               {/* Submit Button */}
               <div className="pt-4">
-                <Button type="submit" className="w-full btn-gradient">
-                  Create Pot
+                <Button 
+                  type="submit" 
+                  className="w-full btn-gradient"
+                  disabled={!selectedUseCase}
+                >
+                  {selectedUseCase ? "Create Pot" : "Select a Use Case First"}
                 </Button>
               </div>
             </div>

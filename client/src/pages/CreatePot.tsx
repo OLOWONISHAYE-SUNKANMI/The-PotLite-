@@ -31,6 +31,12 @@ export default function CreatePot() {
   const [payoutStructure, setPayoutStructure] = useState<"one-to-many" | "many-to-one" | "many-to-selected">("one-to-many");
   const [withdrawalMethod, setWithdrawalMethod] = useState<"democratic" | "admin" | "timed" | "auto-withdraw">("democratic");
   
+  // State for section dropdowns
+  const [basicInfoOpen, setBasicInfoOpen] = useState<boolean>(false);
+  const [payoutStructureOpen, setPayoutStructureOpen] = useState<boolean>(false);
+  const [withdrawalMethodOpen, setWithdrawalMethodOpen] = useState<boolean>(false);
+  const [inviteMembersOpen, setInviteMembersOpen] = useState<boolean>(false);
+  
   // Set allowed withdrawal methods based on payout structure
   useEffect(() => {
     // Reset withdrawal method if current one isn't allowed for the selected payout structure
@@ -48,6 +54,7 @@ export default function CreatePot() {
       }
     }
   }, [payoutStructure, withdrawalMethod]);
+  
   const [voteThreshold, setVoteThreshold] = useState<string>("75");
   const [releaseDate, setReleaseDate] = useState<string>("");
   const [memberInput, setMemberInput] = useState("");
@@ -63,6 +70,16 @@ export default function CreatePot() {
   const handleAddMember = () => {
     if (!memberInput.trim()) return;
     
+    // Check if member already exists
+    if (members.some(m => m.contact === memberInput.trim())) {
+      toast({
+        title: "Member already exists",
+        description: "This contact has already been added",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const newMember = {
       id: generateId(),
       contact: memberInput.trim(),
@@ -75,6 +92,11 @@ export default function CreatePot() {
   const handleAddRecentMember = (contact: string) => {
     // Check if this member is already added
     if (members.some(m => m.contact === contact)) {
+      toast({
+        title: "Member already exists",
+        description: "This contact has already been added",
+        variant: "destructive",
+      });
       return;
     }
     
@@ -180,6 +202,15 @@ export default function CreatePot() {
     
     // Clear any previous error
     setPotCreationError("");
+    
+    if (!selectedUseCase) {
+      toast({
+        title: "Error",
+        description: "Please select a use case first",
+        variant: "destructive",
+      });
+      return;
+    }
     
     if (!name) {
       toast({
@@ -325,377 +356,429 @@ export default function CreatePot() {
                     <div className="font-medium text-primary">Team/Club Dues</div>
                     <p className="text-sm text-secondary-foreground mt-1">Collect Team Dues with Ease!</p>
                   </div>
+                  
+                  <div 
+                    className={`bg-secondary rounded-lg p-4 cursor-pointer transition-all ${selectedUseCase === "custom-pot" ? "border-2 border-primary" : "border border-primary/30"}`}
+                    onClick={() => setSelectedUseCase("custom-pot")}
+                  >
+                    <div className="font-medium text-primary">Custom Pot</div>
+                    <p className="text-sm text-secondary-foreground mt-1">Combine Funds Together, Distribute However!</p>
+                  </div>
                 </div>
               </div>
               
               {/* Basic Pot Information */}
-              <div className={selectedUseCase ? "" : "opacity-50 pointer-events-none"}>
-                <h2 className="text-xl font-bold text-primary mb-4">Basic Information</h2>
-                <div className="space-y-4">
-                  <div>
-                    <Label className="block text-secondary-foreground text-sm mb-2">Pot Name</Label>
-                    <Input 
-                      type="text" 
-                      placeholder="e.g., Weekend Trip Fund" 
-                      value={name}
-                      onChange={e => setName(e.target.value)}
-                      className="bg-secondary border border-primary text-secondary-foreground"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label className="block text-secondary-foreground text-sm mb-2">Description</Label>
-                    <Textarea 
-                      placeholder="What is this Pot for?" 
-                      rows={3}
-                      value={description}
-                      onChange={e => setDescription(e.target.value)}
-                      className="bg-secondary border border-primary text-secondary-foreground"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label className="block text-secondary-foreground text-sm mb-2">Target Goal (Dummy Coins)</Label>
-                    <div className="relative">
-                      <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-secondary-foreground">₡</span>
-                      <Input 
-                        type="number" 
-                        placeholder="0" 
-                        min="1"
-                        value={goalAmount}
-                        onChange={e => setGoalAmount(Number(e.target.value))}
-                        className="pl-8 bg-secondary border border-primary text-secondary-foreground"
-                      />
-                    </div>
+              <div className={selectedUseCase ? "border rounded-lg overflow-hidden" : "opacity-50 pointer-events-none border rounded-lg overflow-hidden"}>
+                <div 
+                  className="bg-secondary p-4 cursor-pointer flex justify-between items-center"
+                  onClick={() => selectedUseCase ? setBasicInfoOpen(!basicInfoOpen) : null}
+                >
+                  <h2 className="text-xl font-bold text-primary">Basic Information</h2>
+                  <div className="text-primary">
+                    {selectedUseCase ? (basicInfoOpen ? "▲" : "▼") : "▼"}
                   </div>
                 </div>
+                
+                {selectedUseCase && basicInfoOpen && (
+                  <div className="p-4 space-y-4 border-t">
+                    <div>
+                      <Label className="block text-secondary-foreground text-sm mb-2">Pot Name</Label>
+                      <Input 
+                        type="text" 
+                        placeholder="e.g., Weekend Trip Fund" 
+                        value={name}
+                        onChange={e => setName(e.target.value)}
+                        className="bg-secondary border border-primary text-secondary-foreground"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label className="block text-secondary-foreground text-sm mb-2">Description</Label>
+                      <Textarea 
+                        placeholder="What is this Pot for?" 
+                        rows={3}
+                        value={description}
+                        onChange={e => setDescription(e.target.value)}
+                        className="bg-secondary border border-primary text-secondary-foreground"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label className="block text-secondary-foreground text-sm mb-2">Target Goal (Dummy Coins)</Label>
+                      <div className="relative">
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-secondary-foreground">₡</span>
+                        <Input 
+                          type="number" 
+                          placeholder="0" 
+                          min="1"
+                          value={goalAmount}
+                          onChange={e => setGoalAmount(Number(e.target.value))}
+                          className="pl-8 bg-secondary border border-primary text-secondary-foreground"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
               
               {/* Payout Structure */}
-              <div className={selectedUseCase ? "" : "opacity-50 pointer-events-none"}>
-                <h2 className="text-xl font-bold text-primary mb-4">Payout Structure</h2>
-                
-                <RadioGroup 
-                  value={payoutStructure} 
-                  onValueChange={(value) => setPayoutStructure(value as any)}
-                  className="space-y-4"
+              <div className={selectedUseCase ? "border rounded-lg overflow-hidden mt-4" : "opacity-50 pointer-events-none border rounded-lg overflow-hidden mt-4"}>
+                <div 
+                  className="bg-secondary p-4 cursor-pointer flex justify-between items-center"
+                  onClick={() => selectedUseCase ? setPayoutStructureOpen(!payoutStructureOpen) : null}
                 >
-                  <div className={`bg-secondary rounded-lg p-4 ${payoutStructure === "one-to-many" ? "border-2 border-primary" : ""}`}>
-                    <div className="flex items-start">
-                      <RadioGroupItem value="one-to-many" id="one-to-many" className="mt-1" />
-                      <div className="ml-3">
-                        <Label htmlFor="one-to-many" className="font-medium text-primary">One-to-Many</Label>
-                        <p className="text-sm text-secondary-foreground">One user deposits funds that will be distributed to all members</p>
-                        <p className="text-xs text-secondary-foreground mt-1">Example: club leader distributing budgets, parent giving allowances</p>
-                      </div>
-                    </div>
+                  <h2 className="text-xl font-bold text-primary">Payout Structure</h2>
+                  <div className="text-primary">
+                    {selectedUseCase ? (payoutStructureOpen ? "▲" : "▼") : "▼"}
                   </div>
-                  
-                  <div className={`bg-secondary rounded-lg p-4 ${payoutStructure === "many-to-one" ? "border-2 border-primary" : ""}`}>
-                    <div className="flex items-start">
-                      <RadioGroupItem value="many-to-one" id="many-to-one" className="mt-1" />
-                      <div className="ml-3">
-                        <Label htmlFor="many-to-one" className="font-medium text-primary">Many-to-One</Label>
-                        <p className="text-sm text-secondary-foreground">Multiple users deposit funds for one recipient</p>
-                        <p className="text-xs text-secondary-foreground mt-1">Example: gift collection, emergency fund for a friend</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className={`bg-secondary rounded-lg p-4 ${payoutStructure === "many-to-selected" ? "border-2 border-primary" : ""}`}>
-                    <div className="flex items-start">
-                      <RadioGroupItem value="many-to-selected" id="many-to-selected" className="mt-1" />
-                      <div className="ml-3">
-                        <Label htmlFor="many-to-selected" className="font-medium text-primary">Many-to-Selected</Label>
-                        <p className="text-sm text-secondary-foreground">Multiple users deposit funds that will be distributed to select members</p>
-                        <p className="text-xs text-secondary-foreground mt-1">Example: group trip where only some members need financial support</p>
-                      </div>
-                    </div>
-                  </div>
-                </RadioGroup>
-              </div>
-              
-              {/* Withdrawal Approval */}
-              <div className={selectedUseCase ? "" : "opacity-50 pointer-events-none"}>
-                <h2 className="text-xl font-bold text-primary mb-4">Withdrawal Approval Method</h2>
+                </div>
                 
-                <RadioGroup 
-                  value={withdrawalMethod} 
-                  onValueChange={(value) => setWithdrawalMethod(value as any)}
-                  className="space-y-4"
-                >
-                  {/* Democratic Vote - show for one-to-many and many-to-selected */}
-                  {(payoutStructure === "one-to-many" || payoutStructure === "many-to-selected") && (
-                    <div className={`bg-secondary rounded-lg p-4 ${withdrawalMethod === "democratic" ? "border-2 border-primary" : ""}`}>
-                      <div className="flex items-start">
-                        <RadioGroupItem value="democratic" id="democratic" className="mt-1" />
-                        <div className="ml-3">
-                          <Label htmlFor="democratic" className="font-medium text-primary">Democratic Vote</Label>
-                          <p className="text-sm text-secondary-foreground">All members must vote; requires majority approval</p>
-                          
-                          {withdrawalMethod === "democratic" && (
-                            <div className="mt-2">
-                              <Label className="block text-xs text-secondary-foreground mb-1">Required Approval Percentage</Label>
-                              <Select value={voteThreshold} onValueChange={setVoteThreshold}>
-                                <SelectTrigger className="w-full bg-secondary border border-primary text-secondary-foreground">
-                                  <SelectValue placeholder="Select threshold" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="51">51% (Simple Majority)</SelectItem>
-                                  <SelectItem value="66">66% (Two Thirds)</SelectItem>
-                                  <SelectItem value="75">75% (Three Quarters)</SelectItem>
-                                  <SelectItem value="100">100% (Unanimous)</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Timed Release - show for one-to-many and many-to-one */}
-                  {(payoutStructure === "one-to-many" || payoutStructure === "many-to-one") && (
-                    <div className={`bg-secondary rounded-lg p-4 ${withdrawalMethod === "timed" ? "border-2 border-primary" : ""}`}>
-                      <div className="flex items-start">
-                        <RadioGroupItem value="timed" id="timed" className="mt-1" />
-                        <div className="ml-3 w-full">
-                          <Label htmlFor="timed" className="font-medium text-primary">Timed Release</Label>
-                          <p className="text-sm text-secondary-foreground">Funds locked until a specific date</p>
-                          
-                          {withdrawalMethod === "timed" && (
-                            <div className="mt-2">
-                              <Label className="block text-xs text-secondary-foreground mb-1">Release Date</Label>
-                              <Input 
-                                type="date" 
-                                value={releaseDate}
-                                onChange={e => setReleaseDate(e.target.value)}
-                                className="w-full bg-secondary border border-primary text-secondary-foreground"
-                              />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Auto-Withdraw - show for all payout structures */}
-                  <div className={`bg-secondary rounded-lg p-4 ${withdrawalMethod === "auto-withdraw" ? "border-2 border-primary" : ""}`}>
-                    <div className="flex items-start">
-                      <RadioGroupItem value="auto-withdraw" id="auto-withdraw" className="mt-1" />
-                      <div className="ml-3">
-                        <Label htmlFor="auto-withdraw" className="font-medium text-primary">Auto-Withdraw</Label>
-                        <p className="text-sm text-secondary-foreground">Recipients will automatically receive payouts in their Personal Pot Wallet</p>
-                        <p className="text-xs text-secondary-foreground mt-1">Recipients will receive a notification when funds are deposited</p>
-                      </div>
-                    </div>
-                  </div>
-                </RadioGroup>
-              </div>
-              
-              {/* Invite Members */}
-              <div className={selectedUseCase ? "" : "opacity-50 pointer-events-none"}>
-                <h2 className="text-xl font-bold text-primary mb-4 flex items-center">
-                  Invite Members
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button variant="ghost" size="sm" className="ml-2 h-6 w-6 rounded-full p-0">
-                          <FaInfo className="h-3 w-3 text-primary" />
-                          <span className="sr-only">Member Settings Info</span>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Configure who contributes and receives payouts from this Pot</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </h2>
-                <div className="space-y-4">
-                  <div className="flex flex-col md:flex-row gap-2">
-                    <div className="flex flex-1">
-                      <Input 
-                        type="text" 
-                        placeholder="Email or phone number" 
-                        value={memberInput}
-                        onChange={e => setMemberInput(e.target.value)}
-                        className="flex-grow rounded-r-none bg-secondary border border-primary text-secondary-foreground"
-                      />
-                      <Button 
-                        type="button" 
-                        onClick={handleAddMember}
-                        className="rounded-l-none btn-gradient"
-                      >
-                        <FaPlus className="mr-2" /> Add
-                      </Button>
-                    </div>
-                    
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" className="bg-secondary border border-primary text-secondary-foreground">
-                          <FaUserPlus className="mr-2" /> Recent Members <FaCaretDown className="ml-2" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-56 p-0">
-                        <div className="bg-secondary border border-primary rounded-md overflow-hidden">
-                          {recentMembers.map(contact => (
-                            <Button
-                              key={contact}
-                              variant="ghost"
-                              className="w-full justify-start rounded-none border-b border-primary/10 text-sm p-3"
-                              onClick={() => handleAddRecentMember(contact)}
-                            >
-                              {contact}
-                            </Button>
-                          ))}
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  
-                  {/* Member Table */}
-                  {members.length > 0 && (
-                    <div className="bg-secondary rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="font-medium text-primary">Added Members</h3>
-                        <div className="flex items-center gap-3 text-xs text-secondary-foreground">
-                          <div className="flex items-center">
-                            <span className="inline-block w-3 h-3 bg-gray-400 rounded-sm mr-1"></span>
-                            <span>No contribution/payout</span>
-                          </div>
-                          <div className="flex items-center">
-                            <span className="inline-block w-3 h-3 bg-amber-400 rounded-sm mr-1"></span>
-                            <span>Will contribute/receive payout</span>
+                {selectedUseCase && payoutStructureOpen && (
+                  <div className="p-4 border-t">
+                    <RadioGroup 
+                      value={payoutStructure} 
+                      onValueChange={(value) => setPayoutStructure(value as any)}
+                      className="space-y-4"
+                    >
+                      <div className={`bg-secondary rounded-lg p-4 ${payoutStructure === "one-to-many" ? "border-2 border-primary" : ""}`}>
+                        <div className="flex items-start">
+                          <RadioGroupItem value="one-to-many" id="one-to-many" className="mt-1" />
+                          <div className="ml-3">
+                            <Label htmlFor="one-to-many" className="font-medium text-primary">One-to-Many</Label>
+                            <p className="text-sm text-secondary-foreground">One user deposits funds that will be distributed to all members</p>
+                            <p className="text-xs text-secondary-foreground mt-1">Example: club leader distributing budgets, parent giving allowances</p>
                           </div>
                         </div>
                       </div>
                       
-                      {/* Table */}
-                      <div className="overflow-x-auto">
-                        <table className="w-full border-collapse">
-                          <thead>
-                            <tr className="text-left border-b border-primary/20">
-                              <th className="pb-2 font-medium text-primary">Contact</th>
-                              <th className="pb-2 font-medium text-primary text-center">Contribution?</th>
-                              <th className="pb-2 font-medium text-primary text-center">Payout?</th>
-                              <th className="pb-2 font-medium text-primary text-center">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {members.map(member => (
-                              <tr key={member.id} className="border-b border-primary/10 hover:bg-primary/5">
-                                <td className="py-2 text-secondary-foreground">
-                                  {member.id === "admin-user" ? (
-                                    <div className="flex items-center">
-                                      <span>{member.contact}</span>
-                                      <span className="text-amber-400 ml-2">👑</span>
-                                    </div>
-                                  ) : (
-                                    member.contact
-                                  )}
-                                </td>
-                                
-                                {/* Contribution Column */}
-                                <td className="py-2">
-                                  <div className="flex flex-col items-center justify-center">
-                                    <button
-                                      type="button"
-                                      onClick={() => toggleMemberContribution(member.contact)}
-                                      className="p-1 rounded-full focus:outline-none transition-transform hover:scale-110"
-                                      aria-label={
-                                        memberContributions[member.contact] 
-                                          ? "Remove contribution" 
-                                          : "Add contribution"
-                                      }
-                                    >
-                                      <FaUtensils 
-                                        className={
-                                          memberContributions[member.contact] !== undefined
-                                            ? "text-amber-400" 
-                                            : "text-gray-400"
-                                        } 
-                                        size={20} 
-                                      />
-                                    </button>
-                                    
-                                    {memberContributions[member.contact] !== undefined && (
-                                      <div className="mt-1">
-                                        <Input
-                                          type="number"
-                                          min="0"
-                                          value={memberContributions[member.contact] || ""}
-                                          onChange={(e) => setMemberContributionAmount(
-                                            member.contact, 
-                                            Number(e.target.value)
-                                          )}
-                                          className="w-20 h-7 text-sm text-center"
-                                          placeholder="$"
-                                        />
-                                      </div>
-                                    )}
-                                  </div>
-                                </td>
-                                
-                                {/* Payout Column */}
-                                <td className="py-2">
-                                  <div className="flex flex-col items-center justify-center">
-                                    <button
-                                      type="button"
-                                      onClick={() => toggleMemberPayout(member.contact)}
-                                      className="p-1 rounded-full focus:outline-none transition-transform hover:scale-110"
-                                      aria-label={
-                                        memberPayouts[member.contact] 
-                                          ? "Remove payout" 
-                                          : "Add payout"
-                                      }
-                                    >
-                                      <FaCoins 
-                                        className={
-                                          memberPayouts[member.contact] !== undefined
-                                            ? "text-amber-400" 
-                                            : "text-gray-400"
-                                        } 
-                                        size={20} 
-                                      />
-                                    </button>
-                                    
-                                    {memberPayouts[member.contact] !== undefined && (
-                                      <div className="mt-1">
-                                        <Input
-                                          type="number"
-                                          min="0"
-                                          value={memberPayouts[member.contact] || ""}
-                                          onChange={(e) => setMemberPayoutAmount(
-                                            member.contact, 
-                                            Number(e.target.value)
-                                          )}
-                                          className="w-20 h-7 text-sm text-center"
-                                          placeholder="$"
-                                        />
-                                      </div>
-                                    )}
-                                  </div>
-                                </td>
-                                
-                                {/* Actions Column */}
-                                <td className="py-2 text-center">
-                                  <button 
-                                    type="button"
-                                    onClick={() => handleRemoveMember(member.id)}
-                                    className="text-destructive p-1 rounded-full hover:bg-destructive/10 transition-colors"
-                                    aria-label="Remove member"
-                                  >
-                                    <FaTimes />
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                      <div className={`bg-secondary rounded-lg p-4 ${payoutStructure === "many-to-one" ? "border-2 border-primary" : ""}`}>
+                        <div className="flex items-start">
+                          <RadioGroupItem value="many-to-one" id="many-to-one" className="mt-1" />
+                          <div className="ml-3">
+                            <Label htmlFor="many-to-one" className="font-medium text-primary">Many-to-One</Label>
+                            <p className="text-sm text-secondary-foreground">Multiple users deposit funds for one recipient</p>
+                            <p className="text-xs text-secondary-foreground mt-1">Example: gift collection, emergency fund for a friend</p>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                      
+                      <div className={`bg-secondary rounded-lg p-4 ${payoutStructure === "many-to-selected" ? "border-2 border-primary" : ""}`}>
+                        <div className="flex items-start">
+                          <RadioGroupItem value="many-to-selected" id="many-to-selected" className="mt-1" />
+                          <div className="ml-3">
+                            <Label htmlFor="many-to-selected" className="font-medium text-primary">Many-to-Selected</Label>
+                            <p className="text-sm text-secondary-foreground">Multiple users deposit funds that will be distributed to select members</p>
+                            <p className="text-xs text-secondary-foreground mt-1">Example: group trip where only some members need financial support</p>
+                          </div>
+                        </div>
+                      </div>
+                    </RadioGroup>
+                  </div>
+                )}
+              </div>
+              
+              {/* Withdrawal Approval */}
+              <div className={selectedUseCase ? "border rounded-lg overflow-hidden mt-4" : "opacity-50 pointer-events-none border rounded-lg overflow-hidden mt-4"}>
+                <div 
+                  className="bg-secondary p-4 cursor-pointer flex justify-between items-center"
+                  onClick={() => selectedUseCase ? setWithdrawalMethodOpen(!withdrawalMethodOpen) : null}
+                >
+                  <h2 className="text-xl font-bold text-primary">Withdrawal Approval Method</h2>
+                  <div className="text-primary">
+                    {selectedUseCase ? (withdrawalMethodOpen ? "▲" : "▼") : "▼"}
+                  </div>
                 </div>
+                
+                {selectedUseCase && withdrawalMethodOpen && (
+                  <div className="p-4 border-t">
+                    <RadioGroup 
+                      value={withdrawalMethod} 
+                      onValueChange={(value) => setWithdrawalMethod(value as any)}
+                      className="space-y-4"
+                    >
+                      {/* Democratic Vote - show for one-to-many and many-to-selected */}
+                      {(payoutStructure === "one-to-many" || payoutStructure === "many-to-selected") && (
+                        <div className={`bg-secondary rounded-lg p-4 ${withdrawalMethod === "democratic" ? "border-2 border-primary" : ""}`}>
+                          <div className="flex items-start">
+                            <RadioGroupItem value="democratic" id="democratic" className="mt-1" />
+                            <div className="ml-3">
+                              <Label htmlFor="democratic" className="font-medium text-primary">Democratic Vote</Label>
+                              <p className="text-sm text-secondary-foreground">All members must vote; requires majority approval</p>
+                              
+                              {withdrawalMethod === "democratic" && (
+                                <div className="mt-2">
+                                  <Label className="block text-xs text-secondary-foreground mb-1">Required Approval Percentage</Label>
+                                  <Select value={voteThreshold} onValueChange={setVoteThreshold}>
+                                    <SelectTrigger className="w-full bg-secondary border border-primary text-secondary-foreground">
+                                      <SelectValue placeholder="Select threshold" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="51">51% (Simple Majority)</SelectItem>
+                                      <SelectItem value="66">66% (Two Thirds)</SelectItem>
+                                      <SelectItem value="75">75% (Three Quarters)</SelectItem>
+                                      <SelectItem value="100">100% (Unanimous)</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Timed Release - show for one-to-many and many-to-one */}
+                      {(payoutStructure === "one-to-many" || payoutStructure === "many-to-one") && (
+                        <div className={`bg-secondary rounded-lg p-4 ${withdrawalMethod === "timed" ? "border-2 border-primary" : ""}`}>
+                          <div className="flex items-start">
+                            <RadioGroupItem value="timed" id="timed" className="mt-1" />
+                            <div className="ml-3 w-full">
+                              <Label htmlFor="timed" className="font-medium text-primary">Timed Release</Label>
+                              <p className="text-sm text-secondary-foreground">Funds locked until a specific date</p>
+                              
+                              {withdrawalMethod === "timed" && (
+                                <div className="mt-2">
+                                  <Label className="block text-xs text-secondary-foreground mb-1">Release Date</Label>
+                                  <Input 
+                                    type="date" 
+                                    value={releaseDate}
+                                    onChange={e => setReleaseDate(e.target.value)}
+                                    className="w-full bg-secondary border border-primary text-secondary-foreground"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Auto-Withdraw - show for all payout structures */}
+                      <div className={`bg-secondary rounded-lg p-4 ${withdrawalMethod === "auto-withdraw" ? "border-2 border-primary" : ""}`}>
+                        <div className="flex items-start">
+                          <RadioGroupItem value="auto-withdraw" id="auto-withdraw" className="mt-1" />
+                          <div className="ml-3">
+                            <Label htmlFor="auto-withdraw" className="font-medium text-primary">Auto-Withdraw</Label>
+                            <p className="text-sm text-secondary-foreground">Recipients will automatically receive payouts in their Personal Pot Wallet</p>
+                            <p className="text-xs text-secondary-foreground mt-1">Recipients will receive a notification when funds are deposited</p>
+                          </div>
+                        </div>
+                      </div>
+                    </RadioGroup>
+                  </div>
+                )}
+              </div>
+              
+              {/* Invite Members */}
+              <div className={selectedUseCase ? "border rounded-lg overflow-hidden mt-4" : "opacity-50 pointer-events-none border rounded-lg overflow-hidden mt-4"}>
+                <div 
+                  className="bg-secondary p-4 cursor-pointer flex justify-between items-center"
+                  onClick={() => selectedUseCase ? setInviteMembersOpen(!inviteMembersOpen) : null}
+                >
+                  <h2 className="text-xl font-bold text-primary flex items-center">
+                    Invite Members
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="sm" className="ml-2 h-6 w-6 rounded-full p-0">
+                            <FaInfo className="h-3 w-3 text-primary" />
+                            <span className="sr-only">Member Settings Info</span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Configure who contributes and receives payouts from this Pot</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </h2>
+                  <div className="text-primary">
+                    {selectedUseCase ? (inviteMembersOpen ? "▲" : "▼") : "▼"}
+                  </div>
+                </div>
+                
+                {selectedUseCase && inviteMembersOpen && (
+                  <div className="p-4 border-t">
+                    <div className="space-y-4">
+                      <div className="flex flex-col md:flex-row gap-2">
+                        <div className="flex flex-1">
+                          <Input 
+                            type="text" 
+                            placeholder="Email or phone number" 
+                            value={memberInput}
+                            onChange={e => setMemberInput(e.target.value)}
+                            className="flex-grow rounded-r-none bg-secondary border border-primary text-secondary-foreground"
+                          />
+                          <Button 
+                            type="button" 
+                            onClick={handleAddMember}
+                            className="rounded-l-none btn-gradient"
+                          >
+                            <FaPlus className="mr-2" /> Add
+                          </Button>
+                        </div>
+                        
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" className="bg-secondary border border-primary text-secondary-foreground">
+                              <FaUserPlus className="mr-2" /> Recent Members <FaCaretDown className="ml-2" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-56 p-0">
+                            <div className="bg-secondary border border-primary rounded-md overflow-hidden">
+                              {recentMembers.map(contact => (
+                                <Button
+                                  key={contact}
+                                  variant="ghost"
+                                  className="w-full justify-start rounded-none border-b border-primary/10 text-sm p-3"
+                                  onClick={() => handleAddRecentMember(contact)}
+                                >
+                                  {contact}
+                                </Button>
+                              ))}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      
+                      {/* Member Table */}
+                      {members.length > 0 && (
+                        <div className="bg-secondary rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-4">
+                            <h3 className="font-medium text-primary">Added Members</h3>
+                            <div className="flex items-center gap-3 text-xs text-secondary-foreground">
+                              <div className="flex items-center">
+                                <span className="inline-block w-3 h-3 bg-gray-400 rounded-sm mr-1"></span>
+                                <span>No contribution/payout</span>
+                              </div>
+                              <div className="flex items-center">
+                                <span className="inline-block w-3 h-3 bg-amber-400 rounded-sm mr-1"></span>
+                                <span>Will contribute/receive payout</span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Table */}
+                          <div className="overflow-x-auto">
+                            <table className="w-full border-collapse">
+                              <thead>
+                                <tr className="text-left border-b border-primary/20">
+                                  <th className="pb-2 font-medium text-primary">Contact</th>
+                                  <th className="pb-2 font-medium text-primary text-center">Contribution?</th>
+                                  <th className="pb-2 font-medium text-primary text-center">Payout?</th>
+                                  <th className="pb-2 font-medium text-primary text-center">Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {members.map(member => (
+                                  <tr key={member.id} className="border-b border-primary/10 hover:bg-primary/5">
+                                    <td className="py-2 text-secondary-foreground">
+                                      {member.id === "admin-user" ? (
+                                        <div className="flex items-center">
+                                          <span>{member.contact}</span>
+                                          <span className="text-amber-400 ml-2">👑</span>
+                                        </div>
+                                      ) : (
+                                        member.contact
+                                      )}
+                                    </td>
+                                    
+                                    {/* Contribution Column */}
+                                    <td className="py-2">
+                                      <div className="flex flex-col items-center justify-center">
+                                        <button
+                                          type="button"
+                                          onClick={() => toggleMemberContribution(member.contact)}
+                                          className="p-1 rounded-full focus:outline-none transition-transform hover:scale-110"
+                                          aria-label={
+                                            memberContributions[member.contact] 
+                                              ? "Remove contribution" 
+                                              : "Add contribution"
+                                          }
+                                        >
+                                          <FaUtensils 
+                                            className={
+                                              memberContributions[member.contact] !== undefined
+                                                ? "text-amber-400" 
+                                                : "text-gray-400"
+                                            } 
+                                            size={20} 
+                                          />
+                                        </button>
+                                        
+                                        {memberContributions[member.contact] !== undefined && (
+                                          <div className="mt-1">
+                                            <Input
+                                              type="number"
+                                              min="0"
+                                              placeholder="Amount"
+                                              value={memberContributions[member.contact]}
+                                              onChange={(e) => setMemberContributionAmount(member.contact, Number(e.target.value))}
+                                              className="w-20 text-xs h-7 px-2 bg-secondary border border-primary text-secondary-foreground"
+                                            />
+                                          </div>
+                                        )}
+                                      </div>
+                                    </td>
+                                    
+                                    {/* Payout Column */}
+                                    <td className="py-2">
+                                      <div className="flex flex-col items-center justify-center">
+                                        <button
+                                          type="button"
+                                          onClick={() => toggleMemberPayout(member.contact)}
+                                          className="p-1 rounded-full focus:outline-none transition-transform hover:scale-110"
+                                          aria-label={
+                                            memberPayouts[member.contact] 
+                                              ? "Remove as recipient" 
+                                              : "Add as recipient"
+                                          }
+                                        >
+                                          <FaCoins 
+                                            className={
+                                              memberPayouts[member.contact] !== undefined
+                                                ? "text-amber-400" 
+                                                : "text-gray-400"
+                                            } 
+                                            size={20} 
+                                          />
+                                        </button>
+                                        
+                                        {memberPayouts[member.contact] !== undefined && (
+                                          <div className="mt-1">
+                                            <Input
+                                              type="number"
+                                              min="0"
+                                              placeholder="Amount"
+                                              value={memberPayouts[member.contact]}
+                                              onChange={(e) => setMemberPayoutAmount(member.contact, Number(e.target.value))}
+                                              className="w-20 text-xs h-7 px-2 bg-secondary border border-primary text-secondary-foreground"
+                                            />
+                                          </div>
+                                        )}
+                                      </div>
+                                    </td>
+                                    
+                                    {/* Actions Column */}
+                                    <td className="py-2 text-center">
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleRemoveMember(member.id)}
+                                        className="text-destructive hover:bg-destructive/10 hover:text-destructive p-1.5 h-8 w-8"
+                                        disabled={member.id === "admin-user"}
+                                      >
+                                        <FaTimes size={14} />
+                                      </Button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
               
               {/* Error Message */}

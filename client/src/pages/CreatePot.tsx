@@ -928,34 +928,7 @@ export default function CreatePot() {
                             </table>
                           </div>
                           
-                          {/* Equal split question - only show when we have contributing members */}
-                          {Object.keys(memberContributions).length > 0 && (
-                            <div className="mt-6 p-3 bg-primary/5 rounded-lg">
-                              <p className="text-sm font-medium mb-3">
-                                Split contributions equally?
-                              </p>
-                              <div className="flex items-center gap-4">
-                                <Button
-                                  type="button"
-                                  variant={equalSplit === true ? "default" : "outline"}
-                                  size="sm"
-                                  onClick={() => handleEqualSplit(true)}
-                                  className={equalSplit === true ? "bg-green-600 hover:bg-green-700" : ""}
-                                >
-                                  <FaCheck className="mr-1" size={12} /> Yes
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant={equalSplit === false ? "default" : "outline"}
-                                  size="sm"
-                                  onClick={() => handleEqualSplit(false)}
-                                  className={equalSplit === false ? "bg-amber-600 hover:bg-amber-700" : ""}
-                                >
-                                  <FaTimesIcon className="mr-1" size={12} /> No
-                                </Button>
-                              </div>
-                            </div>
-                          )}
+                          {/* Removed duplicate equal split section */}
                         </div>
                       )}
                     </div>

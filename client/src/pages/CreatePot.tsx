@@ -12,7 +12,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { generateId } from "@/lib/utils";
-import { FaPlus, FaTimes, FaCoins, FaUtensils, FaCaretDown, FaUserPlus, FaInfo, FaCheck, FaTimes as FaTimesIcon } from "react-icons/fa";
+import { FaPlus, FaTimes, FaCoins, FaUtensils, FaCaretDown, FaUserPlus, FaInfo, FaCheck, FaTimes as FaTimesIcon, FaDollarSign, FaWindowClose } from "react-icons/fa";
 
 type Member = {
   id: string;
@@ -749,7 +749,7 @@ export default function CreatePot() {
                             <div className="mb-4 bg-primary/5 p-3 rounded-md">
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center">
-                                  <FaEquals size={16} className="text-primary mr-2" />
+                                  <FaDollarSign size={16} className="text-primary mr-2" />
                                   <span className="font-medium">Split contributions equally?</span>
                                   {equalSplit === true && (
                                     <span className="ml-2 text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">
@@ -778,7 +778,7 @@ export default function CreatePot() {
                                     }`}
                                     onClick={() => handleEqualSplit(false)}
                                   >
-                                    <FaTimesCircle size={12} className="mr-1" /> No
+                                    <FaTimes size={12} className="mr-1" /> No
                                   </button>
                                 </div>
                               </div>

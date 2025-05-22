@@ -12,7 +12,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { generateId } from "@/lib/utils";
-import { FaPlus, FaTimes, FaCoins, FaUtensils, FaCaretDown, FaUserPlus, FaInfo } from "react-icons/fa";
+import { FaPlus, FaTimes, FaCoins, FaUtensils, FaCaretDown, FaUserPlus, FaInfo, FaCheck, FaTimes as FaTimesIcon } from "react-icons/fa";
 
 type Member = {
   id: string;
@@ -24,18 +24,37 @@ export default function CreatePot() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   
+  // Basic information state
   const [selectedUseCase, setSelectedUseCase] = useState<string>("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [goalAmount, setGoalAmount] = useState<number>(500);
   const [payoutStructure, setPayoutStructure] = useState<"one-to-many" | "many-to-one" | "many-to-selected">("one-to-many");
   const [withdrawalMethod, setWithdrawalMethod] = useState<"democratic" | "admin" | "timed" | "auto-withdraw">("democratic");
+  const [voteThreshold, setVoteThreshold] = useState<string>("75");
+  const [releaseDate, setReleaseDate] = useState<string>("");
   
-  // State for section dropdowns
+  // Section dropdown states
   const [basicInfoOpen, setBasicInfoOpen] = useState<boolean>(false);
   const [payoutStructureOpen, setPayoutStructureOpen] = useState<boolean>(false);
   const [withdrawalMethodOpen, setWithdrawalMethodOpen] = useState<boolean>(false);
   const [inviteMembersOpen, setInviteMembersOpen] = useState<boolean>(false);
+  
+  // Member management state
+  const [memberInput, setMemberInput] = useState("");
+  const [members, setMembers] = useState<Member[]>([
+    // Admin is included by default
+    { id: "admin-user", contact: "admin@thepot.com" }
+  ]);
+  const [recentMembers] = useState<string[]>(["john@example.com", "sarah@example.com", "mike@example.com", "alex@example.com"]);
+  const [memberContributions, setMemberContributions] = useState<Record<string, number>>({});
+  const [memberPayouts, setMemberPayouts] = useState<Record<string, number>>({});
+  
+  // UI states
+  const [potCreationError, setPotCreationError] = useState<string>("");
+  const [equalSplit, setEqualSplit] = useState<boolean | null>(null);
+  const [missingContributions, setMissingContributions] = useState<boolean>(false);
+  const [pulsingInputs, setPulsingInputs] = useState<boolean>(false);
   
   // Auto-open sections when a use case is selected
   useEffect(() => {
@@ -46,6 +65,21 @@ export default function CreatePot() {
       setInviteMembersOpen(true);
     }
   }, [selectedUseCase]);
+  
+  // Update contribution amounts when equal split is selected
+  useEffect(() => {
+    if (equalSplit === true && Object.keys(memberContributions).length > 0) {
+      const contributingMembers = Object.keys(memberContributions);
+      const amountPerMember = Math.ceil(goalAmount / contributingMembers.length);
+      
+      const updatedContributions = { ...memberContributions };
+      contributingMembers.forEach(member => {
+        updatedContributions[member] = amountPerMember;
+      });
+      
+      setMemberContributions(updatedContributions);
+    }
+  }, [equalSplit, goalAmount, memberContributions]);
   
   // Set allowed withdrawal methods based on payout structure
   useEffect(() => {
@@ -65,17 +99,16 @@ export default function CreatePot() {
     }
   }, [payoutStructure, withdrawalMethod]);
   
-  const [voteThreshold, setVoteThreshold] = useState<string>("75");
-  const [releaseDate, setReleaseDate] = useState<string>("");
-  const [memberInput, setMemberInput] = useState("");
-  const [members, setMembers] = useState<Member[]>([
-    // Admin is included by default
-    { id: "admin-user", contact: "admin@thepot.com" }
-  ]);
-  const [recentMembers] = useState<string[]>(["john@example.com", "sarah@example.com", "mike@example.com", "alex@example.com"]);
-  const [memberContributions, setMemberContributions] = useState<Record<string, number>>({});
-  const [memberPayouts, setMemberPayouts] = useState<Record<string, number>>({});
-  const [potCreationError, setPotCreationError] = useState<string>("");
+  // Handle pulsing animation for missing contribution inputs
+  useEffect(() => {
+    if (pulsingInputs) {
+      const timer = setTimeout(() => {
+        setPulsingInputs(false);
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [pulsingInputs]);
   
   const handleAddMember = () => {
     if (!memberInput.trim()) return;
@@ -151,6 +184,7 @@ export default function CreatePot() {
     if (updatedContributions[contact] !== undefined) {
       // If contribution exists, remove it (deselect)
       delete updatedContributions[contact];
+      setEqualSplit(null); // Reset equal split when changing contributors
     } else {
       // If no contribution, add it with default value (select)
       updatedContributions[contact] = 0; // Default value, will be updated with input
@@ -164,6 +198,11 @@ export default function CreatePot() {
       ...memberContributions,
       [contact]: amount
     });
+    
+    // If user manually enters an amount, we're no longer doing equal split
+    if (equalSplit) {
+      setEqualSplit(false);
+    }
   };
   
   const toggleMemberPayout = (contact: string) => {
@@ -207,11 +246,34 @@ export default function CreatePot() {
     });
   };
   
+  const handleEqualSplit = (split: boolean) => {
+    setEqualSplit(split);
+    
+    if (split && Object.keys(memberContributions).length > 0) {
+      // Calculate equal split automatically
+      const contributingMembers = Object.keys(memberContributions);
+      const amountPerMember = Math.ceil(goalAmount / contributingMembers.length);
+      
+      const updatedContributions = { ...memberContributions };
+      contributingMembers.forEach(member => {
+        updatedContributions[member] = amountPerMember;
+      });
+      
+      setMemberContributions(updatedContributions);
+    }
+  };
+  
+  const getContributingMembersCount = () => {
+    return Object.keys(memberContributions).length;
+  };
+  
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     // Clear any previous error
     setPotCreationError("");
+    setMissingContributions(false);
+    setPulsingInputs(false);
     
     if (!selectedUseCase) {
       toast({
@@ -247,6 +309,23 @@ export default function CreatePot() {
         variant: "destructive",
       });
       return;
+    }
+    
+    // Check that all contributors have amounts entered
+    const contributingMembers = Object.keys(memberContributions);
+    if (contributingMembers.length > 0) {
+      // Check if any contribution amount is missing or zero
+      const missingAmount = contributingMembers.some(member => 
+        memberContributions[member] === 0 || memberContributions[member] === undefined
+      );
+      
+      if (missingAmount) {
+        setPotCreationError("Please enter contribution amounts for all members");
+        setMissingContributions(true);
+        setPulsingInputs(true);
+        setTimeout(() => setPotCreationError(""), 5000);
+        return;
+      }
     }
     
     // Validate payout structure rules
@@ -721,7 +800,11 @@ export default function CreatePot() {
                                               placeholder="Amount"
                                               value={memberContributions[member.contact]}
                                               onChange={(e) => setMemberContributionAmount(member.contact, Number(e.target.value))}
-                                              className="w-20 text-xs h-7 px-2 bg-secondary border border-primary text-secondary-foreground"
+                                              className={`w-16 text-xs h-7 px-2 bg-secondary text-secondary-foreground ${
+                                                pulsingInputs && (memberContributions[member.contact] === 0 || memberContributions[member.contact] === undefined) 
+                                                  ? "border-amber-400 animate-pulse-border" 
+                                                  : "border-primary"
+                                              }`}
                                             />
                                           </div>
                                         )}
@@ -752,16 +835,22 @@ export default function CreatePot() {
                                         </button>
                                         
                                         {memberPayouts[member.contact] !== undefined && (
-                                          <div className="mt-1">
-                                            <Input
-                                              type="number"
-                                              min="0"
-                                              placeholder="Amount"
-                                              value={memberPayouts[member.contact]}
-                                              onChange={(e) => setMemberPayoutAmount(member.contact, Number(e.target.value))}
-                                              className="w-20 text-xs h-7 px-2 bg-secondary border border-primary text-secondary-foreground"
-                                            />
-                                          </div>
+                                          payoutStructure !== "many-to-one" ? (
+                                            <div className="mt-1">
+                                              <Input
+                                                type="number"
+                                                min="0"
+                                                placeholder="Amount"
+                                                value={memberPayouts[member.contact]}
+                                                onChange={(e) => setMemberPayoutAmount(member.contact, Number(e.target.value))}
+                                                className="w-16 text-xs h-7 px-2 bg-secondary border border-primary text-secondary-foreground"
+                                              />
+                                            </div>
+                                          ) : (
+                                            <div className="mt-1 text-xs text-amber-400">
+                                              Full amount
+                                            </div>
+                                          )
                                         )}
                                       </div>
                                     </td>
@@ -784,6 +873,38 @@ export default function CreatePot() {
                               </tbody>
                             </table>
                           </div>
+                          
+                          {/* Equal split question - only show when we have contributing members */}
+                          {Object.keys(memberContributions).length > 0 && (
+                            <div className="mt-6 p-3 bg-primary/5 rounded-lg">
+                              <p className="text-sm font-medium mb-3">
+                                {goalAmount} / {getContributingMembersCount()} users contributing? 
+                                <span className="ml-1 text-secondary-foreground">
+                                  (${Math.ceil(goalAmount / getContributingMembersCount())} each)
+                                </span>
+                              </p>
+                              <div className="flex items-center gap-4">
+                                <Button
+                                  type="button"
+                                  variant={equalSplit === true ? "default" : "outline"}
+                                  size="sm"
+                                  onClick={() => handleEqualSplit(true)}
+                                  className={equalSplit === true ? "bg-green-600 hover:bg-green-700" : ""}
+                                >
+                                  <FaCheck className="mr-1" size={12} /> Yes
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant={equalSplit === false ? "default" : "outline"}
+                                  size="sm"
+                                  onClick={() => handleEqualSplit(false)}
+                                  className={equalSplit === false ? "bg-amber-600 hover:bg-amber-700" : ""}
+                                >
+                                  <FaTimesIcon className="mr-1" size={12} /> No
+                                </Button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

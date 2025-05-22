@@ -744,6 +744,50 @@ export default function CreatePot() {
                             </div>
                           </div>
                           
+                          {/* Equal Split Option */}
+                          {getContributingMembersCount() > 1 && (
+                            <div className="mb-4 bg-primary/5 p-3 rounded-md">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center">
+                                  <FaEquals size={16} className="text-primary mr-2" />
+                                  <span className="font-medium">Split contributions equally?</span>
+                                  {equalSplit === true && (
+                                    <span className="ml-2 text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">
+                                      ${Math.ceil(goalAmount / getContributingMembersCount())} per person
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex space-x-2">
+                                  <button
+                                    type="button"
+                                    className={`px-3 py-1 rounded-full text-sm flex items-center ${
+                                      equalSplit === true 
+                                        ? 'bg-green-500 text-white' 
+                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                    }`}
+                                    onClick={() => handleEqualSplit(true)}
+                                  >
+                                    <FaCheck size={12} className="mr-1" /> Yes
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={`px-3 py-1 rounded-full text-sm flex items-center ${
+                                      equalSplit === false 
+                                        ? 'bg-gray-700 text-white' 
+                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                    }`}
+                                    onClick={() => handleEqualSplit(false)}
+                                  >
+                                    <FaTimesCircle size={12} className="mr-1" /> No
+                                  </button>
+                                </div>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                This will divide the goal amount of ${goalAmount.toFixed(2)} equally among {getContributingMembersCount()} members.
+                              </p>
+                            </div>
+                          )}
+                          
                           {/* Table */}
                           <div className="overflow-x-auto">
                             <table className="w-full border-collapse">

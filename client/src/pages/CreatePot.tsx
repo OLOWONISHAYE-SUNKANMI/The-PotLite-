@@ -804,12 +804,22 @@ export default function CreatePot() {
                                   <tr key={member.id} className="border-b border-primary/10 hover:bg-primary/5">
                                     <td className="py-2 text-secondary-foreground">
                                       {member.id === "admin-user" ? (
-                                        <div className="flex items-center">
-                                          <span>{member.contact}</span>
-                                          <span className="text-amber-400 ml-2">👑</span>
+                                        <div className="flex flex-col">
+                                          <div className="flex items-center">
+                                            <span>{member.contact}</span>
+                                            <span className="text-amber-400 ml-2">👑</span>
+                                          </div>
                                         </div>
                                       ) : (
-                                        member.contact
+                                        <div className="flex flex-col">
+                                          <span>{member.contact}</span>
+                                          {/* Display notification for non-subscribed users */}
+                                          {member.contact !== "admin@thepot.com" && (
+                                            <span className="text-xs text-amber-500 mt-1">
+                                              (User not subscribed, will incur INDIVIDUAL transaction fee upon Contribution/Payout.)
+                                            </span>
+                                          )}
+                                        </div>
                                       )}
                                     </td>
                                     
@@ -918,37 +928,7 @@ export default function CreatePot() {
                             </table>
                           </div>
                           
-                          {/* Equal split question - only show when we have contributing members */}
-                          {Object.keys(memberContributions).length > 0 && (
-                            <div className="mt-6 p-3 bg-primary/5 rounded-lg">
-                              <p className="text-sm font-medium mb-3">
-                                {goalAmount} / {getContributingMembersCount()} users contributing? 
-                                <span className="ml-1 text-secondary-foreground">
-                                  (${Math.ceil(goalAmount / getContributingMembersCount())} each)
-                                </span>
-                              </p>
-                              <div className="flex items-center gap-4">
-                                <Button
-                                  type="button"
-                                  variant={equalSplit === true ? "default" : "outline"}
-                                  size="sm"
-                                  onClick={() => handleEqualSplit(true)}
-                                  className={equalSplit === true ? "bg-green-600 hover:bg-green-700" : ""}
-                                >
-                                  <FaCheck className="mr-1" size={12} /> Yes
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant={equalSplit === false ? "default" : "outline"}
-                                  size="sm"
-                                  onClick={() => handleEqualSplit(false)}
-                                  className={equalSplit === false ? "bg-amber-600 hover:bg-amber-700" : ""}
-                                >
-                                  <FaTimesIcon className="mr-1" size={12} /> No
-                                </Button>
-                              </div>
-                            </div>
-                          )}
+                          {/* Removed target goal calculation section as requested */}
                         </div>
                       )}
                     </div>

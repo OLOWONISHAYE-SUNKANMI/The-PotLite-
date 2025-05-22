@@ -37,6 +37,16 @@ export default function CreatePot() {
   const [withdrawalMethodOpen, setWithdrawalMethodOpen] = useState<boolean>(false);
   const [inviteMembersOpen, setInviteMembersOpen] = useState<boolean>(false);
   
+  // Auto-open sections when a use case is selected
+  useEffect(() => {
+    if (selectedUseCase) {
+      setBasicInfoOpen(true);
+      setPayoutStructureOpen(true);
+      setWithdrawalMethodOpen(true);
+      setInviteMembersOpen(true);
+    }
+  }, [selectedUseCase]);
+  
   // Set allowed withdrawal methods based on payout structure
   useEffect(() => {
     // Reset withdrawal method if current one isn't allowed for the selected payout structure

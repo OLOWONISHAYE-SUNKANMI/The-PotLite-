@@ -53,6 +53,7 @@ export default function CreatePot() {
   // UI states
   const [potCreationError, setPotCreationError] = useState<string>("");
   const [equalSplit, setEqualSplit] = useState<boolean | null>(null);
+  const [contributionMethod, setContributionMethod] = useState<"individual" | "just-reach-goal" | null>(null);
   const [missingContributions, setMissingContributions] = useState<boolean>(false);
   const [pulsingInputs, setPulsingInputs] = useState<boolean>(false);
   
@@ -697,6 +698,43 @@ export default function CreatePot() {
                               <p className="text-xs text-muted-foreground mt-1">
                                 This will divide the goal amount of ${goalAmount.toFixed(2)} equally among {getContributingMembersCount()} members.
                               </p>
+                              
+                              {/* Contribution Method Options */}
+                              {equalSplit === false && (
+                                <div className="mt-3 space-y-2">
+                                  <p className="text-sm font-medium text-primary">Choose contribution method:</p>
+                                  <div className="flex flex-col space-y-2">
+                                    <button
+                                      type="button"
+                                      className={`p-3 rounded-lg border text-left transition-all ${
+                                        contributionMethod === "individual"
+                                          ? 'border-primary bg-primary/10 text-primary'
+                                          : 'border-gray-300 hover:border-primary/50'
+                                      }`}
+                                      onClick={() => setContributionMethod("individual")}
+                                    >
+                                      <div className="font-medium">Input Individual Contribution</div>
+                                      <div className="text-xs text-muted-foreground mt-1">
+                                        Enter specific amounts for each contributing member
+                                      </div>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className={`p-3 rounded-lg border text-left transition-all ${
+                                        contributionMethod === "just-reach-goal"
+                                          ? 'border-primary bg-primary/10 text-primary'
+                                          : 'border-gray-300 hover:border-primary/50'
+                                      }`}
+                                      onClick={() => setContributionMethod("just-reach-goal")}
+                                    >
+                                      <div className="font-medium">Just Reach Goal</div>
+                                      <div className="text-xs text-muted-foreground mt-1">
+                                        Members can deposit any amount to reach the target goal
+                                      </div>
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           )}
                           
@@ -759,20 +797,31 @@ export default function CreatePot() {
                                         </button>
                                         
                                         {memberContributions[member.contact] !== undefined && (
-                                          <div className="mt-1">
-                                            <Input
-                                              type="number"
-                                              min="0"
-                                              placeholder="Amount"
-                                              value={memberContributions[member.contact]}
-                                              onChange={(e) => setMemberContributionAmount(member.contact, Number(e.target.value))}
-                                              className={`w-16 text-xs h-7 px-2 bg-secondary text-secondary-foreground ${
-                                                pulsingInputs && (memberContributions[member.contact] === 0 || memberContributions[member.contact] === undefined) 
-                                                  ? "border-amber-400 animate-pulse-border" 
-                                                  : "border-primary"
-                                              }`}
-                                            />
-                                          </div>
+                                          <>
+                                            {/* Show input field only for equal split or individual contribution method */}
+                                            {(equalSplit === true || contributionMethod === "individual") && (
+                                              <div className="mt-1">
+                                                <Input
+                                                  type="number"
+                                                  min="0"
+                                                  placeholder="Amount"
+                                                  value={memberContributions[member.contact]}
+                                                  onChange={(e) => setMemberContributionAmount(member.contact, Number(e.target.value))}
+                                                  className={`w-16 text-xs h-7 px-2 bg-secondary text-secondary-foreground ${
+                                                    pulsingInputs && (memberContributions[member.contact] === 0 || memberContributions[member.contact] === undefined) 
+                                                      ? "border-amber-400 animate-pulse-border" 
+                                                      : "border-primary"
+                                                  }`}
+                                                />
+                                              </div>
+                                            )}
+                                            {/* Show "Any amount" text for just-reach-goal method */}
+                                            {contributionMethod === "just-reach-goal" && (
+                                              <div className="mt-1 text-xs text-muted-foreground">
+                                                Any amount
+                                              </div>
+                                            )}
+                                          </>
                                         )}
                                       </div>
                                     </td>

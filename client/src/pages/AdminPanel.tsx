@@ -159,40 +159,59 @@ export default function AdminPanel() {
                     </div>
                     
                     {expandedExample === 'one-to-many' && (
-                      <div className="mt-4 pt-4 border-t space-y-4">
-                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-4">
-                          <h5 className="font-medium text-primary mb-3 flex items-center">
-                            <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                            Recipient Details
-                          </h5>
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <p className="text-muted-foreground">Payout Structure</p>
-                              <p className="font-medium">One-to-Many</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Your Role</p>
-                              <p className="font-medium">Sole Recipient</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Contributors</p>
-                              <p className="font-medium">5 Members</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Withdrawal Method</p>
-                              <p className="font-medium">Admin Approval</p>
+                      <div className="mt-4 pt-4 border-t">
+                        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-lg space-y-6">
+                          {/* Pot Description */}
+                          <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg">
+                            <h6 className="font-medium text-blue-900 mb-2">Pot Description</h6>
+                            <p className="text-blue-800 text-sm italic">
+                              "We're collecting funds to celebrate Sarah's birthday with a surprise party and gifts. 
+                              Sarah has been such an amazing friend to all of us, and we want to make her day special!"
+                            </p>
+                          </div>
+                          
+                          {/* Recipient Details */}
+                          <div className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-lg p-5 border border-green-200">
+                            <h5 className="font-semibold text-green-900 mb-4 flex items-center text-lg">
+                              <span className="w-3 h-3 bg-green-500 rounded-full mr-3"></span>
+                              Your Recipient Status
+                            </h5>
+                            <div className="grid grid-cols-2 gap-6 text-sm">
+                              <div className="space-y-3">
+                                <div>
+                                  <p className="text-green-700 font-medium">Payout Structure</p>
+                                  <p className="text-green-900 font-semibold">One-to-Many</p>
+                                </div>
+                                <div>
+                                  <p className="text-green-700 font-medium">Your Role</p>
+                                  <p className="text-green-900 font-semibold">Sole Recipient 🎁</p>
+                                </div>
+                              </div>
+                              <div className="space-y-3">
+                                <div>
+                                  <p className="text-green-700 font-medium">Contributors</p>
+                                  <p className="text-green-900 font-semibold">Sarah, Mike, Alex, Jessica, David</p>
+                                </div>
+                                <div>
+                                  <p className="text-green-700 font-medium">Withdrawal Method</p>
+                                  <p className="text-green-900 font-semibold">Admin Approval</p>
+                                </div>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                          <div className="flex items-center mb-2">
-                            <span className="text-green-600 mr-2">✅</span>
-                            <h6 className="font-medium text-green-800">Ready for Payout</h6>
+                          
+                          {/* Status */}
+                          <div className="bg-gradient-to-r from-green-100 to-green-50 border border-green-300 rounded-lg p-5">
+                            <div className="flex items-center mb-3">
+                              <span className="text-green-600 mr-3 text-xl">✅</span>
+                              <h6 className="font-semibold text-green-800 text-lg">Ready for Payout</h6>
+                            </div>
+                            <p className="text-green-700 leading-relaxed">
+                              Congratulations! The birthday gift fund has reached its ₡200 goal. The admin can now 
+                              initiate the payout process. You'll receive the full amount directly to your Personal Pot 
+                              within the app, ready for use however you'd like!
+                            </p>
                           </div>
-                          <p className="text-sm text-green-700">
-                            The admin can now initiate the payout. You'll receive the full ₡200 amount directly to your account.
-                          </p>
                         </div>
                       </div>
                     )}
@@ -216,46 +235,69 @@ export default function AdminPanel() {
                     </div>
                     
                     {expandedExample === 'many-to-one' && (
-                      <div className="mt-4 pt-4 border-t space-y-4">
-                        <div className="bg-gradient-to-r from-blue-50 to-sky-50 rounded-lg p-4">
-                          <h5 className="font-medium text-primary mb-3 flex items-center">
-                            <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                            Recipient Details
-                          </h5>
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <p className="text-muted-foreground">Payout Structure</p>
-                              <p className="font-medium">Many-to-One</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Your Role</p>
-                              <p className="font-medium">Primary Recipient</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Contributors</p>
-                              <p className="font-medium">Family Members</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Withdrawal Method</p>
-                              <p className="font-medium">Timed Release</p>
+                      <div className="mt-4 pt-4 border-t">
+                        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-lg space-y-6">
+                          {/* Pot Description */}
+                          <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg">
+                            <h6 className="font-medium text-blue-900 mb-2">Pot Description</h6>
+                            <p className="text-blue-800 text-sm italic">
+                              "Our family is saving together for a down payment on our first house. Everyone is contributing 
+                              what they can to help us achieve this important milestone and start building our future together."
+                            </p>
+                          </div>
+                          
+                          {/* Recipient Details */}
+                          <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-lg p-5 border border-blue-200">
+                            <h5 className="font-semibold text-blue-900 mb-4 flex items-center text-lg">
+                              <span className="w-3 h-3 bg-blue-500 rounded-full mr-3"></span>
+                              Your Recipient Status
+                            </h5>
+                            <div className="grid grid-cols-2 gap-6 text-sm">
+                              <div className="space-y-3">
+                                <div>
+                                  <p className="text-blue-700 font-medium">Payout Structure</p>
+                                  <p className="text-blue-900 font-semibold">Many-to-One</p>
+                                </div>
+                                <div>
+                                  <p className="text-blue-700 font-medium">Your Role</p>
+                                  <p className="text-blue-900 font-semibold">Primary Recipient 🏠</p>
+                                </div>
+                              </div>
+                              <div className="space-y-3">
+                                <div>
+                                  <p className="text-blue-700 font-medium">Contributors</p>
+                                  <p className="text-blue-900 font-semibold">Mom, Dad, Brother, Sister, Grandparents</p>
+                                </div>
+                                <div>
+                                  <p className="text-blue-700 font-medium">Withdrawal Method</p>
+                                  <p className="text-blue-900 font-semibold">Timed Release</p>
+                                </div>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        
-                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                          <div className="flex items-center mb-2">
-                            <span className="text-orange-600 mr-2">⏳</span>
-                            <h6 className="font-medium text-orange-800">In Progress</h6>
+                          
+                          {/* Progress Status */}
+                          <div className="bg-gradient-to-r from-orange-100 to-amber-50 border border-orange-300 rounded-lg p-5">
+                            <div className="flex items-center mb-3">
+                              <span className="text-orange-600 mr-3 text-xl">⏳</span>
+                              <h6 className="font-semibold text-orange-800 text-lg">In Progress</h6>
+                            </div>
+                            <p className="text-orange-700 mb-4 leading-relaxed">
+                              Your family house fund is making great progress! ₡1800 still needed to reach the ₡5000 goal.
+                            </p>
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-sm font-medium text-orange-800">
+                                <span>Progress: ₡3200 / ₡5000</span>
+                                <span>64%</span>
+                              </div>
+                              <div className="w-full bg-orange-200 rounded-full h-3">
+                                <div className="bg-gradient-to-r from-orange-500 to-amber-500 h-3 rounded-full shadow-sm" style={{width: '64%'}}></div>
+                              </div>
+                              <p className="text-sm text-orange-600 mt-3">
+                                Once the goal is reached, funds will automatically become available for withdrawal to help with your house purchase!
+                              </p>
+                            </div>
                           </div>
-                          <p className="text-sm text-orange-700 mb-2">
-                            ₡1800 still needed to reach the ₡5000 goal
-                          </p>
-                          <div className="w-full bg-orange-200 rounded-full h-2">
-                            <div className="bg-orange-500 h-2 rounded-full" style={{width: '64%'}}></div>
-                          </div>
-                          <p className="text-xs text-orange-600 mt-2">
-                            Once goal is reached, funds automatically become available for withdrawal
-                          </p>
                         </div>
                       </div>
                     )}

@@ -81,17 +81,30 @@ const MilestoneCelebration: React.FC<MilestoneCelebrationProps> = ({
         </svg>
       </motion.div>
       
-      {/* Three hands reaching toward pot */}
-      <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-4">
-        {[...Array(3)].map((_, i) => (
+      {/* Falling gold coins */}
+      <div className="absolute inset-0 pointer-events-none">
+        {[...Array(8)].map((_, i) => (
           <motion.div
             key={i}
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 1 + i * 0.2 }}
-            className="text-2xl"
+            initial={{ 
+              x: Math.random() * 200 + 50, 
+              y: -20, 
+              rotate: 0,
+              scale: 0
+            }}
+            animate={{ 
+              y: 120, 
+              rotate: 360,
+              scale: [0, 1, 1, 0.8]
+            }}
+            transition={{ 
+              duration: 2,
+              delay: 0.5 + i * 0.2,
+              ease: "easeIn"
+            }}
+            className="absolute text-2xl"
           >
-            ✋
+            🪙
           </motion.div>
         ))}
       </div>

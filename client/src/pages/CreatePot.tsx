@@ -312,15 +312,15 @@ export default function CreatePot() {
       return;
     }
     
-    // Check that all contributors have amounts entered
+    // Check that all contributors have amounts entered (only if not using "Just Reach Goal" method)
     const contributingMembers = Object.keys(memberContributions);
-    if (contributingMembers.length > 0) {
-      // Check if any contribution amount is missing or zero
+    if (contributingMembers.length > 0 && contributionMethod !== "just-reach-goal") {
+      // Check if any contribution amount is missing or zero (only for equal split or individual contribution)
       const missingAmount = contributingMembers.some(member => 
         memberContributions[member] === 0 || memberContributions[member] === undefined
       );
       
-      if (missingAmount) {
+      if (missingAmount && (equalSplit === true || contributionMethod === "individual")) {
         setPotCreationError("Please enter contribution amounts for all members");
         setMissingContributions(true);
         setPulsingInputs(true);

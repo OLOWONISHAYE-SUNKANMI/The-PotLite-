@@ -1269,6 +1269,18 @@ export default function PotDashboard() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Milestone Celebration Modal */}
+      {currentMilestone && (
+        <MilestoneCelebration
+          isOpen={showMilestoneCelebration}
+          onClose={() => {
+            setShowMilestoneCelebration(false);
+            setCurrentMilestone(null);
+          }}
+          milestone={currentMilestone}
+        />
+      )}
     </div>
   );
 }

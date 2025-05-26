@@ -36,7 +36,8 @@ export default function PotDashboard() {
     completePot,
     updatePersonalPotBalance,
     depositFromPersonalToPot,
-    withdrawFromPotToPersonal
+    withdrawFromPotToPersonal,
+    addTransaction
   } = usePot();
   const { currentUser } = useDummyUser();
   const { toast } = useToast();

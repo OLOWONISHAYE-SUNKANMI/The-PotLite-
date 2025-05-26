@@ -11,9 +11,11 @@ import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { cn, formatTimestamp, PotType } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowUp, ArrowDown, Plus, Info, Clock, Users, CreditCard, ChevronDown, AlertTriangle } from "lucide-react";
+import { ArrowUp, ArrowDown, Plus, Info, Clock, Users, CreditCard, ChevronDown, AlertTriangle, Crown } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { 
   Dialog,
   DialogContent,
@@ -46,6 +48,15 @@ export default function PotDashboard() {
   const [showWithdrawDialog, setShowWithdrawDialog] = useState<boolean>(false);
   const [showGoalChangeDialog, setShowGoalChangeDialog] = useState<boolean>(false);
   const [newGoalAmount, setNewGoalAmount] = useState<number>(0);
+  const [showContributionPayoutDialog, setShowContributionPayoutDialog] = useState<boolean>(false);
+  const [showAdminChangeDialog, setShowAdminChangeDialog] = useState<boolean>(false);
+  const [showMemberManagementDialog, setShowMemberManagementDialog] = useState<boolean>(false);
+  const [showCleanPotDialog, setShowCleanPotDialog] = useState<boolean>(false);
+  const [selectedNewAdmin, setSelectedNewAdmin] = useState<string>("");
+  const [memberToRemove, setMemberToRemove] = useState<string>("");
+  const [newMemberInput, setNewMemberInput] = useState<string>("");
+  const [tempMemberContributions, setTempMemberContributions] = useState<Record<string, number>>({});
+  const [tempMemberPayouts, setTempMemberPayouts] = useState<Record<string, number>>({});
   
   // No pots to display
   const noActivePots = pots.length === 0;
@@ -496,10 +507,14 @@ export default function PotDashboard() {
                     </DropdownMenuItem>
                     
                     <DropdownMenuItem onClick={() => {
-                      toast({
-                        title: "Contribution/Payout Change",
-                        description: "Contribution/Payout change request submitted"
-                      });
+                      // Initialize with current pot settings
+                      if (pot.memberContributions) {
+                        setTempMemberContributions(pot.memberContributions);
+                      }
+                      if (pot.memberPayouts) {
+                        setTempMemberPayouts(pot.memberPayouts);
+                      }
+                      setShowContributionPayoutDialog(true);
                     }}>
                       <CreditCard className="w-4 h-4 mr-2" />
                       Contribute/Payout Change
@@ -516,35 +531,28 @@ export default function PotDashboard() {
                     </DropdownMenuItem>
                     
                     <DropdownMenuItem onClick={() => {
-                      toast({
-                        title: "Admin Role Change",
-                        description: "Admin role change request submitted"
-                      });
+                      setSelectedNewAdmin("");
+                      setShowAdminChangeDialog(true);
                     }}>
                       <Users className="w-4 h-4 mr-2" />
                       Admin Role Change
                     </DropdownMenuItem>
                     
                     <DropdownMenuItem onClick={() => {
-                      toast({
-                        title: "Member Management",
-                        description: "Add/Remove members request submitted"
-                      });
+                      setMemberToRemove("");
+                      setNewMemberInput("");
+                      setShowMemberManagementDialog(true);
                     }}>
                       <Plus className="w-4 h-4 mr-2" />
                       Add/Remove Members
                     </DropdownMenuItem>
                     
                     <DropdownMenuItem onClick={() => {
-                      // Calculate 5% fee
-                      const feeAmount = pot.currentBalance * 0.05;
-                      const refundAmount = pot.currentBalance - feeAmount;
-                      
-                      toast({
-                        title: "Clean Pot Early Request",
-                        description: `Requesting early cleanup. 5% fee (₡${feeAmount.toFixed(2)}) will be deducted. You'll receive ₡${refundAmount.toFixed(2)}`,
-                        variant: "destructive"
-                      });
+                      // Initialize clean pot dialog with current member payouts
+                      if (pot.memberPayouts) {
+                        setTempMemberPayouts(pot.memberPayouts);
+                      }
+                      setShowCleanPotDialog(true);
                     }}>
                       <AlertTriangle className="w-4 h-4 mr-2" />
                       Clean The Pot Early
@@ -924,6 +932,320 @@ export default function PotDashboard() {
                   setShowGoalChangeDialog(false);
                 }}
                 disabled={!pot || newGoalAmount <= 0}
+              >
+                Submit Request
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Contribution/Payout Change Dialog */}
+      <Dialog open={showContributionPayoutDialog} onOpenChange={setShowContributionPayoutDialog}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Change Contribution/Payout Structure</DialogTitle>
+            <DialogDescription>
+              Modify how members contribute and receive payouts for this pot. Changes will be sent to all members for voting.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {pot && (
+              <div className="bg-secondary rounded-lg p-4">
+                <h3 className="font-medium text-primary mb-3">Current Members</h3>
+                <div className="space-y-3">
+                  {pot.members.map((member) => (
+                    <div key={member} className="flex items-center justify-between p-3 bg-background rounded">
+                      <div className="flex items-center">
+                        {member === pot.creator && <Crown className="w-4 h-4 text-amber-500 mr-2" />}
+                        <span>{member}</span>
+                      </div>
+                      <div className="flex items-center space-x-4">
+                        <div className="flex items-center space-x-2">
+                          <Label className="text-xs">Contribute:</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            value={tempMemberContributions[member] || 0}
+                            onChange={(e) => setTempMemberContributions({
+                              ...tempMemberContributions,
+                              [member]: Number(e.target.value)
+                            })}
+                            className="w-20 h-8 text-xs"
+                          />
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Label className="text-xs">Payout:</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            value={tempMemberPayouts[member] || 0}
+                            onChange={(e) => setTempMemberPayouts({
+                              ...tempMemberPayouts,
+                              [member]: Number(e.target.value)
+                            })}
+                            className="w-20 h-8 text-xs"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setShowContributionPayoutDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={() => {
+                toast({
+                  title: "Contribution/Payout Change Request",
+                  description: "Request sent to all members for voting approval",
+                });
+                setShowContributionPayoutDialog(false);
+              }}>
+                Submit Request
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Admin Role Change Dialog */}
+      <Dialog open={showAdminChangeDialog} onOpenChange={setShowAdminChangeDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Change Admin Role</DialogTitle>
+            <DialogDescription>
+              Select a new member to become the admin of this pot. This will be sent to all members for voting.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {pot && (
+              <RadioGroup value={selectedNewAdmin} onValueChange={setSelectedNewAdmin}>
+                <div className="space-y-2">
+                  {pot.members.filter(member => member !== pot.creator).map((member) => (
+                    <div key={member} className="flex items-center space-x-2 p-2 rounded border">
+                      <RadioGroupItem value={member} id={member} />
+                      <Label htmlFor={member} className="flex-1">{member}</Label>
+                    </div>
+                  ))}
+                </div>
+              </RadioGroup>
+            )}
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setShowAdminChangeDialog(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (!selectedNewAdmin) {
+                    toast({
+                      title: "No Selection",
+                      description: "Please select a new admin",
+                      variant: "destructive"
+                    });
+                    return;
+                  }
+                  toast({
+                    title: "Admin Change Request",
+                    description: `Request to make ${selectedNewAdmin} the new admin sent to all members for voting`,
+                  });
+                  setShowAdminChangeDialog(false);
+                }}
+                disabled={!selectedNewAdmin}
+              >
+                Submit Request
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Member Management Dialog */}
+      <Dialog open={showMemberManagementDialog} onOpenChange={setShowMemberManagementDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add/Remove Members</DialogTitle>
+            <DialogDescription>
+              Add new members or remove existing ones. Changes will be sent to all members for voting.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-sm font-medium">Remove Member</Label>
+              {pot && (
+                <RadioGroup value={memberToRemove} onValueChange={setMemberToRemove}>
+                  <div className="space-y-2 mt-2">
+                    {pot.members.filter(member => member !== pot.creator).map((member) => (
+                      <div key={member} className="flex items-center space-x-2 p-2 rounded border">
+                        <RadioGroupItem value={member} id={`remove-${member}`} />
+                        <Label htmlFor={`remove-${member}`} className="flex-1">{member}</Label>
+                      </div>
+                    ))}
+                  </div>
+                </RadioGroup>
+              )}
+            </div>
+            
+            <div className="border-t pt-4">
+              <Label className="text-sm font-medium">Add New Member</Label>
+              <div className="mt-2 space-y-2">
+                <Input
+                  value={newMemberInput}
+                  onChange={(e) => setNewMemberInput(e.target.value)}
+                  placeholder="Enter email or contact"
+                  className="w-full"
+                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="w-full">
+                      Recent Members
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-2">
+                    <div className="space-y-1">
+                      {["john@example.com", "sarah@example.com", "mike@example.com"].map((contact) => (
+                        <Button
+                          key={contact}
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-start text-xs"
+                          onClick={() => setNewMemberInput(contact)}
+                        >
+                          {contact}
+                        </Button>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setShowMemberManagementDialog(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (!memberToRemove && !newMemberInput.trim()) {
+                    toast({
+                      title: "No Changes",
+                      description: "Please select a member to remove or add a new member",
+                      variant: "destructive"
+                    });
+                    return;
+                  }
+                  
+                  let description = "";
+                  if (memberToRemove && newMemberInput.trim()) {
+                    description = `Request to remove ${memberToRemove} and add ${newMemberInput} sent to all members for voting`;
+                  } else if (memberToRemove) {
+                    description = `Request to remove ${memberToRemove} sent to all members for voting`;
+                  } else {
+                    description = `Request to add ${newMemberInput} sent to all members for voting`;
+                  }
+                  
+                  toast({
+                    title: "Member Management Request",
+                    description: description,
+                  });
+                  setShowMemberManagementDialog(false);
+                }}
+                disabled={!memberToRemove && !newMemberInput.trim()}
+              >
+                Submit Request
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Clean The Pot Early Dialog */}
+      <Dialog open={showCleanPotDialog} onOpenChange={setShowCleanPotDialog}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Clean The Pot Early</DialogTitle>
+            <DialogDescription>
+              End this pot early and distribute funds. A 5% fee will be deducted from the current balance.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {pot && (
+              <>
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <div className="flex items-center mb-2">
+                    <AlertTriangle className="w-5 h-5 text-amber-600 mr-2" />
+                    <h3 className="font-medium text-amber-800">Fee Information</h3>
+                  </div>
+                  <div className="space-y-1 text-sm text-amber-700">
+                    <p>Current Balance: ₡{pot.currentBalance}</p>
+                    <p>5% Fee: ₡{(pot.currentBalance * 0.05).toFixed(2)}</p>
+                    <p className="font-medium">Available for Payout: ₡{(pot.currentBalance * 0.95).toFixed(2)}</p>
+                  </div>
+                </div>
+                
+                <div className="bg-secondary rounded-lg p-4">
+                  <h3 className="font-medium text-primary mb-3">Distribute Payout Among Members</h3>
+                  <div className="space-y-3">
+                    {pot.members.map((member) => (
+                      <div key={member} className="flex items-center justify-between p-3 bg-background rounded">
+                        <div className="flex items-center">
+                          {member === pot.creator && <Crown className="w-4 h-4 text-amber-500 mr-2" />}
+                          <span>{member}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Label className="text-xs">Payout Amount:</Label>
+                          <div className="relative">
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">₡</span>
+                            <Input
+                              type="number"
+                              min="0"
+                              max={pot.currentBalance * 0.95}
+                              value={tempMemberPayouts[member] || 0}
+                              onChange={(e) => setTempMemberPayouts({
+                                ...tempMemberPayouts,
+                                [member]: Number(e.target.value)
+                              })}
+                              className="w-24 h-8 text-xs pl-6"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Total to distribute: ₡{Object.values(tempMemberPayouts).reduce((sum, amount) => sum + amount, 0).toFixed(2)} / ₡{(pot.currentBalance * 0.95).toFixed(2)}
+                  </p>
+                </div>
+              </>
+            )}
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setShowCleanPotDialog(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (!pot) return;
+                  
+                  const totalPayout = Object.values(tempMemberPayouts).reduce((sum, amount) => sum + amount, 0);
+                  const maxPayout = pot.currentBalance * 0.95;
+                  
+                  if (totalPayout > maxPayout) {
+                    toast({
+                      title: "Payout Exceeds Available",
+                      description: `Total payout (₡${totalPayout.toFixed(2)}) exceeds available amount (₡${maxPayout.toFixed(2)})`,
+                      variant: "destructive"
+                    });
+                    return;
+                  }
+                  
+                  toast({
+                    title: "Clean Pot Early Request",
+                    description: `Request to clean pot early with new payout distribution sent to all members for voting`,
+                  });
+                  setShowCleanPotDialog(false);
+                }}
               >
                 Submit Request
               </Button>

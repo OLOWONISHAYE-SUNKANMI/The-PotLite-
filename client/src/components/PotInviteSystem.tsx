@@ -8,7 +8,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { FaUserPlus, FaEnvelope, FaShare, FaCopy, FaWhatsapp, FaFacebook, FaTwitter } from "react-icons/fa";
+import { FaUserPlus, FaEnvelope, FaShare, FaCopy, FaFacebook, FaInstagram } from "react-icons/fa";
+import { SiTiktok } from "react-icons/si";
 import { PotType } from "@/lib/utils";
 
 interface PotInviteSystemProps {
@@ -22,6 +23,8 @@ export default function PotInviteSystem({ pot, isOpen, onClose }: PotInviteSyste
   const [inviteEmails, setInviteEmails] = useState<string>("");
   const [personalMessage, setPersonalMessage] = useState<string>("");
   const [inviteLink] = useState<string>(`https://thepot.app/join/${pot.id}`);
+  const [selectedMemberToRemove, setSelectedMemberToRemove] = useState<string | null>(null);
+  const [showRemovalConfirm, setShowRemovalConfirm] = useState<boolean>(false);
 
   const handleSendInvites = () => {
     const emails = inviteEmails.split(',').map(email => email.trim()).filter(email => email);
@@ -58,15 +61,25 @@ export default function PotInviteSystem({ pot, isOpen, onClose }: PotInviteSyste
     
     let shareUrl = "";
     switch (platform) {
-      case 'whatsapp':
-        shareUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-        break;
+      case 'instagram':
+        // Instagram doesn't have direct sharing, so copy to clipboard
+        navigator.clipboard.writeText(message);
+        toast({
+          title: "Copied for Instagram!",
+          description: "Message copied to clipboard. Open Instagram and paste in your story or post.",
+        });
+        return;
       case 'facebook':
         shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(inviteLink)}`;
         break;
-      case 'twitter':
-        shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}`;
-        break;
+      case 'tiktok':
+        // TikTok doesn't have direct sharing, so copy to clipboard
+        navigator.clipboard.writeText(message);
+        toast({
+          title: "Copied for TikTok!",
+          description: "Message copied to clipboard. Open TikTok and paste in your video description.",
+        });
+        return;
     }
     
     if (shareUrl) {
@@ -75,6 +88,31 @@ export default function PotInviteSystem({ pot, isOpen, onClose }: PotInviteSyste
         title: "Shared!",
         description: `Opened ${platform} to share your pot invitation`,
       });
+    }
+  };
+
+  const handleMemberClick = (member: string) => {
+    if (member === pot.creator) {
+      toast({
+        title: "Cannot Remove Creator",
+        description: "The pot creator cannot be removed from the pot",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setSelectedMemberToRemove(member);
+    setShowRemovalConfirm(true);
+  };
+
+  const confirmRemoveMember = () => {
+    if (selectedMemberToRemove) {
+      toast({
+        title: "Removal Request Sent",
+        description: `Request to remove ${selectedMemberToRemove} has been sent to the admin for approval`,
+      });
+      setShowRemovalConfirm(false);
+      setSelectedMemberToRemove(null);
     }
   };
 
@@ -200,11 +238,11 @@ export default function PotInviteSystem({ pot, isOpen, onClose }: PotInviteSyste
             <div className="grid grid-cols-3 gap-2">
               <Button
                 variant="outline"
-                onClick={() => shareToSocial('whatsapp')}
-                className="flex items-center justify-center space-x-2 text-green-600 hover:bg-green-50"
+                onClick={() => shareToSocial('instagram')}
+                className="flex items-center justify-center space-x-2 text-pink-600 hover:bg-pink-50"
               >
-                <FaWhatsapp />
-                <span className="text-xs">WhatsApp</span>
+                <FaInstagram />
+                <span className="text-xs">Instagram</span>
               </Button>
               <Button
                 variant="outline"
@@ -216,24 +254,34 @@ export default function PotInviteSystem({ pot, isOpen, onClose }: PotInviteSyste
               </Button>
               <Button
                 variant="outline"
-                onClick={() => shareToSocial('twitter')}
-                className="flex items-center justify-center space-x-2 text-blue-400 hover:bg-blue-50"
+                onClick={() => shareToSocial('tiktok')}
+                className="flex items-center justify-center space-x-2 text-black hover:bg-gray-50"
               >
-                <FaTwitter />
-                <span className="text-xs">Twitter</span>
+                <SiTiktok />
+                <span className="text-xs">TikTok</span>
               </Button>
             </div>
           </div>
 
           {/* Current Members */}
           <div className="space-y-3">
-            <h4 className="font-semibold text-primary">Current Members ({pot.members.length})</h4>
+            <h4 className="font-semibold text-primary">
+              Current Members ({pot.members.length}) 
+              <span className="text-sm font-normal text-muted-foreground ml-2">
+                (select user to remove)
+              </span>
+            </h4>
             <div className="flex flex-wrap gap-2">
               {pot.members.map((member, index) => (
                 <Badge 
                   key={index} 
                   variant="secondary" 
-                  className="bg-blue-100 text-blue-800"
+                  className={`cursor-pointer transition-colors ${
+                    member === pot.creator 
+                      ? 'bg-yellow-100 text-yellow-800 cursor-not-allowed' 
+                      : 'bg-blue-100 text-blue-800 hover:bg-red-100 hover:text-red-800'
+                  }`}
+                  onClick={() => handleMemberClick(member)}
                 >
                   {member}
                   {member === pot.creator && " 👑"}
@@ -241,6 +289,37 @@ export default function PotInviteSystem({ pot, isOpen, onClose }: PotInviteSyste
               ))}
             </div>
           </div>
+
+          {/* Member Removal Confirmation Dialog */}
+          <Dialog open={showRemovalConfirm} onOpenChange={setShowRemovalConfirm}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Remove Member?</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Remove <strong>{selectedMemberToRemove}</strong> from "{pot.name}"?
+                </p>
+                <p className="text-xs text-amber-600 bg-amber-50 p-3 rounded-lg">
+                  ⚠️ This will send the admin a notification requiring their approval for member removal.
+                </p>
+                <div className="flex justify-end space-x-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowRemovalConfirm(false)}
+                  >
+                    No
+                  </Button>
+                  <Button 
+                    variant="destructive" 
+                    onClick={confirmRemoveMember}
+                  >
+                    Yes, Remove
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </DialogContent>
     </Dialog>

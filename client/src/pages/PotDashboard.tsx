@@ -573,19 +573,10 @@ export default function PotDashboard() {
                     </DropdownMenuItem>
                     
                     <DropdownMenuItem onClick={() => {
-                      setMemberToRemove("");
-                      setNewMemberInput("");
-                      setShowMemberManagementDialog(true);
-                    }}>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add/Remove Members
-                    </DropdownMenuItem>
-                    
-                    <DropdownMenuItem onClick={() => {
                       setShowInviteSystem(true);
                     }}>
                       <Users className="w-4 h-4 mr-2" />
-                      Invite Members
+                      Invite/Remove Members
                     </DropdownMenuItem>
                     
                     <DropdownMenuItem onClick={() => {

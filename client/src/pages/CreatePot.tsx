@@ -566,95 +566,7 @@ export default function CreatePot() {
                 )}
               </div>
               
-              {/* Withdrawal Approval */}
-              <div className={selectedUseCase ? "border rounded-lg overflow-hidden mt-4" : "opacity-50 pointer-events-none border rounded-lg overflow-hidden mt-4"}>
-                <div 
-                  className="bg-secondary p-4 cursor-pointer flex justify-between items-center"
-                  onClick={() => selectedUseCase ? setWithdrawalMethodOpen(!withdrawalMethodOpen) : null}
-                >
-                  <h2 className="text-xl font-bold text-primary">Withdrawal Approval Method</h2>
-                  <div className="text-primary">
-                    {selectedUseCase ? (withdrawalMethodOpen ? "▲" : "▼") : "▼"}
-                  </div>
-                </div>
-                
-                {selectedUseCase && withdrawalMethodOpen && (
-                  <div className="p-4 border-t">
-                    <RadioGroup 
-                      value={withdrawalMethod} 
-                      onValueChange={(value) => setWithdrawalMethod(value as any)}
-                      className="space-y-4"
-                    >
-                      {/* Democratic Vote - show for one-to-many and many-to-selected */}
-                      {(payoutStructure === "one-to-many" || payoutStructure === "many-to-selected") && (
-                        <div className={`bg-secondary rounded-lg p-4 ${withdrawalMethod === "democratic" ? "border-2 border-primary" : ""}`}>
-                          <div className="flex items-start">
-                            <RadioGroupItem value="democratic" id="democratic" className="mt-1" />
-                            <div className="ml-3">
-                              <Label htmlFor="democratic" className="font-medium text-primary">Democratic Vote</Label>
-                              <p className="text-sm text-secondary-foreground">All members must vote; requires majority approval</p>
-                              
-                              {withdrawalMethod === "democratic" && (
-                                <div className="mt-2">
-                                  <Label className="block text-xs text-secondary-foreground mb-1">Required Approval Percentage</Label>
-                                  <Select value={voteThreshold} onValueChange={setVoteThreshold}>
-                                    <SelectTrigger className="w-full bg-secondary border border-primary text-secondary-foreground">
-                                      <SelectValue placeholder="Select threshold" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="51">51% (Simple Majority)</SelectItem>
-                                      <SelectItem value="66">66% (Two Thirds)</SelectItem>
-                                      <SelectItem value="75">75% (Three Quarters)</SelectItem>
-                                      <SelectItem value="100">100% (Unanimous)</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Timed Release - show for one-to-many and many-to-one */}
-                      {(payoutStructure === "one-to-many" || payoutStructure === "many-to-one") && (
-                        <div className={`bg-secondary rounded-lg p-4 ${withdrawalMethod === "timed" ? "border-2 border-primary" : ""}`}>
-                          <div className="flex items-start">
-                            <RadioGroupItem value="timed" id="timed" className="mt-1" />
-                            <div className="ml-3 w-full">
-                              <Label htmlFor="timed" className="font-medium text-primary">Timed Release</Label>
-                              <p className="text-sm text-secondary-foreground">Funds locked until a specific date</p>
-                              
-                              {withdrawalMethod === "timed" && (
-                                <div className="mt-2">
-                                  <Label className="block text-xs text-secondary-foreground mb-1">Release Date</Label>
-                                  <Input 
-                                    type="date" 
-                                    value={releaseDate}
-                                    onChange={e => setReleaseDate(e.target.value)}
-                                    className="w-full bg-secondary border border-primary text-secondary-foreground"
-                                  />
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Auto-Withdraw - show for all payout structures */}
-                      <div className={`bg-secondary rounded-lg p-4 ${withdrawalMethod === "auto-withdraw" ? "border-2 border-primary" : ""}`}>
-                        <div className="flex items-start">
-                          <RadioGroupItem value="auto-withdraw" id="auto-withdraw" className="mt-1" />
-                          <div className="ml-3">
-                            <Label htmlFor="auto-withdraw" className="font-medium text-primary">Auto-Withdraw</Label>
-                            <p className="text-sm text-secondary-foreground">Recipients will automatically receive payouts in their Personal Pot Wallet</p>
-                            <p className="text-xs text-secondary-foreground mt-1">Recipients will receive a notification when funds are deposited</p>
-                          </div>
-                        </div>
-                      </div>
-                    </RadioGroup>
-                  </div>
-                )}
-              </div>
+              {/* Removed Withdrawal Approval Methods section - moved to Invite Members */}
               
               {/* Invite Members */}
               <div className={selectedUseCase ? "border rounded-lg overflow-hidden mt-4" : "opacity-50 pointer-events-none border rounded-lg overflow-hidden mt-4"}>
@@ -928,7 +840,75 @@ export default function CreatePot() {
                             </table>
                           </div>
                           
-                          {/* Removed duplicate equal split section */}
+                          {/* Withdrawal Method Radio Buttons */}
+                          {selectedUseCase && (
+                            <div className="mt-6 p-4 bg-primary/5 rounded-lg">
+                              <h3 className="font-medium text-primary mb-3">Withdrawal Method</h3>
+                              <RadioGroup 
+                                value={withdrawalMethod} 
+                                onValueChange={(value) => setWithdrawalMethod(value as any)}
+                                className="space-y-3"
+                              >
+                                {/* Democratic Vote - show for one-to-many and many-to-selected */}
+                                {(payoutStructure === "one-to-many" || payoutStructure === "many-to-selected") && (
+                                  <div className="flex items-start space-x-3">
+                                    <RadioGroupItem value="democratic" id="democratic" className="mt-1" />
+                                    <div className="flex-1">
+                                      <Label htmlFor="democratic" className="font-medium text-sm">Democratic Vote</Label>
+                                      <p className="text-xs text-secondary-foreground">Members vote; requires majority approval</p>
+                                      {withdrawalMethod === "democratic" && (
+                                        <div className="mt-2">
+                                          <Label className="block text-xs text-secondary-foreground mb-1">Required Approval %</Label>
+                                          <Select value={voteThreshold} onValueChange={setVoteThreshold}>
+                                            <SelectTrigger className="w-32 h-8 text-xs">
+                                              <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="51">51%</SelectItem>
+                                              <SelectItem value="66">66%</SelectItem>
+                                              <SelectItem value="75">75%</SelectItem>
+                                              <SelectItem value="100">100%</SelectItem>
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {/* Timed Release - show for one-to-many and many-to-one */}
+                                {(payoutStructure === "one-to-many" || payoutStructure === "many-to-one") && (
+                                  <div className="flex items-start space-x-3">
+                                    <RadioGroupItem value="timed" id="timed" className="mt-1" />
+                                    <div className="flex-1">
+                                      <Label htmlFor="timed" className="font-medium text-sm">Timed Release</Label>
+                                      <p className="text-xs text-secondary-foreground">Funds locked until specific date</p>
+                                      {withdrawalMethod === "timed" && (
+                                        <div className="mt-2">
+                                          <Label className="block text-xs text-secondary-foreground mb-1">Release Date</Label>
+                                          <Input 
+                                            type="date" 
+                                            value={releaseDate}
+                                            onChange={e => setReleaseDate(e.target.value)}
+                                            className="w-40 h-8 text-xs"
+                                          />
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {/* Auto-Withdraw - show for all payout structures */}
+                                <div className="flex items-start space-x-3">
+                                  <RadioGroupItem value="auto-withdraw" id="auto-withdraw" className="mt-1" />
+                                  <div className="flex-1">
+                                    <Label htmlFor="auto-withdraw" className="font-medium text-sm">Auto-Withdraw</Label>
+                                    <p className="text-xs text-secondary-foreground">Recipients automatically receive payouts</p>
+                                  </div>
+                                </div>
+                              </RadioGroup>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

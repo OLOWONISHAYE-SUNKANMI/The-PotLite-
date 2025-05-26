@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import MilestoneCelebration from "@/components/MilestoneCelebration";
+import PotInviteSystem from "@/components/PotInviteSystem";
 import { 
   Dialog,
   DialogContent,
@@ -578,6 +579,13 @@ export default function PotDashboard() {
                     }}>
                       <Plus className="w-4 h-4 mr-2" />
                       Add/Remove Members
+                    </DropdownMenuItem>
+                    
+                    <DropdownMenuItem onClick={() => {
+                      setShowInviteSystem(true);
+                    }}>
+                      <Users className="w-4 h-4 mr-2" />
+                      Invite Members
                     </DropdownMenuItem>
                     
                     <DropdownMenuItem onClick={() => {
@@ -1350,6 +1358,15 @@ export default function PotDashboard() {
             setCurrentMilestone(null);
           }}
           milestone={currentMilestone}
+        />
+      )}
+
+      {/* Pot Invite System */}
+      {pot && (
+        <PotInviteSystem
+          pot={pot}
+          isOpen={showInviteSystem}
+          onClose={() => setShowInviteSystem(false)}
         />
       )}
     </div>

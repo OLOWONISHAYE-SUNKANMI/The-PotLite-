@@ -48,6 +48,7 @@ export type PotType = {
   createdAt: string;
   status?: 'active' | 'completed';
   completedDate?: string;
+  contributionMethod?: 'equal-split' | 'individual-contribution' | 'just-reach-goal';
 };
 
 export type TransactionType = {

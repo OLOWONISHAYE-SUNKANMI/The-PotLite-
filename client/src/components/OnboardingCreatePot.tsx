@@ -67,7 +67,8 @@ const OnboardingCreatePot: React.FC<OnboardingCreatePotProps> = ({ onComplete })
         ? [membersList[0] || currentUser] 
         : membersList,
       createdAt: new Date().toISOString(),
-      status: 'active'
+      status: 'active',
+      contributionMethod: 'just-reach-goal' // OnboardingCreatePot defaults to "Just Reach Goal"
     };
 
     // Add the pot to the context

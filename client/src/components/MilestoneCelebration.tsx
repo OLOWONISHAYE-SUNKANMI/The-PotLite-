@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaTrophy, FaStar, FaCoins, FaGift } from "react-icons/fa";
+import { FaCheck, FaCoins, FaGift } from "react-icons/fa";
 
 interface MilestoneCelebrationProps {
   isOpen: boolean;
@@ -31,16 +31,83 @@ const MilestoneCelebration: React.FC<MilestoneCelebrationProps> = ({
     }
   }, [isOpen]);
 
+  const PotWithHands = ({ isGoalReached }: { isGoalReached: boolean }) => (
+    <div className="relative">
+      {/* Purple Pot */}
+      <motion.div
+        initial={{ scale: 0.8 }}
+        animate={{ scale: 1 }}
+        transition={{ duration: 0.5 }}
+        className="relative"
+      >
+        <svg width="80" height="80" viewBox="0 0 80 80" className="mx-auto">
+          {/* Pot body */}
+          <motion.path
+            d="M20 30 L60 30 L58 70 L22 70 Z"
+            fill="#8B5CF6"
+            stroke="#7C3AED"
+            strokeWidth="2"
+            initial={{ pathLength: 0 }}
+            animate={{ pathLength: 1 }}
+            transition={{ duration: 1, delay: 0.2 }}
+          />
+          {/* Pot handles */}
+          <motion.circle
+            cx="15" cy="35" r="3"
+            fill="#8B5CF6"
+            stroke="#7C3AED"
+            strokeWidth="2"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.8 }}
+          />
+          <motion.circle
+            cx="65" cy="35" r="3"
+            fill="#8B5CF6"
+            stroke="#7C3AED"
+            strokeWidth="2"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.8 }}
+          />
+          {/* Filling animation */}
+          <motion.rect
+            x="22" y="32" width="36" height="36"
+            fill="#A855F7"
+            initial={{ height: 0, y: 68 }}
+            animate={{ height: 36, y: 32 }}
+            transition={{ duration: 1.5, delay: 0.5 }}
+          />
+        </svg>
+      </motion.div>
+      
+      {/* Three hands reaching toward pot */}
+      <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-4">
+        {[...Array(3)].map((_, i) => (
+          <motion.div
+            key={i}
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 1 + i * 0.2 }}
+            className="text-2xl"
+          >
+            ✋
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+
   const getIcon = () => {
     switch (milestone.type) {
       case 'goal_reached':
-        return <FaTrophy className="text-yellow-500" size={60} />;
+        return <PotWithHands isGoalReached={true} />;
       case 'contribution_milestone':
-        return <FaCoins className="text-green-500" size={60} />;
+        return <PotWithHands isGoalReached={false} />;
       case 'pot_completed':
         return <FaGift className="text-purple-500" size={60} />;
       default:
-        return <FaStar className="text-blue-500" size={60} />;
+        return <FaCoins className="text-green-500" size={60} />;
     }
   };
 
@@ -127,27 +194,46 @@ const MilestoneCelebration: React.FC<MilestoneCelebrationProps> = ({
               {milestone.description}
             </motion.p>
 
-            {/* Animated Stars */}
+            {/* Animated Achievement Indicator */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 1 }}
-              className="flex justify-center space-x-1 mb-6"
+              className="flex justify-center mb-6"
             >
-              {[...Array(5)].map((_, i) => (
+              {milestone.type === 'goal_reached' ? (
                 <motion.div
-                  key={i}
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ 
-                    delay: 1 + i * 0.1,
+                    delay: 1.2,
                     type: "spring",
                     stiffness: 300 
                   }}
+                  className="flex items-center space-x-2 bg-green-100 px-4 py-2 rounded-full"
                 >
-                  <FaStar className="text-yellow-400" size={20} />
+                  <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm">🎯</span>
+                  </div>
+                  <span className="text-green-800 font-medium">Target Reached</span>
                 </motion.div>
-              ))}
+              ) : (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ 
+                    delay: 1.2,
+                    type: "spring",
+                    stiffness: 300 
+                  }}
+                  className="flex items-center space-x-2 bg-blue-100 px-4 py-2 rounded-full"
+                >
+                  <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                    <FaCheck className="text-white text-xs" />
+                  </div>
+                  <span className="text-blue-800 font-medium">Checkpoint</span>
+                </motion.div>
+              )}
             </motion.div>
 
             {/* Animated Close Button */}

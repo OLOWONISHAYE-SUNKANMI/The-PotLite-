@@ -159,27 +159,40 @@ export default function AdminPanel() {
                     </div>
                     
                     {expandedExample === 'one-to-many' && (
-                      <div className="mt-4 pt-4 border-t bg-secondary/20 rounded p-3">
-                        <h5 className="font-medium text-primary mb-2">Recipient Rules & Details</h5>
-                        <div className="space-y-2 text-sm">
-                          <div>
-                            <strong>Payout Structure:</strong> One-to-Many - Multiple contributors, single recipient
+                      <div className="mt-4 pt-4 border-t space-y-4">
+                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-4">
+                          <h5 className="font-medium text-primary mb-3 flex items-center">
+                            <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                            Recipient Details
+                          </h5>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <p className="text-muted-foreground">Payout Structure</p>
+                              <p className="font-medium">One-to-Many</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Your Role</p>
+                              <p className="font-medium">Sole Recipient</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Contributors</p>
+                              <p className="font-medium">5 Members</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Withdrawal Method</p>
+                              <p className="font-medium">Admin Approval</p>
+                            </div>
                           </div>
-                          <div>
-                            <strong>Your Role:</strong> You are the sole recipient of this gift fund
+                        </div>
+                        
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                          <div className="flex items-center mb-2">
+                            <span className="text-green-600 mr-2">✅</span>
+                            <h6 className="font-medium text-green-800">Ready for Payout</h6>
                           </div>
-                          <div>
-                            <strong>Members:</strong> Sarah, Mike, Alex, Jessica, David (5 contributors)
-                          </div>
-                          <div>
-                            <strong>Withdrawal Method:</strong> Admin approval required
-                          </div>
-                          <div>
-                            <strong>Status:</strong> Ready for withdrawal - goal achieved!
-                          </div>
-                          <div className="mt-3 p-2 bg-green-50 rounded text-green-800">
-                            <strong>Next Steps:</strong> The admin can now initiate the payout to you. You'll receive the full ₡200 amount.
-                          </div>
+                          <p className="text-sm text-green-700">
+                            The admin can now initiate the payout. You'll receive the full ₡200 amount directly to your account.
+                          </p>
                         </div>
                       </div>
                     )}
@@ -203,27 +216,46 @@ export default function AdminPanel() {
                     </div>
                     
                     {expandedExample === 'many-to-one' && (
-                      <div className="mt-4 pt-4 border-t bg-secondary/20 rounded p-3">
-                        <h5 className="font-medium text-primary mb-2">Recipient Rules & Details</h5>
-                        <div className="space-y-2 text-sm">
-                          <div>
-                            <strong>Payout Structure:</strong> Many-to-One - Multiple contributors, single recipient
+                      <div className="mt-4 pt-4 border-t space-y-4">
+                        <div className="bg-gradient-to-r from-blue-50 to-sky-50 rounded-lg p-4">
+                          <h5 className="font-medium text-primary mb-3 flex items-center">
+                            <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                            Recipient Details
+                          </h5>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <p className="text-muted-foreground">Payout Structure</p>
+                              <p className="font-medium">Many-to-One</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Your Role</p>
+                              <p className="font-medium">Primary Recipient</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Contributors</p>
+                              <p className="font-medium">Family Members</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Withdrawal Method</p>
+                              <p className="font-medium">Timed Release</p>
+                            </div>
                           </div>
-                          <div>
-                            <strong>Your Role:</strong> Primary recipient for family house fund
+                        </div>
+                        
+                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                          <div className="flex items-center mb-2">
+                            <span className="text-orange-600 mr-2">⏳</span>
+                            <h6 className="font-medium text-orange-800">In Progress</h6>
                           </div>
-                          <div>
-                            <strong>Members:</strong> Mom, Dad, Brother, Sister, Grandparents (5 contributors)
+                          <p className="text-sm text-orange-700 mb-2">
+                            ₡1800 still needed to reach the ₡5000 goal
+                          </p>
+                          <div className="w-full bg-orange-200 rounded-full h-2">
+                            <div className="bg-orange-500 h-2 rounded-full" style={{width: '64%'}}></div>
                           </div>
-                          <div>
-                            <strong>Withdrawal Method:</strong> Timed release (when goal is reached)
-                          </div>
-                          <div>
-                            <strong>Progress:</strong> ₡1800 still needed to reach goal
-                          </div>
-                          <div className="mt-3 p-2 bg-blue-50 rounded text-blue-800">
-                            <strong>Next Steps:</strong> Once the ₡5000 goal is reached, funds will automatically be available for withdrawal.
-                          </div>
+                          <p className="text-xs text-orange-600 mt-2">
+                            Once goal is reached, funds automatically become available for withdrawal
+                          </p>
                         </div>
                       </div>
                     )}
@@ -247,29 +279,43 @@ export default function AdminPanel() {
                     </div>
                     
                     {expandedExample === 'many-to-selected' && (
-                      <div className="mt-4 pt-4 border-t bg-secondary/20 rounded p-3">
-                        <h5 className="font-medium text-primary mb-2">Recipient Rules & Details</h5>
-                        <div className="space-y-2 text-sm">
-                          <div>
-                            <strong>Payout Structure:</strong> Many-to-Selected - Multiple contributors, multiple recipients
+                      <div className="mt-4 pt-4 border-t space-y-4">
+                        <div className="bg-gradient-to-r from-purple-50 to-violet-50 rounded-lg p-4">
+                          <h5 className="font-medium text-primary mb-3 flex items-center">
+                            <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+                            Recipient Details
+                          </h5>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <p className="text-muted-foreground">Payout Structure</p>
+                              <p className="font-medium">Many-to-Selected</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Your Role</p>
+                              <p className="font-medium">1 of 3 Recipients</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Contributors</p>
+                              <p className="font-medium">12 Community Members</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Your Share</p>
+                              <p className="font-medium">₡500</p>
+                            </div>
                           </div>
-                          <div>
-                            <strong>Your Role:</strong> One of 3 scholarship recipients
+                        </div>
+                        
+                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                          <div className="flex items-center mb-2">
+                            <span className="text-purple-600 mr-2">🗳️</span>
+                            <h6 className="font-medium text-purple-800">Vote Pending</h6>
                           </div>
-                          <div>
-                            <strong>Contributors:</strong> Community members, local businesses, alumni (12 total)
-                          </div>
-                          <div>
-                            <strong>Other Recipients:</strong> Maria Santos, James Chen
-                          </div>
-                          <div>
-                            <strong>Your Share:</strong> ₡500 (equal distribution among 3 recipients)
-                          </div>
-                          <div>
-                            <strong>Withdrawal Method:</strong> Democratic vote by contributors
-                          </div>
-                          <div className="mt-3 p-2 bg-purple-50 rounded text-purple-800">
-                            <strong>Next Steps:</strong> Vote pending for fund distribution. You'll receive ₡500 upon approval.
+                          <p className="text-sm text-purple-700 mb-3">
+                            Democratic vote in progress for fund distribution
+                          </p>
+                          <div className="flex items-center justify-between text-xs text-purple-600">
+                            <span>Other Recipients: Maria Santos, James Chen</span>
+                            <span>Equal distribution: ₡500 each</span>
                           </div>
                         </div>
                       </div>

@@ -77,6 +77,9 @@ export default function FeedbackForm() {
         timestamp: new Date().toISOString()
       });
       
+      // Mark feedback checklist item as complete
+      localStorage.setItem('thePot_feedbackSubmitted', 'true');
+      
       toast({
         title: "Thank you!",
         description: "Your feedback has been submitted successfully."

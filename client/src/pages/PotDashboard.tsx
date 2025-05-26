@@ -16,6 +16,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import MilestoneCelebration from "@/components/MilestoneCelebration";
 import { 
   Dialog,
   DialogContent,
@@ -58,6 +59,8 @@ export default function PotDashboard() {
   const [newMemberInput, setNewMemberInput] = useState<string>("");
   const [tempMemberContributions, setTempMemberContributions] = useState<Record<string, number>>({});
   const [tempMemberPayouts, setTempMemberPayouts] = useState<Record<string, number>>({});
+  const [showMilestoneCelebration, setShowMilestoneCelebration] = useState<boolean>(false);
+  const [currentMilestone, setCurrentMilestone] = useState<any>(null);
   
   // No pots to display
   const noActivePots = pots.length === 0;

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaTrophy, FaStar, FaCoins, FaPartyHorn } from "react-icons/fa";
+import { FaTrophy, FaStar, FaCoins, FaGift } from "react-icons/fa";
 
 interface MilestoneCelebrationProps {
   isOpen: boolean;
@@ -38,7 +38,7 @@ const MilestoneCelebration: React.FC<MilestoneCelebrationProps> = ({
       case 'contribution_milestone':
         return <FaCoins className="text-green-500" size={60} />;
       case 'pot_completed':
-        return <FaPartyHorn className="text-purple-500" size={60} />;
+        return <FaGift className="text-purple-500" size={60} />;
       default:
         return <FaStar className="text-blue-500" size={60} />;
     }

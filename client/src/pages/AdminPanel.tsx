@@ -7,7 +7,9 @@ import { usePot } from "@/context/PotContext";
 import { useDummyUser } from "@/context/DummyUserContext";
 import { useLocation } from "wouter";
 import ErrorSimulationHandler from "@/components/ErrorSimulationHandler";
+import MilestoneCelebration from "@/components/MilestoneCelebration";
 import { FaCrown, FaUserFriends, FaHandHoldingUsd, FaExclamationCircle, FaBan, FaClock, FaUserSlash, FaRedo, FaMagic, FaVoteYea, FaMoneyBillWave } from "react-icons/fa";
+import { useState, useEffect } from "react";
 
 export default function AdminPanel() {
   const { 
@@ -25,6 +27,33 @@ export default function AdminPanel() {
   const { setUserRole } = useDummyUser();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
+  const [showMilestone, setShowMilestone] = useState(false);
+  
+  // Track scroll to bottom for checklist completion
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const windowHeight = window.innerHeight;
+      const documentHeight = document.documentElement.scrollHeight;
+      
+      // Check if user has scrolled to bottom (within 50px)
+      if (scrollTop + windowHeight >= documentHeight - 50 && !hasScrolledToBottom) {
+        setHasScrolledToBottom(true);
+        
+        // Store in localStorage to mark checklist item as complete
+        localStorage.setItem('thePot_exploreAdminPanelComplete', 'true');
+        
+        toast({
+          title: "Admin Panel Explored!",
+          description: "You've successfully explored all admin features and recipient role examples.",
+        });
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [hasScrolledToBottom, toast]);
   
   // Handle role selection
   const handleRoleChange = (role: "admin" | "voter" | "recipient") => {

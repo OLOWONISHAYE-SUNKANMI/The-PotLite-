@@ -96,6 +96,16 @@ const FeatureChecklist: React.FC<FeatureChecklistProps> = ({ onComplete, isFirst
       updatedChecked.vote = true;
     }
     
+    // Check if user explored admin panel (scrolled to bottom)
+    if (localStorage.getItem('thePot_exploreAdminPanelComplete') && !updatedChecked.exploreAdminPanel) {
+      updatedChecked.exploreAdminPanel = true;
+    }
+    
+    // Check if user submitted feedback
+    if (localStorage.getItem('thePot_feedbackSubmitted') && !updatedChecked.submitFeedback) {
+      updatedChecked.submitFeedback = true;
+    }
+    
     // Only update if there are changes
     if (JSON.stringify(updatedChecked) !== JSON.stringify(checked)) {
       setChecked(updatedChecked);

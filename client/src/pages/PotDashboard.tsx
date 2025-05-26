@@ -61,6 +61,7 @@ export default function PotDashboard() {
   const [tempMemberPayouts, setTempMemberPayouts] = useState<Record<string, number>>({});
   const [showMilestoneCelebration, setShowMilestoneCelebration] = useState<boolean>(false);
   const [currentMilestone, setCurrentMilestone] = useState<any>(null);
+  const [voteAdmission, setVoteAdmission] = useState<string>("democratic");
   
   // No pots to display
   const noActivePots = pots.length === 0;
@@ -438,8 +439,34 @@ export default function PotDashboard() {
                             return;
                           }
                           
+                          // Check for milestone celebrations before deposit
+                          const newBalance = pot.currentBalance + depositAmount;
+                          const milestones = [100, 250, 500, 1000, 2500, 5000];
+                          const reachedMilestone = milestones.find(m => 
+                            pot.currentBalance < m && newBalance >= m
+                          );
+                          
                           const success = depositFromPersonalToPot(pot.id, depositAmount);
                           if (success) {
+                            // Check if goal is reached
+                            if (pot.currentBalance < pot.goalAmount && newBalance >= pot.goalAmount) {
+                              setCurrentMilestone({
+                                title: "Goal Achieved!",
+                                amount: pot.goalAmount,
+                                description: `Congratulations! ${pot.name} has reached its target goal!`,
+                                type: 'goal_reached'
+                              });
+                              setShowMilestoneCelebration(true);
+                            } else if (reachedMilestone) {
+                              setCurrentMilestone({
+                                title: "Savings Milestone Reached!",
+                                amount: reachedMilestone,
+                                description: `Amazing! You've reached ₡${reachedMilestone} in total contributions!`,
+                                type: 'contribution_milestone'
+                              });
+                              setShowMilestoneCelebration(true);
+                            }
+                            
                             toast({
                               title: "Success",
                               description: `Deposited ₡${depositAmount} to ${pot.name}`
@@ -997,14 +1024,43 @@ export default function PotDashboard() {
                 </div>
               </div>
             )}
+            
+            {/* Vote Admission Selection */}
+            <div className="border-t pt-4">
+              <Label className="text-sm font-medium">Vote Admission Method</Label>
+              <RadioGroup value={voteAdmission} onValueChange={setVoteAdmission} className="mt-2">
+                <div className="space-y-3">
+                  <div className="flex items-start space-x-2 p-3 border rounded">
+                    <RadioGroupItem value="democratic" id="democratic" className="mt-0.5" />
+                    <div className="flex-1">
+                      <Label htmlFor="democratic" className="font-medium">Democratic Vote</Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        All pot members receive a request to approve/deny this change. Majority vote determines the outcome.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-2 p-3 border rounded">
+                    <RadioGroupItem value="admin" id="admin" className="mt-0.5" />
+                    <div className="flex-1">
+                      <Label htmlFor="admin" className="font-medium">Admin Approval</Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        All members receive a notification of your request, but only the Admin needs to approve/deny.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </RadioGroup>
+            </div>
+            
             <div className="flex justify-end space-x-2">
               <Button variant="outline" onClick={() => setShowContributionPayoutDialog(false)}>
                 Cancel
               </Button>
               <Button onClick={() => {
+                const approvalMethod = voteAdmission === "democratic" ? "democratic vote" : "admin approval";
                 toast({
                   title: "Contribution/Payout Change Request",
-                  description: "Request sent to all members for voting approval",
+                  description: `Request sent for ${approvalMethod}`,
                 });
                 setShowContributionPayoutDialog(false);
               }}>

@@ -29,6 +29,7 @@ export default function AdminPanel() {
   const [, setLocation] = useLocation();
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
   const [showMilestone, setShowMilestone] = useState(false);
+  const [expandedExample, setExpandedExample] = useState<string | null>(null);
   
   // Track scroll to bottom for checklist completion
   useEffect(() => {
@@ -141,7 +142,10 @@ export default function AdminPanel() {
                 
                 <div className="space-y-4">
                   {/* One-to-Many Example */}
-                  <div className="p-4 bg-background border rounded-lg">
+                  <div 
+                    className="p-4 bg-background border rounded-lg cursor-pointer hover:border-primary transition-colors"
+                    onClick={() => setExpandedExample(expandedExample === 'one-to-many' ? null : 'one-to-many')}
+                  >
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="font-medium text-primary">🎁 Birthday Gift Collection</h4>
                       <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">One-to-Many</span>
@@ -153,10 +157,39 @@ export default function AdminPanel() {
                       <span>Goal: ₡200</span>
                       <span className="text-green-600">✓ Goal Reached</span>
                     </div>
+                    
+                    {expandedExample === 'one-to-many' && (
+                      <div className="mt-4 pt-4 border-t bg-secondary/20 rounded p-3">
+                        <h5 className="font-medium text-primary mb-2">Recipient Rules & Details</h5>
+                        <div className="space-y-2 text-sm">
+                          <div>
+                            <strong>Payout Structure:</strong> One-to-Many - Multiple contributors, single recipient
+                          </div>
+                          <div>
+                            <strong>Your Role:</strong> You are the sole recipient of this gift fund
+                          </div>
+                          <div>
+                            <strong>Members:</strong> Sarah, Mike, Alex, Jessica, David (5 contributors)
+                          </div>
+                          <div>
+                            <strong>Withdrawal Method:</strong> Admin approval required
+                          </div>
+                          <div>
+                            <strong>Status:</strong> Ready for withdrawal - goal achieved!
+                          </div>
+                          <div className="mt-3 p-2 bg-green-50 rounded text-green-800">
+                            <strong>Next Steps:</strong> The admin can now initiate the payout to you. You'll receive the full ₡200 amount.
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Many-to-One Example */}
-                  <div className="p-4 bg-background border rounded-lg">
+                  <div 
+                    className="p-4 bg-background border rounded-lg cursor-pointer hover:border-primary transition-colors"
+                    onClick={() => setExpandedExample(expandedExample === 'many-to-one' ? null : 'many-to-one')}
+                  >
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="font-medium text-primary">🏠 House Down Payment</h4>
                       <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Many-to-One</span>
@@ -168,10 +201,39 @@ export default function AdminPanel() {
                       <span>Goal: ₡5000</span>
                       <span className="text-orange-600">₡3200 / ₡5000 (64%)</span>
                     </div>
+                    
+                    {expandedExample === 'many-to-one' && (
+                      <div className="mt-4 pt-4 border-t bg-secondary/20 rounded p-3">
+                        <h5 className="font-medium text-primary mb-2">Recipient Rules & Details</h5>
+                        <div className="space-y-2 text-sm">
+                          <div>
+                            <strong>Payout Structure:</strong> Many-to-One - Multiple contributors, single recipient
+                          </div>
+                          <div>
+                            <strong>Your Role:</strong> Primary recipient for family house fund
+                          </div>
+                          <div>
+                            <strong>Members:</strong> Mom, Dad, Brother, Sister, Grandparents (5 contributors)
+                          </div>
+                          <div>
+                            <strong>Withdrawal Method:</strong> Timed release (when goal is reached)
+                          </div>
+                          <div>
+                            <strong>Progress:</strong> ₡1800 still needed to reach goal
+                          </div>
+                          <div className="mt-3 p-2 bg-blue-50 rounded text-blue-800">
+                            <strong>Next Steps:</strong> Once the ₡5000 goal is reached, funds will automatically be available for withdrawal.
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Many-to-Selected Example */}
-                  <div className="p-4 bg-background border rounded-lg">
+                  <div 
+                    className="p-4 bg-background border rounded-lg cursor-pointer hover:border-primary transition-colors"
+                    onClick={() => setExpandedExample(expandedExample === 'many-to-selected' ? null : 'many-to-selected')}
+                  >
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="font-medium text-primary">🎓 Scholarship Fund</h4>
                       <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">Many-to-Selected</span>
@@ -183,6 +245,35 @@ export default function AdminPanel() {
                       <span>Total Fund: ₡1500</span>
                       <span className="text-green-600">Ready for Distribution</span>
                     </div>
+                    
+                    {expandedExample === 'many-to-selected' && (
+                      <div className="mt-4 pt-4 border-t bg-secondary/20 rounded p-3">
+                        <h5 className="font-medium text-primary mb-2">Recipient Rules & Details</h5>
+                        <div className="space-y-2 text-sm">
+                          <div>
+                            <strong>Payout Structure:</strong> Many-to-Selected - Multiple contributors, multiple recipients
+                          </div>
+                          <div>
+                            <strong>Your Role:</strong> One of 3 scholarship recipients
+                          </div>
+                          <div>
+                            <strong>Contributors:</strong> Community members, local businesses, alumni (12 total)
+                          </div>
+                          <div>
+                            <strong>Other Recipients:</strong> Maria Santos, James Chen
+                          </div>
+                          <div>
+                            <strong>Your Share:</strong> ₡500 (equal distribution among 3 recipients)
+                          </div>
+                          <div>
+                            <strong>Withdrawal Method:</strong> Democratic vote by contributors
+                          </div>
+                          <div className="mt-3 p-2 bg-purple-50 rounded text-purple-800">
+                            <strong>Next Steps:</strong> Vote pending for fund distribution. You'll receive ₡500 upon approval.
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

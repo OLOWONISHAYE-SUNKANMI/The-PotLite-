@@ -996,52 +996,98 @@ export default function PotDashboard() {
           </DialogHeader>
           <div className="space-y-4">
             {pot && (
-              <div className="bg-secondary rounded-lg p-4">
-                <h3 className="font-medium text-primary mb-3">Current Members</h3>
-                <div className="space-y-3">
-                  {pot.members.map((member) => (
-                    <div key={member} className="flex items-center justify-between p-3 bg-background rounded">
-                      <div className="flex items-center">
-                        {member === pot.creator && <Crown className="w-4 h-4 text-amber-500 mr-2" />}
-                        <span>{member}</span>
-                      </div>
-                      <div className="flex items-center space-x-4">
-                        <div className="flex items-center space-x-2">
-                          <Label className="text-xs">Contribute:</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            value={tempMemberContributions[member] || 0}
-                            onChange={(e) => setTempMemberContributions({
-                              ...tempMemberContributions,
-                              [member]: Number(e.target.value)
-                            })}
-                            className="w-20 h-8 text-xs"
-                          />
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Label className="text-xs">Payout:</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            value={tempMemberPayouts[member] || 0}
-                            onChange={(e) => setTempMemberPayouts({
-                              ...tempMemberPayouts,
-                              [member]: Number(e.target.value)
-                            })}
-                            className="w-20 h-8 text-xs"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+              <>
+                {/* Original Pot Settings Info */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="font-medium text-blue-800 mb-2">Original Pot Settings</h4>
+                  <div className="text-sm text-blue-700 space-y-1">
+                    <p><strong>Contribution Method:</strong> {
+                      pot.contributionMethod === 'just-reach-goal' ? 'Just Reach Goal (members can deposit any amount)' :
+                      pot.contributionMethod === 'equal-split' ? 'Equal Split' :
+                      pot.contributionMethod === 'individual-contribution' ? 'Individual Contribution' :
+                      'Just Reach Goal (default)'
+                    }</p>
+                    <p><strong>Payout Structure:</strong> {
+                      pot.payoutStructure === 'one-to-many' ? 'One-to-Many' :
+                      pot.payoutStructure === 'many-to-one' ? 'Many-to-One' :
+                      'Many-to-Selected'
+                    }</p>
+                  </div>
                 </div>
-              </div>
+
+                <div className="bg-secondary rounded-lg p-4">
+                  <h3 className="font-medium text-primary mb-3">Current Members</h3>
+                  <div className="space-y-3">
+                    {pot.members.map((member) => (
+                      <div key={member} className="flex items-center justify-between p-3 bg-background rounded">
+                        <div className="flex items-center">
+                          {member === pot.creator && <Crown className="w-4 h-4 text-amber-500 mr-2" />}
+                          <span>{member}</span>
+                        </div>
+                        <div className="flex items-center space-x-4">
+                          {/* Only show contribution input if original method wasn't "just-reach-goal" */}
+                          {pot.contributionMethod !== 'just-reach-goal' && (
+                            <div className="flex items-center space-x-2">
+                              <Label className="text-xs">Contribute:</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={tempMemberContributions[member] || 0}
+                                onChange={(e) => setTempMemberContributions({
+                                  ...tempMemberContributions,
+                                  [member]: Number(e.target.value)
+                                })}
+                                className="w-20 h-8 text-xs"
+                              />
+                            </div>
+                          )}
+                          
+                          {/* Show payout selection based on payout structure */}
+                          <div className="flex items-center space-x-2">
+                            <Label className="text-xs">Payout:</Label>
+                            {pot.payoutStructure === 'one-to-many' && (
+                              <span className="text-xs text-muted-foreground">Auto (receives share)</span>
+                            )}
+                            {pot.payoutStructure === 'many-to-one' && member !== pot.recipients[0] && (
+                              <span className="text-xs text-muted-foreground">None</span>
+                            )}
+                            {pot.payoutStructure === 'many-to-one' && member === pot.recipients[0] && (
+                              <span className="text-xs font-medium text-green-600">Full Amount</span>
+                            )}
+                            {pot.payoutStructure === 'many-to-selected' && (
+                              <Input
+                                type="number"
+                                min="0"
+                                value={tempMemberPayouts[member] || 0}
+                                onChange={(e) => setTempMemberPayouts({
+                                  ...tempMemberPayouts,
+                                  [member]: Number(e.target.value)
+                                })}
+                                className="w-20 h-8 text-xs"
+                              />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Just Reach Goal Notice */}
+                  {pot.contributionMethod === 'just-reach-goal' && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-4">
+                      <p className="text-sm text-amber-700">
+                        <strong>Note:</strong> This pot uses "Just Reach Goal" contribution method. 
+                        Members can deposit any amount towards the goal. Only payout distribution can be modified.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </>
             )}
             
-            {/* Vote Admission Selection */}
-            <div className="border-t pt-4">
-              <Label className="text-sm font-medium">Vote Admission Method</Label>
+            {/* Vote/Approval Method */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Request Approval Method</Label>
               <RadioGroup value={voteAdmission} onValueChange={setVoteAdmission} className="mt-2">
                 <div className="space-y-3">
                   <div className="flex items-start space-x-2 p-3 border rounded">

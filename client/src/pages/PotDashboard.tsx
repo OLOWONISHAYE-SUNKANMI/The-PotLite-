@@ -63,6 +63,7 @@ export default function PotDashboard() {
   const [showMilestoneCelebration, setShowMilestoneCelebration] = useState<boolean>(false);
   const [currentMilestone, setCurrentMilestone] = useState<any>(null);
   const [voteAdmission, setVoteAdmission] = useState<string>("democratic");
+  const [showInviteSystem, setShowInviteSystem] = useState<boolean>(false);
   
   // No pots to display
   const noActivePots = pots.length === 0;

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaCheck, FaCoins, FaGift } from "react-icons/fa";
+import { FaCheck, FaCoins, FaGift, FaTrophy } from "react-icons/fa";
 
 interface MilestoneCelebrationProps {
   isOpen: boolean;
@@ -81,32 +81,40 @@ const MilestoneCelebration: React.FC<MilestoneCelebrationProps> = ({
         </svg>
       </motion.div>
       
-      {/* Falling gold coins */}
+      {/* Falling gold coins centered around trophy */}
       <div className="absolute inset-0 pointer-events-none">
-        {[...Array(8)].map((_, i) => (
-          <motion.div
-            key={i}
-            initial={{ 
-              x: Math.random() * 200 + 50, 
-              y: -20, 
-              rotate: 0,
-              scale: 0
-            }}
-            animate={{ 
-              y: 120, 
-              rotate: 360,
-              scale: [0, 1, 1, 0.8]
-            }}
-            transition={{ 
-              duration: 2,
-              delay: 0.5 + i * 0.2,
-              ease: "easeIn"
-            }}
-            className="absolute text-2xl"
-          >
-            🪙
-          </motion.div>
-        ))}
+        {[...Array(8)].map((_, i) => {
+          const angle = (i / 8) * Math.PI * 2; // Distribute coins in a circle
+          const radius = 60; // Distance from center
+          const centerX = 100; // Center X position
+          const startX = centerX + Math.cos(angle) * radius;
+          
+          return (
+            <motion.div
+              key={i}
+              initial={{ 
+                x: startX, 
+                y: -20, 
+                rotate: 0,
+                scale: 0
+              }}
+              animate={{ 
+                x: centerX + Math.cos(angle) * 20, // End closer to center
+                y: 80, 
+                rotate: 360,
+                scale: [0, 1, 1, 0.8]
+              }}
+              transition={{ 
+                duration: 2,
+                delay: 0.5 + i * 0.15,
+                ease: "easeIn"
+              }}
+              className="absolute text-2xl"
+            >
+              🪙
+            </motion.div>
+          );
+        })}
       </div>
     </div>
   );
@@ -114,9 +122,9 @@ const MilestoneCelebration: React.FC<MilestoneCelebrationProps> = ({
   const getIcon = () => {
     switch (milestone.type) {
       case 'goal_reached':
-        return <PotWithHands isGoalReached={true} />;
+        return <FaTrophy className="text-yellow-500" size={60} />;
       case 'contribution_milestone':
-        return <PotWithHands isGoalReached={false} />;
+        return <FaTrophy className="text-yellow-500" size={60} />;
       case 'pot_completed':
         return <FaGift className="text-purple-500" size={60} />;
       default:

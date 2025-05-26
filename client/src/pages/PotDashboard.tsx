@@ -38,6 +38,7 @@ export default function PotDashboard() {
     updatePersonalPotBalance,
     depositFromPersonalToPot,
     withdrawFromPotToPersonal,
+    approveWithdrawalToPersonal,
     addTransaction
   } = usePot();
   const { currentUser } = useDummyUser();
@@ -800,10 +801,23 @@ export default function PotDashboard() {
                               variant: "destructive",
                             });
                           } else {
-                            toast({
-                              title: "Success",
-                              description: "Withdrawal approved",
-                            });
+                            // Process the actual withdrawal to Personal Pot
+                            const withdrawalAmount = 200; // Example amount - in real app this would come from the request
+                            const recipient = "Sarah"; // Example recipient - in real app this would come from the request
+                            
+                            const success = approveWithdrawalToPersonal(pot.id, withdrawalAmount, recipient);
+                            if (success) {
+                              toast({
+                                title: "Withdrawal Approved",
+                                description: `₡${withdrawalAmount} has been transferred to ${recipient}'s Personal Pot`,
+                              });
+                            } else {
+                              toast({
+                                title: "Error",
+                                description: "Insufficient pot balance for this withdrawal",
+                                variant: "destructive",
+                              });
+                            }
                           }
                         }}
                       >

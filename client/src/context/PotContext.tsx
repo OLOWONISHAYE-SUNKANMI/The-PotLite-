@@ -370,6 +370,38 @@ export const PotProvider = ({ children }: PotProviderProps) => {
     
     return true;
   };
+
+  // Approve withdrawal and transfer to Personal Pot
+  const approveWithdrawalToPersonal = (potId: string, amount: number, recipient: string): boolean => {
+    const pot = pots.find(p => p.id === potId);
+    if (!pot || pot.currentBalance < amount) {
+      return false;
+    }
+    
+    // Deduct from pot balance
+    updatePotBalance(potId, -amount);
+    
+    // Add to personal pot (assuming current user is receiving)
+    setPersonalPot((prev: { balance: number }) => ({
+      ...prev,
+      balance: prev.balance + amount
+    }));
+    
+    // Add transaction record
+    addTransaction({
+      id: generateId(),
+      potId,
+      type: 'withdrawal',
+      amount,
+      user: recipient,
+      description: "Withdrawal approved - transferred to Personal Pot",
+      timestamp: new Date().toISOString(),
+      balanceAfter: pot.currentBalance - amount,
+      status: "completed"
+    });
+    
+    return true;
+  };
   
   // Feedback operations
   const addFeedback = (newFeedback: any) => {
@@ -540,6 +572,7 @@ export const PotProvider = ({ children }: PotProviderProps) => {
         updatePersonalPotBalance,
         depositFromPersonalToPot,
         withdrawFromPotToPersonal,
+        approveWithdrawalToPersonal,
         addFeedback,
         resetAllData,
         generateRandomScenario,

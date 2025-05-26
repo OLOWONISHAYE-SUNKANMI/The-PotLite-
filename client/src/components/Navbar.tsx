@@ -141,7 +141,15 @@ const Navbar = () => {
               Create Pot
             </MobileNavLink>
             <MobileNavLink href="/transactions" currentPath={location} onClick={closeMenu}>
-              Transactions
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <FaBell className="w-4 h-4 mr-2" />
+                  Notifications
+                </div>
+                <span className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  3
+                </span>
+              </div>
             </MobileNavLink>
             <MobileNavLink href="/feedback" currentPath={location} onClick={closeMenu}>
               Feedback

@@ -26,6 +26,7 @@ interface PotContextType {
   updatePersonalPotBalance: (amount: number) => void;
   depositFromPersonalToPot: (potId: string, amount: number) => void;
   withdrawFromPotToPersonal: (potId: string, amount: number) => void;
+  approveWithdrawalToPersonal: (potId: string, amount: number, recipient: string) => boolean;
   addFeedback: (feedback: any) => void;
   resetAllData: () => void;
   generateRandomScenario: () => void;

@@ -321,43 +321,73 @@ export default function AdminPanel() {
                     </div>
                     
                     {expandedExample === 'many-to-selected' && (
-                      <div className="mt-4 pt-4 border-t space-y-4">
-                        <div className="bg-gradient-to-r from-purple-50 to-violet-50 rounded-lg p-4">
-                          <h5 className="font-medium text-primary mb-3 flex items-center">
-                            <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
-                            Recipient Details
-                          </h5>
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <p className="text-muted-foreground">Payout Structure</p>
-                              <p className="font-medium">Many-to-Selected</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Your Role</p>
-                              <p className="font-medium">1 of 3 Recipients</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Contributors</p>
-                              <p className="font-medium">12 Community Members</p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Your Share</p>
-                              <p className="font-medium">₡500</p>
+                      <div className="mt-4 pt-4 border-t">
+                        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-lg space-y-6">
+                          {/* Pot Description */}
+                          <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg">
+                            <h6 className="font-medium text-blue-900 mb-2">Pot Description</h6>
+                            <p className="text-blue-800 text-sm italic">
+                              "Our community scholarship fund supports outstanding students who demonstrate academic excellence 
+                              and financial need. This year we're awarding scholarships to three deserving students to help 
+                              with their educational expenses."
+                            </p>
+                          </div>
+                          
+                          {/* Recipient Details */}
+                          <div className="bg-gradient-to-br from-purple-50 to-violet-100 rounded-lg p-5 border border-purple-200">
+                            <h5 className="font-semibold text-purple-900 mb-4 flex items-center text-lg">
+                              <span className="w-3 h-3 bg-purple-500 rounded-full mr-3"></span>
+                              Your Recipient Status
+                            </h5>
+                            <div className="grid grid-cols-2 gap-6 text-sm">
+                              <div className="space-y-3">
+                                <div>
+                                  <p className="text-purple-700 font-medium">Payout Structure</p>
+                                  <p className="text-purple-900 font-semibold">Many-to-Selected</p>
+                                </div>
+                                <div>
+                                  <p className="text-purple-700 font-medium">Your Role</p>
+                                  <p className="text-purple-900 font-semibold">1 of 3 Recipients 🎓</p>
+                                </div>
+                              </div>
+                              <div className="space-y-3">
+                                <div>
+                                  <p className="text-purple-700 font-medium">Contributors</p>
+                                  <p className="text-purple-900 font-semibold">12 Community Members</p>
+                                </div>
+                                <div>
+                                  <p className="text-purple-700 font-medium">Your Share</p>
+                                  <p className="text-purple-900 font-semibold">₡500</p>
+                                </div>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        
-                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                          <div className="flex items-center mb-2">
-                            <span className="text-purple-600 mr-2">🗳️</span>
-                            <h6 className="font-medium text-purple-800">Vote Pending</h6>
-                          </div>
-                          <p className="text-sm text-purple-700 mb-3">
-                            Democratic vote in progress for fund distribution
-                          </p>
-                          <div className="flex items-center justify-between text-xs text-purple-600">
-                            <span>Other Recipients: Maria Santos, James Chen</span>
-                            <span>Equal distribution: ₡500 each</span>
+                          
+                          {/* Voting Status */}
+                          <div className="bg-gradient-to-r from-purple-100 to-violet-50 border border-purple-300 rounded-lg p-5">
+                            <div className="flex items-center mb-3">
+                              <span className="text-purple-600 mr-3 text-xl">🗳️</span>
+                              <h6 className="font-semibold text-purple-800 text-lg">Vote Pending</h6>
+                            </div>
+                            <p className="text-purple-700 mb-4 leading-relaxed">
+                              The community is currently voting on the scholarship fund distribution. You're one of three 
+                              selected recipients for this year's awards!
+                            </p>
+                            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                              <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                  <p className="text-purple-600 font-medium">Other Recipients</p>
+                                  <p className="text-purple-800">Maria Santos, James Chen</p>
+                                </div>
+                                <div>
+                                  <p className="text-purple-600 font-medium">Distribution</p>
+                                  <p className="text-purple-800">₡500 each (equal split)</p>
+                                </div>
+                              </div>
+                              <p className="text-sm text-purple-600 mt-3">
+                                Once the vote passes, you'll receive ₡500 directly to your Personal Pot to help with your educational expenses.
+                              </p>
+                            </div>
                           </div>
                         </div>
                       </div>

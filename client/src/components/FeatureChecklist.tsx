@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useLocation } from 'wouter';
-import { FaCheckCircle, FaRegCircle, FaPiggyBank, FaHandHoldingUsd, FaExchangeAlt, FaBullseye, FaVoteYea, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import { FaCheckCircle, FaRegCircle, FaPiggyBank, FaHandHoldingUsd, FaExchangeAlt, FaBullseye, FaVoteYea, FaChevronDown, FaChevronUp, FaUserFriends, FaComment } from 'react-icons/fa';
 
 const checklistItems = [
   { 
@@ -41,6 +41,20 @@ const checklistItems = [
     key: 'vote',
     icon: <FaVoteYea className="mr-2" />,
     path: '/voter-demo'
+  },
+  { 
+    id: 6, 
+    label: 'Explore Admin Panel (Try Recipient Role)', 
+    key: 'exploreAdminPanel',
+    icon: <FaUserFriends className="mr-2" />,
+    path: '/admin'
+  },
+  { 
+    id: 7, 
+    label: 'Submit Feedback', 
+    key: 'submitFeedback',
+    icon: <FaComment className="mr-2" />,
+    path: '/feedback'
   },
 ];
 
@@ -106,6 +120,18 @@ const FeatureChecklist: React.FC<FeatureChecklistProps> = ({ onComplete, isFirst
     
     // For items that can't be auto-detected, we'll mark them as complete on click
     if (key === 'goalChange' && !checked.goalChange) {
+      const updatedChecked = { ...checked, [key]: true };
+      setChecked(updatedChecked);
+    }
+    
+    // Mark explore admin panel as complete when navigating to admin
+    if (key === 'exploreAdminPanel' && !checked.exploreAdminPanel) {
+      const updatedChecked = { ...checked, [key]: true };
+      setChecked(updatedChecked);
+    }
+    
+    // Mark submit feedback as complete when navigating to feedback
+    if (key === 'submitFeedback' && !checked.submitFeedback) {
       const updatedChecked = { ...checked, [key]: true };
       setChecked(updatedChecked);
     }

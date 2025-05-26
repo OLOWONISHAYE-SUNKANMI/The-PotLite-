@@ -97,10 +97,65 @@ export default function AdminPanel() {
                 <Button 
                   variant="outline"
                   className="border-2 border-secondary"
-                  onClick={() => setLocation('/recipient-demo')}
+                  onClick={() => handleRoleChange("recipient")}
                 >
                   <FaMoneyBillWave className="mr-2" /> Recipient Role Demo
                 </Button>
+              </div>
+              
+              {/* Recipient Payout Structure Examples */}
+              <div className="mt-6 p-4 bg-secondary/20 rounded-lg">
+                <h3 className="text-lg font-medium text-primary mb-3">Recipient Invitation Examples</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  See how recipients receive invitations for different payout structures:
+                </p>
+                
+                <div className="space-y-4">
+                  {/* One-to-Many Example */}
+                  <div className="p-4 bg-background border rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-medium text-primary">🎁 Birthday Gift Collection</h4>
+                      <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">One-to-Many</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      You've been selected as a recipient for Emma's birthday gift fund!
+                    </p>
+                    <div className="flex justify-between text-xs">
+                      <span>Goal: ₡200</span>
+                      <span className="text-green-600">✓ Goal Reached</span>
+                    </div>
+                  </div>
+
+                  {/* Many-to-One Example */}
+                  <div className="p-4 bg-background border rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-medium text-primary">🏠 House Down Payment</h4>
+                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Many-to-One</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Your family is pooling funds to help with your house down payment.
+                    </p>
+                    <div className="flex justify-between text-xs">
+                      <span>Goal: ₡5000</span>
+                      <span className="text-orange-600">₡3200 / ₡5000 (64%)</span>
+                    </div>
+                  </div>
+
+                  {/* Many-to-Selected Example */}
+                  <div className="p-4 bg-background border rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-medium text-primary">🎓 Scholarship Fund</h4>
+                      <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">Many-to-Selected</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      You're one of 3 selected recipients for the community scholarship fund.
+                    </p>
+                    <div className="flex justify-between text-xs">
+                      <span>Total Fund: ₡1500</span>
+                      <span className="text-green-600">Ready for Distribution</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

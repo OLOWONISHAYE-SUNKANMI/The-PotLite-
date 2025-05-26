@@ -11,8 +11,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { cn, formatTimestamp, PotType } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowUp, ArrowDown, Plus, Info, Clock, Users, CreditCard, ChevronDown } from "lucide-react";
+import { ArrowUp, ArrowDown, Plus, Info, Clock, Users, CreditCard, ChevronDown, AlertTriangle } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Label } from "@/components/ui/label";
 import { 
   Dialog,
   DialogContent,
@@ -42,6 +43,9 @@ export default function PotDashboard() {
   const [potDetailTab, setPotDetailTab] = useState<string>("summary");
   const [depositAmount, setDepositAmount] = useState<number>(0);
   const [withdrawAmount, setWithdrawAmount] = useState<number>(0);
+  const [showWithdrawDialog, setShowWithdrawDialog] = useState<boolean>(false);
+  const [showGoalChangeDialog, setShowGoalChangeDialog] = useState<boolean>(false);
+  const [newGoalAmount, setNewGoalAmount] = useState<number>(0);
   
   // No pots to display
   const noActivePots = pots.length === 0;
@@ -462,33 +466,30 @@ export default function PotDashboard() {
                           return;
                         }
                         
-                        // Request withdrawal to personal pot
-                        const success = withdrawFromPotToPersonal(pot.id, pot.currentBalance);
-                        if (success) {
+                        // Check payout structure restrictions
+                        if (pot.payoutStructure === "many-to-one") {
                           toast({
-                            title: "Withdrawal Requested",
-                            description: `Requested ₡${pot.currentBalance} withdrawal to Personal Pot`
-                          });
-                        } else {
-                          toast({
-                            title: "Error",
-                            description: "Failed to request withdrawal",
+                            title: "Withdrawal Not Allowed",
+                            description: "Many-to-One pots cannot withdraw until goal is reached and withdrawal method allows it",
                             variant: "destructive"
                           });
+                          return;
                         }
+                        
+                        // Open withdrawal dialog for amount input
+                        setWithdrawAmount(0);
+                        setShowWithdrawDialog(true);
                       }}
-                      disabled={pot.currentBalance <= 0}
-                      className={pot.currentBalance <= 0 ? "opacity-50" : ""}
+                      disabled={pot.currentBalance <= 0 || pot.payoutStructure === "many-to-one"}
+                      className={pot.currentBalance <= 0 || pot.payoutStructure === "many-to-one" ? "opacity-50" : ""}
                     >
                       <ArrowDown className="w-4 h-4 mr-2" />
                       Withdraw to Personal Pot
                     </DropdownMenuItem>
                     
                     <DropdownMenuItem onClick={() => {
-                      toast({
-                        title: "Goal Change Request",
-                        description: "Goal change request submitted for review"
-                      });
+                      setNewGoalAmount(pot.goalAmount);
+                      setShowGoalChangeDialog(true);
                     }}>
                       <Info className="w-4 h-4 mr-2" />
                       Goal Change
@@ -532,6 +533,21 @@ export default function PotDashboard() {
                     }}>
                       <Plus className="w-4 h-4 mr-2" />
                       Add/Remove Members
+                    </DropdownMenuItem>
+                    
+                    <DropdownMenuItem onClick={() => {
+                      // Calculate 5% fee
+                      const feeAmount = pot.currentBalance * 0.05;
+                      const refundAmount = pot.currentBalance - feeAmount;
+                      
+                      toast({
+                        title: "Clean Pot Early Request",
+                        description: `Requesting early cleanup. 5% fee (₡${feeAmount.toFixed(2)}) will be deducted. You'll receive ₡${refundAmount.toFixed(2)}`,
+                        variant: "destructive"
+                      });
+                    }}>
+                      <AlertTriangle className="w-4 h-4 mr-2" />
+                      Clean The Pot Early
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -784,6 +800,137 @@ export default function PotDashboard() {
           </div>
         </Card>
       )}
+
+      {/* Withdrawal Amount Dialog */}
+      <Dialog open={showWithdrawDialog} onOpenChange={setShowWithdrawDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Request Withdrawal</DialogTitle>
+            <DialogDescription>
+              Enter the amount you want to withdraw to your Personal Pot.
+              {pot && pot.payoutStructure !== "many-to-one" && (
+                <span className="block mt-2 text-sm text-amber-600">
+                  This will trigger a vote among all pot members.
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="withdrawAmount">Withdrawal Amount</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">₡</span>
+                <Input
+                  id="withdrawAmount"
+                  type="number"
+                  min="1"
+                  max={pot?.currentBalance || 0}
+                  value={withdrawAmount}
+                  onChange={(e) => setWithdrawAmount(Number(e.target.value))}
+                  className="pl-8"
+                  placeholder="Enter amount"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Maximum available: ₡{pot?.currentBalance || 0}
+              </p>
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setShowWithdrawDialog(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (!pot || withdrawAmount <= 0 || withdrawAmount > pot.currentBalance) {
+                    toast({
+                      title: "Invalid Amount",
+                      description: "Please enter a valid withdrawal amount",
+                      variant: "destructive"
+                    });
+                    return;
+                  }
+
+                  // Process withdrawal request based on payout structure
+                  if (pot.payoutStructure === "one-to-many" || pot.payoutStructure === "many-to-selected") {
+                    toast({
+                      title: "Vote Initiated",
+                      description: `Withdrawal request for ₡${withdrawAmount} sent to all members for voting`,
+                    });
+                  }
+                  
+                  setShowWithdrawDialog(false);
+                  setWithdrawAmount(0);
+                }}
+                disabled={!pot || withdrawAmount <= 0 || withdrawAmount > pot.currentBalance}
+              >
+                Submit Request
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Goal Change Dialog */}
+      <Dialog open={showGoalChangeDialog} onOpenChange={setShowGoalChangeDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Change Pot Goal</DialogTitle>
+            <DialogDescription>
+              {pot && pot.currentBalance >= pot.goalAmount 
+                ? "Goal has been reached. This request must be submitted before payout withdrawal."
+                : "Enter a new target goal for this pot. This will trigger a vote among all members."
+              }
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="newGoalAmount">New Target Goal</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">₡</span>
+                <Input
+                  id="newGoalAmount"
+                  type="number"
+                  min="1"
+                  value={newGoalAmount}
+                  onChange={(e) => setNewGoalAmount(Number(e.target.value))}
+                  className="pl-8"
+                  placeholder="Enter new goal"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Current goal: ₡{pot?.goalAmount || 0} | Current balance: ₡{pot?.currentBalance || 0}
+              </p>
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setShowGoalChangeDialog(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (!pot || newGoalAmount <= 0) {
+                    toast({
+                      title: "Invalid Goal",
+                      description: "Please enter a valid goal amount",
+                      variant: "destructive"
+                    });
+                    return;
+                  }
+
+                  toast({
+                    title: "Goal Change Request",
+                    description: `Request to change goal from ₡${pot.goalAmount} to ₡${newGoalAmount} sent to all members for voting`,
+                  });
+                  
+                  setShowGoalChangeDialog(false);
+                }}
+                disabled={!pot || newGoalAmount <= 0}
+              >
+                Submit Request
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

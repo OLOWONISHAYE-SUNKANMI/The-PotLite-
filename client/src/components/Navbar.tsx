@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useMobile } from "@/hooks/use-mobile";
 import { usePot } from "@/context/PotContext";
-import { FaPiggyBank } from "react-icons/fa";
+import { FaPiggyBank, FaBell } from "react-icons/fa";
 import { FaBars, FaTimes } from "react-icons/fa";
 
 type NavLinkProps = {
@@ -92,10 +92,27 @@ const Navbar = () => {
                   <div className="ml-10 flex items-baseline space-x-4">
                     <NavLink href="/" currentPath={location}>Dashboard</NavLink>
                     <NavLink href="/create" currentPath={location}>Create Pot</NavLink>
-                    <NavLink href="/transactions" currentPath={location}>Transactions</NavLink>
                     <NavLink href="/feedback" currentPath={location}>Feedback</NavLink>
                     <NavLink href="/admin" currentPath={location}>Admin</NavLink>
                   </div>
+                </div>
+                
+                {/* Notifications Bell - moved to far right */}
+                <div className="hidden md:block ml-6">
+                  <Link href="/transactions">
+                    <a className={cn(
+                      "relative inline-flex items-center px-3 py-2 rounded-md text-sm font-medium",
+                      location === "/transactions" 
+                        ? "text-primary" 
+                        : "text-secondary-foreground hover:text-primary"
+                    )}>
+                      <FaBell className="w-5 h-5" />
+                      {/* Notification badges */}
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                        3
+                      </span>
+                    </a>
+                  </Link>
                 </div>
                 
                 <div className="md:hidden flex items-center">

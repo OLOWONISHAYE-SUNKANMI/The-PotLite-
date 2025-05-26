@@ -11,7 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { cn, formatTimestamp, PotType } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowUp, ArrowDown, Plus, Info, Clock, Users, CreditCard } from "lucide-react";
+import { ArrowUp, ArrowDown, Plus, Info, Clock, Users, CreditCard, ChevronDown } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { 
   Dialog,
   DialogContent,
@@ -441,27 +442,99 @@ export default function PotDashboard() {
                 </Dialog>
               )}
               
-              {pot.status !== 'completed' && pot.currentBalance > 0 && (
-                <Button 
-                  className="bg-secondary hover:bg-secondary/90 text-primary font-bold"
-                  onClick={() => {
-                    const success = withdrawFromPotToPersonal(pot.id, pot.currentBalance);
-                    if (success) {
+              {pot.status !== 'completed' && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button className="bg-secondary hover:bg-secondary/90 text-primary font-bold">
+                      Request <ChevronDown className="w-4 h-4 ml-2" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-56">
+                    <DropdownMenuItem 
+                      onClick={() => {
+                        // Check if at least 1 contribution has been made
+                        if (pot.currentBalance <= 0) {
+                          toast({
+                            title: "Cannot Withdraw",
+                            description: "At least 1 contribution must be made before requesting withdrawal",
+                            variant: "destructive"
+                          });
+                          return;
+                        }
+                        
+                        // Request withdrawal to personal pot
+                        const success = withdrawFromPotToPersonal(pot.id, pot.currentBalance);
+                        if (success) {
+                          toast({
+                            title: "Withdrawal Requested",
+                            description: `Requested ₡${pot.currentBalance} withdrawal to Personal Pot`
+                          });
+                        } else {
+                          toast({
+                            title: "Error",
+                            description: "Failed to request withdrawal",
+                            variant: "destructive"
+                          });
+                        }
+                      }}
+                      disabled={pot.currentBalance <= 0}
+                      className={pot.currentBalance <= 0 ? "opacity-50" : ""}
+                    >
+                      <ArrowDown className="w-4 h-4 mr-2" />
+                      Withdraw to Personal Pot
+                    </DropdownMenuItem>
+                    
+                    <DropdownMenuItem onClick={() => {
                       toast({
-                        title: "Success",
-                        description: `Withdrew ₡${pot.currentBalance} to your Personal Pot`
+                        title: "Goal Change Request",
+                        description: "Goal change request submitted for review"
                       });
-                    } else {
+                    }}>
+                      <Info className="w-4 h-4 mr-2" />
+                      Goal Change
+                    </DropdownMenuItem>
+                    
+                    <DropdownMenuItem onClick={() => {
                       toast({
-                        title: "Error",
-                        description: "Failed to withdraw funds",
-                        variant: "destructive"
+                        title: "Contribution/Payout Change",
+                        description: "Contribution/Payout change request submitted"
                       });
-                    }
-                  }}
-                >
-                  <ArrowDown className="w-4 h-4 mr-2" /> Withdraw to Personal Pot
-                </Button>
+                    }}>
+                      <CreditCard className="w-4 h-4 mr-2" />
+                      Contribute/Payout Change
+                    </DropdownMenuItem>
+                    
+                    <DropdownMenuItem onClick={() => {
+                      toast({
+                        title: "Withdrawal Method Change",
+                        description: "Withdrawal method change request submitted"
+                      });
+                    }}>
+                      <Clock className="w-4 h-4 mr-2" />
+                      Withdrawal Method Change
+                    </DropdownMenuItem>
+                    
+                    <DropdownMenuItem onClick={() => {
+                      toast({
+                        title: "Admin Role Change",
+                        description: "Admin role change request submitted"
+                      });
+                    }}>
+                      <Users className="w-4 h-4 mr-2" />
+                      Admin Role Change
+                    </DropdownMenuItem>
+                    
+                    <DropdownMenuItem onClick={() => {
+                      toast({
+                        title: "Member Management",
+                        description: "Add/Remove members request submitted"
+                      });
+                    }}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add/Remove Members
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
             </div>
           </div>

@@ -1025,10 +1025,27 @@ export default function PotDashboard() {
                           <span>{member}</span>
                         </div>
                         <div className="flex items-center space-x-4">
-                          {/* Only show contribution input if original method wasn't "just-reach-goal" */}
-                          {pot.contributionMethod !== 'just-reach-goal' && (
-                            <div className="flex items-center space-x-2">
-                              <Label className="text-xs">Contribute:</Label>
+                          {/* Contribution Column */}
+                          <div className="flex items-center space-x-2">
+                            <Label className="text-xs">Contribute:</Label>
+                            {pot.contributionMethod === 'just-reach-goal' ? (
+                              <Button
+                                variant={tempMemberContributions[member] ? "default" : "outline"}
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                                onClick={() => {
+                                  const newContributions = { ...tempMemberContributions };
+                                  if (newContributions[member]) {
+                                    delete newContributions[member];
+                                  } else {
+                                    newContributions[member] = 1; // Just mark as contributing
+                                  }
+                                  setTempMemberContributions(newContributions);
+                                }}
+                              >
+                                {tempMemberContributions[member] ? "✓" : "○"}
+                              </Button>
+                            ) : (
                               <Input
                                 type="number"
                                 min="0"
@@ -1039,32 +1056,45 @@ export default function PotDashboard() {
                                 })}
                                 className="w-20 h-8 text-xs"
                               />
-                            </div>
-                          )}
+                            )}
+                          </div>
                           
-                          {/* Show payout selection based on payout structure */}
+                          {/* Payout Column */}
                           <div className="flex items-center space-x-2">
                             <Label className="text-xs">Payout:</Label>
-                            {pot.payoutStructure === 'one-to-many' && (
+                            {pot.payoutStructure === 'one-to-many' ? (
                               <span className="text-xs text-muted-foreground">Auto (receives share)</span>
-                            )}
-                            {pot.payoutStructure === 'many-to-one' && member !== pot.recipients[0] && (
-                              <span className="text-xs text-muted-foreground">None</span>
-                            )}
-                            {pot.payoutStructure === 'many-to-one' && member === pot.recipients[0] && (
-                              <span className="text-xs font-medium text-green-600">Full Amount</span>
-                            )}
-                            {pot.payoutStructure === 'many-to-selected' && (
-                              <Input
-                                type="number"
-                                min="0"
-                                value={tempMemberPayouts[member] || 0}
-                                onChange={(e) => setTempMemberPayouts({
-                                  ...tempMemberPayouts,
-                                  [member]: Number(e.target.value)
-                                })}
-                                className="w-20 h-8 text-xs"
-                              />
+                            ) : pot.payoutStructure === 'many-to-one' ? (
+                              <Button
+                                variant={pot.recipients.includes(member) ? "default" : "outline"}
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                                onClick={() => {
+                                  // For many-to-one, only one member can be selected
+                                  const newPayouts = { [member]: 1 };
+                                  setTempMemberPayouts(newPayouts);
+                                }}
+                              >
+                                {pot.recipients.includes(member) ? "✓" : "○"}
+                              </Button>
+                            ) : (
+                              // many-to-selected
+                              <Button
+                                variant={tempMemberPayouts[member] ? "default" : "outline"}
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                                onClick={() => {
+                                  const newPayouts = { ...tempMemberPayouts };
+                                  if (newPayouts[member]) {
+                                    delete newPayouts[member];
+                                  } else {
+                                    newPayouts[member] = 1; // Just mark as recipient
+                                  }
+                                  setTempMemberPayouts(newPayouts);
+                                }}
+                              >
+                                {tempMemberPayouts[member] ? "✓" : "○"}
+                              </Button>
                             )}
                           </div>
                         </div>
@@ -1077,7 +1107,8 @@ export default function PotDashboard() {
                     <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-4">
                       <p className="text-sm text-amber-700">
                         <strong>Note:</strong> This pot uses "Just Reach Goal" contribution method. 
-                        Members can deposit any amount towards the goal. Only payout distribution can be modified.
+                        Click the ○/✓ icons to select who contributes and who receives payouts. 
+                        Members can deposit any amount towards the goal.
                       </p>
                     </div>
                   )}

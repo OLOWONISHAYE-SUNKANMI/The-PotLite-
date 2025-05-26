@@ -378,7 +378,9 @@ export default function CreatePot() {
       recipients: potRecipients,
       memberContributions: Object.keys(memberContributions).length > 0 ? memberContributions : undefined,
       memberPayouts: Object.keys(memberPayouts).length > 0 ? memberPayouts : undefined,
-      contributionMethod: contributionMethod, // Track the original contribution method
+      contributionMethod: contributionMethod === 'individual' ? 'individual-contribution' : 
+                       contributionMethod === 'just-reach-goal' ? 'just-reach-goal' : 
+                       'equal-split', // Track the original contribution method
       createdAt: new Date().toISOString(),
       status: 'active' as const
     };

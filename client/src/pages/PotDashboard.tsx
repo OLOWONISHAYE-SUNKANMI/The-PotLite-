@@ -9,7 +9,7 @@ import TimedRelease from "@/components/TimedRelease";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
-import { cn, formatTimestamp, PotType } from "@/lib/utils";
+import { cn, formatTimestamp, PotType, generateId } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowUp, ArrowDown, Plus, Info, Clock, Users, CreditCard, ChevronDown, AlertTriangle, Crown } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -1239,6 +1239,18 @@ export default function PotDashboard() {
                     });
                     return;
                   }
+                  
+                  // Add transaction to track the clean pot early action for checklist
+                  addTransaction({
+                    id: generateId(),
+                    potId: pot.id,
+                    type: 'request',
+                    amount: totalPayout,
+                    user: 'Current User',
+                    description: 'Clean Pot Early request submitted',
+                    timestamp: new Date().toISOString(),
+                    status: 'pending'
+                  });
                   
                   toast({
                     title: "Clean Pot Early Request",

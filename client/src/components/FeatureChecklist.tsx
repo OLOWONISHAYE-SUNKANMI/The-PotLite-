@@ -23,8 +23,8 @@ const checklistItems = [
   },
   { 
     id: 3, 
-    label: 'Request a Withdrawal from an Active Pot', 
-    key: 'requestWithdraw',
+    label: 'Clean an Active Pot Early', 
+    key: 'cleanPotEarly',
     icon: <FaExchangeAlt className="mr-2" />,
     path: '/'
   },
@@ -70,9 +70,9 @@ const FeatureChecklist: React.FC<FeatureChecklistProps> = ({ onComplete, isFirst
       updatedChecked.depositPot = true;
     }
     
-    // Check if user requested a withdrawal
-    if (transactions.some(t => t.type === 'withdrawal' && t.status === 'pending') && !updatedChecked.requestWithdraw) {
-      updatedChecked.requestWithdraw = true;
+    // Check if user cleaned a pot early (track through transactions or manual marking)
+    if (transactions.some(t => t.description?.includes('Clean Pot Early')) && !updatedChecked.cleanPotEarly) {
+      updatedChecked.cleanPotEarly = true;
     }
     
     // Goal change is harder to track automatically, keeping it manual for now

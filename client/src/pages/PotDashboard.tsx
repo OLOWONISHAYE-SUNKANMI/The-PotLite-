@@ -18,6 +18,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import MilestoneCelebration from "@/components/MilestoneCelebration";
 import PotInviteSystem from "@/components/PotInviteSystem";
+import PeerMotivationSystem from "@/components/PeerMotivationSystem";
 import { 
   Dialog,
   DialogContent,
@@ -68,6 +69,7 @@ export default function PotDashboard() {
   const [generatedPromoCode, setGeneratedPromoCode] = useState<string>("");
   const [showPromoCodeDialog, setShowPromoCodeDialog] = useState<boolean>(false);
   const [isGeneratingPromoCode, setIsGeneratingPromoCode] = useState<boolean>(false);
+  const [showMotivationSystem, setShowMotivationSystem] = useState<boolean>(false);
   
   // No pots to display
   const noActivePots = pots.length === 0;
@@ -603,12 +605,20 @@ export default function PotDashboard() {
               )}
               
               {pot.status !== 'completed' && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button className="bg-secondary hover:bg-secondary/90 text-primary font-bold">
-                      Request <ChevronDown className="w-4 h-4 ml-2" />
-                    </Button>
-                  </DropdownMenuTrigger>
+                <>
+                  <Button 
+                    onClick={() => setShowMotivationSystem(true)}
+                    className="bg-green-600 hover:bg-green-700 text-white font-bold"
+                  >
+                    💪 Send Encouragement
+                  </Button>
+                  
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button className="bg-secondary hover:bg-secondary/90 text-primary font-bold">
+                        Request <ChevronDown className="w-4 h-4 ml-2" />
+                      </Button>
+                    </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-56">
                     <DropdownMenuItem 
                       onClick={() => {
@@ -701,7 +711,8 @@ export default function PotDashboard() {
                       Clean The Pot Early
                     </DropdownMenuItem>
                   </DropdownMenuContent>
-                </DropdownMenu>
+                  </DropdownMenu>
+                </>
               )}
             </div>
           </div>

@@ -1559,6 +1559,16 @@ export default function PotDashboard() {
           onClose={() => setShowInviteSystem(false)}
         />
       )}
+
+      {/* Peer Motivation System */}
+      {pot && (
+        <PeerMotivationSystem
+          pot={pot}
+          currentUser={currentUser}
+          isOpen={showMotivationSystem}
+          onClose={() => setShowMotivationSystem(false)}
+        />
+      )}
     </div>
   );
 }

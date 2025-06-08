@@ -166,5 +166,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Promo Code API Endpoints
+  
+  // Generate a promo code
+  app.post(`${apiPrefix}/promo-code/generate`, async (req, res) => {
+    try {
+      const { userId, potId, potType, userBalance, potGoalStatus } = req.body;
+      
+      // Validate required fields
+      if (!userId || !potId || !potType) {
+        return res.status(400).json({ message: 'Missing required fields: userId, potId, potType' });
+      }
+      
+      // Check if user can generate a promo code
+      const canGenerate = promoCodeEngine.canGeneratePromoCode(potType, userBalance, potGoalStatus);
+      
+      if (!canGenerate) {
+        const reason = potType === 'PP' 
+          ? 'Personal Pot balance must be at least ₡5 to generate a promo code'
+          : 'Group Pot goal must be met to generate a promo code';
+        return res.status(400).json({ message: reason });
+      }
+      
+      const promoCode = promoCodeEngine.generatePromoCode(potType, potId, userId);
+      
+      res.json({
+        promoCode,
+        status: 'success'
+      });
+    } catch (error) {
+      handleError(res, error);
+    }
+  });
+  
+  // Verify a promo code (for merchant systems)
+  app.post(`${apiPrefix}/promo-code/verify`, async (req, res) => {
+    try {
+      const { promoCode } = req.body;
+      
+      if (!promoCode) {
+        return res.status(400).json({ message: 'Promo code is required' });
+      }
+      
+      const verification = promoCodeEngine.verifyPromoCodeWithMerchant(promoCode);
+      res.json(verification);
+    } catch (error) {
+      handleError(res, error);
+    }
+  });
+  
+  // Flag promo code reuse
+  app.post(`${apiPrefix}/promo-code/flag-reuse`, async (req, res) => {
+    try {
+      const { userId, promoCode } = req.body;
+      
+      if (!userId || !promoCode) {
+        return res.status(400).json({ message: 'userId and promoCode are required' });
+      }
+      
+      const result = promoCodeEngine.handleCodeReuse(userId);
+      res.json(result);
+    } catch (error) {
+      handleError(res, error);
+    }
+  });
+  
+  // Get user's promo codes (for dashboard display)
+  app.get(`${apiPrefix}/promo-codes/user/:userId`, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const userCodes = promoCodeEngine.getPromoCodesByUser(userId);
+      res.json(userCodes);
+    } catch (error) {
+      handleError(res, error);
+    }
+  });
+
   return httpServer;
 }

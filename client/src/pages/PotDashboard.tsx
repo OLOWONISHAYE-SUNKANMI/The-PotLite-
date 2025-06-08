@@ -256,21 +256,24 @@ export default function PotDashboard() {
               </DialogContent>
             </Dialog>
             
-            <Link href="/create">
-              <Button className="flex-1 btn-gradient">
-                <Plus className="w-4 h-4 mr-2" /> Create Pot
-              </Button>
-            </Link>
-            
-            <Dialog open={showPromoCodeDialog} onOpenChange={setShowPromoCodeDialog}>
-              <DialogTrigger asChild>
-                <Button 
-                  className="flex-1 bg-purple-600 text-white hover:bg-purple-700"
-                  disabled={personalPot.balance < 5}
-                >
-                  🎫 Generate Promo Code
+            <div className="flex flex-1 gap-2">
+              <Link href="/create" className="flex-1">
+                <Button className="w-full btn-gradient">
+                  <Plus className="w-4 h-4 mr-2" /> Create Pot
                 </Button>
-              </DialogTrigger>
+              </Link>
+              
+              <Dialog open={showPromoCodeDialog} onOpenChange={setShowPromoCodeDialog}>
+                <DialogTrigger asChild>
+                  <Button 
+                    size="sm"
+                    className="bg-purple-600 text-white hover:bg-purple-700 px-3"
+                    disabled={personalPot.balance < 5}
+                    title="Generate Promo Code (requires ₡5 minimum balance)"
+                  >
+                    🎫
+                  </Button>
+                </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Generate Promo Code</DialogTitle>
@@ -369,6 +372,7 @@ export default function PotDashboard() {
                 </div>
               </DialogContent>
             </Dialog>
+            </div>
           </div>
         </CardContent>
       </Card>

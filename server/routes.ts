@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import * as storage from "./storage";
 import * as schema from "@shared/schema";
 import { z } from "zod";
+import * as promoCodeEngine from "./promoCodeEngine";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);

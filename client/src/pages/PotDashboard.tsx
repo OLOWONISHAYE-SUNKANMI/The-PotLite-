@@ -261,6 +261,114 @@ export default function PotDashboard() {
                 <Plus className="w-4 h-4 mr-2" /> Create Pot
               </Button>
             </Link>
+            
+            <Dialog open={showPromoCodeDialog} onOpenChange={setShowPromoCodeDialog}>
+              <DialogTrigger asChild>
+                <Button 
+                  className="flex-1 bg-purple-600 text-white hover:bg-purple-700"
+                  disabled={personalPot.balance < 5}
+                >
+                  🎫 Generate Promo Code
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Generate Promo Code</DialogTitle>
+                  <DialogDescription>
+                    Generate a promo code for your Personal Pot. Requires at least ₡5 balance.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  {personalPot.balance < 5 ? (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                      <p className="text-amber-700 text-sm">
+                        <strong>Insufficient Balance:</strong> You need at least ₡5 in your Personal Pot to generate a promo code.
+                        Current balance: ₡{personalPot.balance}
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <p className="text-green-700 text-sm">
+                          <strong>Eligible:</strong> Your Personal Pot balance of ₡{personalPot.balance} meets the minimum requirement.
+                        </p>
+                      </div>
+                      
+                      {generatedPromoCode && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                          <h4 className="font-medium text-blue-800 mb-2">Your Promo Code:</h4>
+                          <div className="bg-white border rounded p-3 font-mono text-lg text-center">
+                            {generatedPromoCode}
+                          </div>
+                          <p className="text-blue-700 text-xs mt-2">
+                            This code can be used once at participating merchants.
+                          </p>
+                        </div>
+                      )}
+                      
+                      <div className="flex justify-end space-x-2">
+                        <Button 
+                          variant="outline" 
+                          onClick={() => {
+                            setShowPromoCodeDialog(false);
+                            setGeneratedPromoCode("");
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                        <Button 
+                          onClick={async () => {
+                            setIsGeneratingPromoCode(true);
+                            try {
+                              const response = await fetch('/api/promo-code/generate', {
+                                method: 'POST',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                  userId: currentUser,
+                                  potId: 'personal-pot',
+                                  potType: 'PP',
+                                  userBalance: personalPot.balance,
+                                  potGoalStatus: 'NOT_MET'
+                                }),
+                              });
+                              
+                              const data = await response.json();
+                              
+                              if (response.ok) {
+                                setGeneratedPromoCode(data.promoCode);
+                                toast({
+                                  title: "Promo Code Generated!",
+                                  description: `Your promo code ${data.promoCode} is ready to use.`,
+                                });
+                              } else {
+                                toast({
+                                  title: "Generation Failed",
+                                  description: data.message || "Failed to generate promo code",
+                                  variant: "destructive"
+                                });
+                              }
+                            } catch (error) {
+                              toast({
+                                title: "Error",
+                                description: "Failed to generate promo code. Please try again.",
+                                variant: "destructive"
+                              });
+                            } finally {
+                              setIsGeneratingPromoCode(false);
+                            }
+                          }}
+                          disabled={isGeneratingPromoCode || generatedPromoCode !== ""}
+                        >
+                          {isGeneratingPromoCode ? "Generating..." : "Generate Code"}
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </CardContent>
       </Card>

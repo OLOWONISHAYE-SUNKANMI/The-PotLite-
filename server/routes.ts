@@ -252,45 +252,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Missing required fields: prompt and userId' });
       }
 
-      // ========== N8N WEBHOOK PLACEHOLDER ==========
-      // TODO: Replace this with actual N8N webhook call
-      // 
-      // WEBHOOK REQUEST FORMAT:
-      // POST to your N8N webhook URL with this payload:
-      // {
-      //   "prompt": "user's text input describing the pot",
-      //   "userId": 1 (the current user's ID)
-      // }
-      //
-      // EXPECTED WEBHOOK RESPONSE FORMAT:
-      // {
-      //   "name": "Summer Vacation Fund",
-      //   "description": "Saving for family trip to Hawaii",
-      //   "goalAmount": 5000,
-      //   "payoutStructure": "many-to-one",
-      //   "withdrawalMethod": "timed_release",
-      //   "releaseDate": "2025-06-01T00:00:00.000Z",
-      //   "voteThreshold": null
-      // }
-      //
-      // IMPLEMENTATION EXAMPLE:
-      // const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL;
-      // const response = await fetch(n8nWebhookUrl, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ prompt, userId }),
-      //   signal: AbortSignal.timeout(15000) // 15 second timeout
-      // });
-      // const aiGeneratedData = await response.json();
-      // ============================================
+      // N8N Webhook Integration
+      const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL;
+      
+      if (!n8nWebhookUrl) {
+        return res.status(500).json({ message: 'N8N webhook URL not configured' });
+      }
 
-      // MOCK RESPONSE - Remove this when implementing N8N
+      const response = await fetch(n8nWebhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, userId }),
+        signal: AbortSignal.timeout(15000) // 15 second timeout
+      });
+
+      if (!response.ok) {
+        return res.status(500).json({ 
+          message: `N8N webhook failed with status ${response.status}`,
+          details: await response.text()
+        });
+      }
+
+      const n8nResponse = await response.json();
+      
+      // Extract the output object from N8N response
+      const output = n8nResponse.output || n8nResponse;
+      
+      // Transform N8N response to match our schema
+      // Handle empty strings for optional fields
       const aiGeneratedData = {
-        name: "AI Generated Pot",
-        description: "This is a mock response. Replace with N8N webhook integration.",
-        goalAmount: 1000,
-        payoutStructure: "many-to-one",
-        withdrawalMethod: "admin_approval"
+        name: output.name,
+        description: output.description || undefined,
+        goalAmount: output.goalAmount,
+        payoutStructure: output.payoutStructure,
+        withdrawalMethod: output.withdrawalMethod,
+        // Map timedReleaseDate from N8N to releaseDate, handle empty strings
+        releaseDate: output.timedReleaseDate || output.releaseDate || undefined,
+        voteThreshold: output.voteThreshold || undefined
       };
 
       // Validate the AI-generated data against schema

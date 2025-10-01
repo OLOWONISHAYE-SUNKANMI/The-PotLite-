@@ -10,6 +10,17 @@ The application is designed as a social savings platform where groups can collab
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+### October 1, 2025: AI-Assisted Pot Creation
+- Implemented AI pot creation feature integrated with N8N workflow
+- Added `/ai-create` route with natural language prompt interface
+- Backend endpoint `/api/pots/ai-draft` connects to N8N webhook for AI processing
+- Frontend confirmation modal allows editing AI-generated pot details before creation
+- N8N webhook URL: https://nexark.app.n8n.cloud/webhook/80b7af49-9eca-4f78-b8df-6154b1c641db
+- Response transformation handles N8N output structure and field mapping
+- Full end-to-end tested with real AI workflow integration
+
 ## System Architecture
 
 ### Frontend Architecture
@@ -41,6 +52,7 @@ Preferred communication style: Simple, everyday language.
 - `/` - Main pot dashboard
 - `/onboarding` - First-time user setup
 - `/create` - Pot creation with scenario-based templates
+- `/ai-create` - AI-assisted pot creation with natural language input
 - `/transactions` - Transaction history log
 - `/feedback` - User feedback form
 - `/admin` - Admin panel for role simulation and testing
@@ -67,12 +79,15 @@ Preferred communication style: Simple, everyday language.
 - `POST /api/pots/:id/members` - Add members to pots
 - `POST /api/pots/:id/transactions` - Record transactions
 - `POST /api/pots/:id/vote` - Cast votes on withdrawals
+- `POST /api/pots/ai-draft` - Generate AI-assisted pot draft via N8N webhook
 - `POST /api/promo-code/generate` - Generate promo codes (PP/GP types)
 - `POST /api/promo-code/verify` - Verify promo codes with merchants
 
 **Business Logic:**
 - Promo code engine with eligibility rules (Personal Pot: $5+ balance, Group Pot: goal met)
 - In-memory promo code storage for sandbox testing
+- AI-assisted pot creation via N8N webhook integration with 15-second timeout
+- N8N response transformation (output extraction, field mapping, validation)
 - Transaction validation and balance management
 - Vote counting and threshold checking
 - Timed release date enforcement

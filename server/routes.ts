@@ -243,5 +243,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Pot Creation - Generate pot draft from user prompt
+  app.post(`${apiPrefix}/pots/ai-draft`, async (req, res) => {
+    try {
+      const { prompt, userId } = req.body;
+      
+      if (!prompt || !userId) {
+        return res.status(400).json({ message: 'Missing required fields: prompt and userId' });
+      }
+
+      // ========== N8N WEBHOOK PLACEHOLDER ==========
+      // TODO: Replace this with actual N8N webhook call
+      // 
+      // WEBHOOK REQUEST FORMAT:
+      // POST to your N8N webhook URL with this payload:
+      // {
+      //   "prompt": "user's text input describing the pot",
+      //   "userId": 1 (the current user's ID)
+      // }
+      //
+      // EXPECTED WEBHOOK RESPONSE FORMAT:
+      // {
+      //   "name": "Summer Vacation Fund",
+      //   "description": "Saving for family trip to Hawaii",
+      //   "goalAmount": 5000,
+      //   "payoutStructure": "many-to-one",
+      //   "withdrawalMethod": "timed_release",
+      //   "releaseDate": "2025-06-01T00:00:00.000Z",
+      //   "voteThreshold": null
+      // }
+      //
+      // IMPLEMENTATION EXAMPLE:
+      // const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL;
+      // const response = await fetch(n8nWebhookUrl, {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ prompt, userId }),
+      //   signal: AbortSignal.timeout(15000) // 15 second timeout
+      // });
+      // const aiGeneratedData = await response.json();
+      // ============================================
+
+      // MOCK RESPONSE - Remove this when implementing N8N
+      const aiGeneratedData = {
+        name: "AI Generated Pot",
+        description: "This is a mock response. Replace with N8N webhook integration.",
+        goalAmount: 1000,
+        payoutStructure: "many-to-one",
+        withdrawalMethod: "admin_approval",
+        voteThreshold: null,
+        releaseDate: null
+      };
+
+      // Validate the AI-generated data against schema
+      const validatedDraft = schema.aiPotDraftSchema.parse(aiGeneratedData);
+
+      res.json({
+        draft: validatedDraft,
+        status: 'success'
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: 'AI generated invalid pot data', 
+          errors: error.errors 
+        });
+      }
+      console.error('AI Draft Error:', error);
+      return res.status(500).json({ message: 'Failed to generate pot draft' });
+    }
+  });
+
   return httpServer;
 }

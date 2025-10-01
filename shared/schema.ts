@@ -120,3 +120,16 @@ export type Pot = typeof pots.$inferSelect;
 export type PotMember = typeof potMembers.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;
 export type Feedback = typeof feedback.$inferSelect;
+
+// AI Pot Draft Schema - for validating N8N webhook responses
+export const aiPotDraftSchema = z.object({
+  name: z.string().min(1, "Pot name is required"),
+  description: z.string().optional(),
+  goalAmount: z.number().positive("Goal amount must be positive"),
+  payoutStructure: z.enum(["one-to-many", "many-to-one", "many-to-selected"]),
+  withdrawalMethod: z.enum(["democratic_vote", "admin_approval", "timed_release", "auto_withdraw"]),
+  voteThreshold: z.number().min(0).max(100).optional(),
+  releaseDate: z.string().optional() // ISO 8601 date string
+});
+
+export type AiPotDraft = z.infer<typeof aiPotDraftSchema>;

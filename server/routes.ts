@@ -49,7 +49,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create a new pot
   app.post(`${apiPrefix}/pots`, async (req, res) => {
     try {
-      const validatedData = schema.insertPotSchema.parse(req.body);
+      // Convert releaseDate string to Date object if present
+      const potData = {
+        ...req.body,
+        releaseDate: req.body.releaseDate ? new Date(req.body.releaseDate) : undefined
+      };
+      
+      const validatedData = schema.insertPotSchema.parse(potData);
       const pot = await storage.createPot(validatedData);
       res.status(201).json(pot);
     } catch (error) {

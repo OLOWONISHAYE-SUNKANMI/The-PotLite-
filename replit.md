@@ -18,8 +18,10 @@ Preferred communication style: Simple, everyday language.
 - Backend endpoint `/api/pots/ai-draft` connects to N8N webhook for AI processing
 - Frontend confirmation modal allows editing AI-generated pot details before creation
 - N8N webhook URL: https://nexark.app.n8n.cloud/webhook/80b7af49-9eca-4f78-b8df-6154b1c641db
-- Response transformation handles N8N output structure and field mapping
-- Full end-to-end tested with real AI workflow integration
+- Response transformation handles N8N output structure and field mapping (timedReleaseDate → releaseDate)
+- Fixed release date handling: Backend preprocesses ISO strings to Date objects for Drizzle timestamp validation
+- Frontend converts ISO dates to datetime-local format for input fields
+- Full end-to-end tested with real AI workflow integration including timed release functionality
 
 ## System Architecture
 

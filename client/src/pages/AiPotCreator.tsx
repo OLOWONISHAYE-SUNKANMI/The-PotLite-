@@ -60,7 +60,17 @@ export default function AiPotCreator() {
       setEditedPayoutStructure(draft.payoutStructure);
       setEditedWithdrawalMethod(draft.withdrawalMethod);
       setEditedVoteThreshold(draft.voteThreshold);
-      setEditedReleaseDate(draft.releaseDate);
+      
+      // Convert ISO 8601 date to datetime-local format (YYYY-MM-DDThh:mm)
+      if (draft.releaseDate) {
+        const date = new Date(draft.releaseDate);
+        const localDateTime = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+          .toISOString()
+          .slice(0, 16);
+        setEditedReleaseDate(localDateTime);
+      } else {
+        setEditedReleaseDate(undefined);
+      }
       
       // Show confirmation modal
       setShowConfirmModal(true);
@@ -130,12 +140,12 @@ export default function AiPotCreator() {
   const handleCreatePot = () => {
     const potData = {
       name: editedName,
-      description: editedDescription,
+      description: editedDescription || undefined,
       goalAmount: editedGoalAmount,
       payoutStructure: editedPayoutStructure,
       withdrawalMethod: editedWithdrawalMethod,
-      voteThreshold: editedVoteThreshold,
-      releaseDate: editedReleaseDate ? new Date(editedReleaseDate) : null,
+      voteThreshold: editedVoteThreshold || undefined,
+      releaseDate: editedReleaseDate ? new Date(editedReleaseDate).toISOString() : undefined,
       createdBy: 1, // TODO: Replace with actual user ID
       currentBalance: 0,
     };

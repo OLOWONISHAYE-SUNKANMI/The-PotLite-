@@ -5,6 +5,7 @@ import { PotProvider, usePot } from "./context/PotContext";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import CreatePot from "./pages/CreatePot";
+import AiPotCreator from "./pages/AiPotCreator";
 import PotDashboard from "./pages/PotDashboard";
 import TransactionLog from "./pages/TransactionLog";
 import FeedbackForm from "./pages/FeedbackForm";
@@ -45,6 +46,7 @@ function AppRouter() {
       <Route path="/" component={PotDashboard} />
       <Route path="/onboarding" component={Onboarding} />
       <Route path="/create" component={CreatePot} />
+      <Route path="/ai-create" component={AiPotCreator} />
       <Route path="/transactions" component={TransactionLog} />
       <Route path="/feedback" component={FeedbackForm} />
       <Route path="/admin" component={AdminPanel} />

@@ -10,12 +10,13 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMutation } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
+import { usePot } from "@/context/PotContext";
 import type { AiPotDraft } from "@shared/schema";
 
 export default function AiPotCreator() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { addPot } = usePot();
   const [prompt, setPrompt] = useState("");
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [aiDraft, setAiDraft] = useState<AiPotDraft | null>(null);
@@ -94,8 +95,10 @@ export default function AiPotCreator() {
       
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/pots'] });
+    onSuccess: (data) => {
+      // Add the pot to the context state
+      addPot(data);
+      
       toast({
         title: "Pot Created!",
         description: "Your pot has been successfully created.",

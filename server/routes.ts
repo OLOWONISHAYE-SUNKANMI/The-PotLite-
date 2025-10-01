@@ -290,9 +290,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: "This is a mock response. Replace with N8N webhook integration.",
         goalAmount: 1000,
         payoutStructure: "many-to-one",
-        withdrawalMethod: "admin_approval",
-        voteThreshold: null,
-        releaseDate: null
+        withdrawalMethod: "admin_approval"
       };
 
       // Validate the AI-generated data against schema

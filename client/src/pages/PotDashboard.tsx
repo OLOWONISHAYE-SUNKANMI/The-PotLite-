@@ -258,7 +258,7 @@ export default function PotDashboard() {
             
             <Link href="/ai-create" className="flex-1">
               <Button className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold">
-                <Sparkles className="w-4 h-4 mr-2" /> Create Pot with AI
+                <Sparkles className="w-4 h-4 mr-2" /> Create a Pot with Cheffy AI
               </Button>
             </Link>
             
@@ -777,7 +777,7 @@ export default function PotDashboard() {
                     </div>
                     <div className="bg-secondary rounded-lg p-3">
                       <div className="text-sm text-secondary-foreground mb-1">Contributors</div>
-                      <div className="font-medium text-primary">{pot.members.length} Members</div>
+                      <div className="font-medium text-primary">{pot.members?.length || 0} Members</div>
                     </div>
                     <div className="bg-secondary rounded-lg p-3">
                       <div className="text-sm text-secondary-foreground mb-1">Withdrawal Method</div>
@@ -809,7 +809,7 @@ export default function PotDashboard() {
                   <div className="bg-secondary rounded-lg p-4">
                     <h3 className="font-medium text-primary mb-3">Members</h3>
                     <div className="space-y-2">
-                      {pot.members.map((member, index) => (
+                      {(pot.members || []).map((member, index) => (
                         <div key={index} className="flex items-center justify-between py-2 border-b border-border last:border-b-0">
                           <div className="flex items-center">
                             <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center mr-3">
@@ -820,7 +820,7 @@ export default function PotDashboard() {
                           {pot.creator === member && (
                             <span className="inline-block px-2 py-1 bg-primary/20 rounded text-xs text-primary">Admin</span>
                           )}
-                          {pot.recipients.includes(member) && pot.payoutStructure !== "one-to-many" && (
+                          {(pot.recipients || []).includes(member) && pot.payoutStructure !== "one-to-many" && (
                             <span className="inline-block px-2 py-1 bg-[#B8E986]/20 rounded text-xs text-[#B8E986]">Recipient</span>
                           )}
                         </div>
@@ -1138,7 +1138,7 @@ export default function PotDashboard() {
                 <div className="bg-secondary rounded-lg p-4">
                   <h3 className="font-medium text-primary mb-3">Current Members</h3>
                   <div className="space-y-3">
-                    {pot.members.map((member) => (
+                    {(pot.members || []).map((member) => (
                       <div key={member} className="flex items-center justify-between p-3 bg-background rounded">
                         <div className="flex items-center">
                           {member === pot.creator && <Crown className="w-4 h-4 text-amber-500 mr-2" />}
@@ -1186,7 +1186,7 @@ export default function PotDashboard() {
                               <span className="text-xs text-muted-foreground">Auto (receives share)</span>
                             ) : pot.payoutStructure === 'many-to-one' ? (
                               <Button
-                                variant={pot.recipients.includes(member) ? "default" : "outline"}
+                                variant={(pot.recipients || []).includes(member) ? "default" : "outline"}
                                 size="sm"
                                 className="h-6 w-6 p-0"
                                 onClick={() => {
@@ -1195,7 +1195,7 @@ export default function PotDashboard() {
                                   setTempMemberPayouts(newPayouts);
                                 }}
                               >
-                                {pot.recipients.includes(member) ? "✓" : "○"}
+                                {(pot.recipients || []).includes(member) ? "✓" : "○"}
                               </Button>
                             ) : (
                               // many-to-selected
@@ -1295,7 +1295,7 @@ export default function PotDashboard() {
             {pot && (
               <RadioGroup value={selectedNewAdmin} onValueChange={setSelectedNewAdmin}>
                 <div className="space-y-2">
-                  {pot.members.filter(member => member !== pot.creator).map((member) => (
+                  {(pot.members || []).filter(member => member !== pot.creator).map((member) => (
                     <div key={member} className="flex items-center space-x-2 p-2 rounded border">
                       <RadioGroupItem value={member} id={member} />
                       <Label htmlFor={member} className="flex-1">{member}</Label>
@@ -1348,7 +1348,7 @@ export default function PotDashboard() {
               {pot && (
                 <RadioGroup value={memberToRemove} onValueChange={setMemberToRemove}>
                   <div className="space-y-2 mt-2">
-                    {pot.members.filter(member => member !== pot.creator).map((member) => (
+                    {(pot.members || []).filter(member => member !== pot.creator).map((member) => (
                       <div key={member} className="flex items-center space-x-2 p-2 rounded border">
                         <RadioGroupItem value={member} id={`remove-${member}`} />
                         <Label htmlFor={`remove-${member}`} className="flex-1">{member}</Label>
@@ -1459,7 +1459,7 @@ export default function PotDashboard() {
                 <div className="bg-secondary rounded-lg p-4">
                   <h3 className="font-medium text-primary mb-3">Distribute Payout Among Members</h3>
                   <div className="space-y-3">
-                    {pot.members.map((member) => (
+                    {(pot.members || []).map((member) => (
                       <div key={member} className="flex items-center justify-between p-3 bg-background rounded">
                         <div className="flex items-center">
                           {member === pot.creator && <Crown className="w-4 h-4 text-amber-500 mr-2" />}

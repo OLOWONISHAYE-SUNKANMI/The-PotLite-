@@ -266,13 +266,13 @@ export default function PotInviteSystem({ pot, isOpen, onClose }: PotInviteSyste
           {/* Current Members */}
           <div className="space-y-3">
             <h4 className="font-semibold text-primary">
-              Current Members ({pot.members.length}) 
+              Current Members ({pot.members?.length || 0}) 
               <span className="text-sm font-normal text-muted-foreground ml-2">
                 (select user to remove)
               </span>
             </h4>
             <div className="flex flex-wrap gap-2">
-              {pot.members.map((member, index) => (
+              {(pot.members || []).map((member, index) => (
                 <Badge 
                   key={index} 
                   variant="secondary" 

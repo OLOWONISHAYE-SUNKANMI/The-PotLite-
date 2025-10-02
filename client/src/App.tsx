@@ -8,6 +8,7 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import CreatePot from "./pages/CreatePot";
 import AiPotCreator from "./pages/AiPotCreator";
+import AiPotInviteMembers from "./pages/AiPotInviteMembers";
 import PotDashboard from "./pages/PotDashboard";
 import TransactionLog from "./pages/TransactionLog";
 import FeedbackForm from "./pages/FeedbackForm";
@@ -49,6 +50,7 @@ function AppRouter() {
       <Route path="/onboarding" component={Onboarding} />
       <Route path="/create" component={CreatePot} />
       <Route path="/ai-create" component={AiPotCreator} />
+      <Route path="/ai-invite-members" component={AiPotInviteMembers} />
       <Route path="/transactions" component={TransactionLog} />
       <Route path="/feedback" component={FeedbackForm} />
       <Route path="/admin" component={AdminPanel} />

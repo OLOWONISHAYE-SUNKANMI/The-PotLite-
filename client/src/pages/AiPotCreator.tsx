@@ -10,13 +10,11 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMutation } from "@tanstack/react-query";
-import { usePot } from "@/context/PotContext";
 import type { AiPotDraft } from "@shared/schema";
 
 export default function AiPotCreator() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const { addPot } = usePot();
   const [prompt, setPrompt] = useState("");
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [aiDraft, setAiDraft] = useState<AiPotDraft | null>(null);
@@ -89,40 +87,6 @@ export default function AiPotCreator() {
     },
   });
 
-  // Mutation for creating the pot
-  const createPotMutation = useMutation({
-    mutationFn: async (potData: any) => {
-      const response = await fetch('/api/pots', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(potData),
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to create pot');
-      }
-      
-      return response.json();
-    },
-    onSuccess: (data) => {
-      // Add the pot to the context state
-      addPot(data);
-      
-      toast({
-        title: "Pot Created!",
-        description: "Your pot has been successfully created.",
-      });
-      navigate("/");
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Creation Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
 
   const handleGenerateDraft = () => {
     if (!prompt.trim()) {
@@ -145,12 +109,11 @@ export default function AiPotCreator() {
       payoutStructure: editedPayoutStructure,
       withdrawalMethod: editedWithdrawalMethod,
       voteThreshold: editedVoteThreshold || undefined,
-      releaseDate: editedReleaseDate ? new Date(editedReleaseDate).toISOString() : undefined,
-      createdBy: 1, // TODO: Replace with actual user ID
-      currentBalance: 0,
+      releaseDate: editedReleaseDate || undefined,
     };
     
-    createPotMutation.mutate(potData);
+    // Navigate to member invitation page with pot data
+    navigate("/ai-invite-members", { state: { potDraft: potData } });
   };
 
   const examplePrompts = [
@@ -176,7 +139,7 @@ export default function AiPotCreator() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-2xl">
               <Sparkles className="w-6 h-6 text-purple-600" />
-              AI Pot Creator
+              Cheffy AI Pot Planner
             </CardTitle>
             <CardDescription>
               Describe your savings goal in plain English, and our AI will create the perfect pot for you
@@ -342,23 +305,14 @@ export default function AiPotCreator() {
               <Button
                 variant="outline"
                 onClick={() => setShowConfirmModal(false)}
-                disabled={createPotMutation.isPending}
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleCreatePot}
-                disabled={createPotMutation.isPending}
                 className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
               >
-                {createPotMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  "Create Pot"
-                )}
+                Continue to Invite Members
               </Button>
             </div>
           </DialogContent>

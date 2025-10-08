@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { cn, formatTimestamp, PotType, generateId } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowUp, ArrowDown, Plus, Info, Clock, Users, CreditCard, ChevronDown, AlertTriangle, Crown, Sparkles } from "lucide-react";
+import { ArrowUp, ArrowDown, Plus, Info, Clock, Users, CreditCard, ChevronDown, AlertTriangle, Crown, Sparkles, Bookmark } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -33,14 +33,18 @@ export default function PotDashboard() {
     personalPot, 
     pots, 
     completedPots, 
+    savedPots,
     transactions, 
     simulateErrors, 
     completePot,
+    savePot,
+    unsavePot,
     updatePersonalPotBalance,
     depositFromPersonalToPot,
     withdrawFromPotToPersonal,
     approveWithdrawalToPersonal,
-    addTransaction
+    addTransaction,
+    addPot
   } = usePot();
   const { currentUser } = useDummyUser();
   const { toast } = useToast();
@@ -68,10 +72,13 @@ export default function PotDashboard() {
   const [generatedPromoCode, setGeneratedPromoCode] = useState<string>("");
   const [showPromoCodeDialog, setShowPromoCodeDialog] = useState<boolean>(false);
   const [isGeneratingPromoCode, setIsGeneratingPromoCode] = useState<boolean>(false);
+  const [showReuseDialog, setShowReuseDialog] = useState<boolean>(false);
+  const [selectedSavedPot, setSelectedSavedPot] = useState<PotType | null>(null);
   
   // No pots to display
   const noActivePots = pots.length === 0;
   const noCompletedPots = completedPots.length === 0;
+  const noSavedPots = savedPots.length === 0;
   
   // Get the currently selected pot or default to the first one in the active/completed list
   const pot = selectedTab === "active"
@@ -134,8 +141,8 @@ export default function PotDashboard() {
         <CardContent className="p-6">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div>
-              <h2 className="text-xl font-bold text-primary mb-1">Personal Pot</h2>
-              <p className="text-secondary-foreground text-sm">Your individual savings for contributing to pots</p>
+              <h2 className="text-xl font-bold text-primary mb-1">Personal Pot (Wallet)</h2>
+              <p className="text-secondary-foreground text-sm">Your individual savings for contributing to pots and your safe place to save funds paid out from Pots</p>
             </div>
             <div className="flex items-baseline mt-4 md:mt-0">
               <span className="text-4xl font-bold text-primary">₡ {personalPot.balance}</span>
@@ -263,16 +270,16 @@ export default function PotDashboard() {
             </Link>
             
             <div className="flex flex-1 gap-3">
-              <Link href="/create" className="flex-[2]">
+              <Link href="/create" className="flex-1">
                 <Button className="w-full btn-gradient">
-                  <Plus className="w-4 h-4 mr-2" /> Create Pot
+                  <Plus className="w-4 h-4 mr-2" /> Create a Pot
                 </Button>
               </Link>
               
               <Dialog open={showPromoCodeDialog} onOpenChange={setShowPromoCodeDialog}>
                 <DialogTrigger asChild>
                   <Button 
-                    className="flex-[1.2] bg-purple-600 text-white hover:bg-purple-700 text-sm px-2"
+                    className="hidden bg-purple-600 text-white hover:bg-purple-700 text-sm px-2"
                     disabled={personalPot.balance < 5}
                     title="Generate Promo Code (requires ₡5 minimum balance)"
                   >
@@ -388,12 +395,15 @@ export default function PotDashboard() {
         value={selectedTab}
         onValueChange={setSelectedTab}
       >
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="active" className="text-base">
             Active Pots {pots.length > 0 && <span className="ml-2 text-xs bg-primary/20 px-2 py-0.5 rounded-full">{pots.length}</span>}
           </TabsTrigger>
           <TabsTrigger value="completed" className="text-base">
             Cleaned Pots {completedPots.length > 0 && <span className="ml-2 text-xs bg-primary/20 px-2 py-0.5 rounded-full">{completedPots.length}</span>}
+          </TabsTrigger>
+          <TabsTrigger value="saved" className="text-base">
+            Saved Pots {savedPots.length > 0 && <span className="ml-2 text-xs bg-primary/20 px-2 py-0.5 rounded-full">{savedPots.length}</span>}
           </TabsTrigger>
         </TabsList>
         
@@ -465,21 +475,89 @@ export default function PotDashboard() {
               {completedPots.map(completedPot => (
                 <div 
                   key={completedPot.id} 
-                  className={`bg-card border rounded-xl p-4 cursor-pointer transition-all hover:shadow-md ${selectedPot === completedPot.id ? 'ring-2 ring-primary' : ''}`}
-                  onClick={() => setSelectedPot(completedPot.id)}
+                  className={`bg-card border rounded-xl p-4 transition-all hover:shadow-md ${selectedPot === completedPot.id ? 'ring-2 ring-primary' : ''} relative`}
                 >
-                  <h3 className="font-bold text-lg text-primary">{completedPot.name}</h3>
+                  <div className="cursor-pointer" onClick={() => setSelectedPot(completedPot.id)}>
+                    <h3 className="font-bold text-lg text-primary">{completedPot.name}</h3>
+                    <div className="flex items-center mt-1">
+                      <span className="inline-block px-2 py-1 bg-[#B8E986]/20 text-[#B8E986] rounded text-xs mr-2">
+                        Completed
+                      </span>
+                      <span className="text-xs text-secondary-foreground">
+                        {completedPot.completedDate ? formatTimestamp(completedPot.completedDate) : ''}
+                      </span>
+                    </div>
+                    <div className="mt-2 text-sm text-secondary-foreground">
+                      Goal reached: ₡ {completedPot.goalAmount}
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="absolute top-2 right-2"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      savePot(completedPot.id);
+                      toast({
+                        title: "Pot Saved",
+                        description: `${completedPot.name} has been saved for reuse.`,
+                      });
+                    }}
+                  >
+                    <Bookmark className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="saved" className="mt-4">
+          {noSavedPots ? (
+            <Card className="p-6 text-center">
+              <div className="flex flex-col items-center justify-center space-y-4 py-8">
+                <h2 className="text-xl font-bold text-primary">No Saved Pots</h2>
+                <p className="text-secondary-foreground">Save a completed pot to reuse it later with the same members and settings</p>
+              </div>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+              {savedPots.map(savedPot => (
+                <div 
+                  key={savedPot.id} 
+                  className="bg-card border rounded-xl p-4 cursor-pointer transition-all hover:shadow-md relative"
+                  onClick={() => {
+                    setSelectedSavedPot(savedPot);
+                    setShowReuseDialog(true);
+                  }}
+                >
+                  <h3 className="font-bold text-lg text-primary">{savedPot.name}</h3>
                   <div className="flex items-center mt-1">
-                    <span className="inline-block px-2 py-1 bg-[#B8E986]/20 text-[#B8E986] rounded text-xs mr-2">
-                      Completed
+                    <span className="inline-block px-2 py-1 bg-purple-500/20 text-purple-600 rounded text-xs mr-2">
+                      Saved
                     </span>
                     <span className="text-xs text-secondary-foreground">
-                      {completedPot.completedDate ? formatTimestamp(completedPot.completedDate) : ''}
+                      {savedPot.members?.length || 0} members
                     </span>
                   </div>
                   <div className="mt-2 text-sm text-secondary-foreground">
-                    Goal reached: ₡ {completedPot.goalAmount}
+                    Goal: ₡ {savedPot.goalAmount}
                   </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="absolute top-2 right-2"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      unsavePot(savedPot.id);
+                      toast({
+                        title: "Pot Removed",
+                        description: `${savedPot.name} has been removed from saved pots.`,
+                      });
+                    }}
+                  >
+                    <Bookmark className="h-4 w-4 fill-current" />
+                  </Button>
                 </div>
               ))}
             </div>
@@ -1557,6 +1635,97 @@ export default function PotDashboard() {
           onClose={() => setShowInviteSystem(false)}
         />
       )}
+
+      {/* Reuse Saved Pot Dialog */}
+      <Dialog open={showReuseDialog} onOpenChange={setShowReuseDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reuse Pot: {selectedSavedPot?.name}</DialogTitle>
+            <DialogDescription>
+              Would you like to reuse this pot with the same details or edit them first?
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedSavedPot && (
+            <div className="space-y-4">
+              <div className="bg-secondary rounded-lg p-4 space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm text-secondary-foreground">Goal Amount:</span>
+                  <span className="text-sm font-medium text-primary">₡ {selectedSavedPot.goalAmount}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-secondary-foreground">Payout Structure:</span>
+                  <span className="text-sm font-medium text-primary">
+                    {selectedSavedPot.payoutStructure === "one-to-many" ? "One-to-Many" : 
+                     selectedSavedPot.payoutStructure === "many-to-one" ? "Many-to-One" : "Many-to-Selected"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-secondary-foreground">Members:</span>
+                  <span className="text-sm font-medium text-primary">{selectedSavedPot.members?.length || 0} members</span>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  className="flex-1 bg-[#B8E986] text-secondary font-bold hover:bg-[#A8D976]"
+                  onClick={() => {
+                    // Create a new pot with the same details
+                    const newPot: PotType = {
+                      ...selectedSavedPot,
+                      id: generateId(),
+                      currentBalance: 0,
+                      status: 'active',
+                      createdAt: new Date().toISOString(),
+                      completedDate: undefined
+                    };
+                    
+                    addPot(newPot);
+                    setShowReuseDialog(false);
+                    setSelectedTab("active");
+                    
+                    toast({
+                      title: "Pot Reused!",
+                      description: `${newPot.name} has been added to your active pots with the same members and settings.`,
+                    });
+                  }}
+                >
+                  Reuse Same Details
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    // Navigate to create page with pre-filled data
+                    // For now, we'll just create the pot and let them edit it manually
+                    // In a real app, you'd navigate to a create/edit page with the data
+                    const newPot: PotType = {
+                      ...selectedSavedPot,
+                      id: generateId(),
+                      currentBalance: 0,
+                      status: 'active',
+                      createdAt: new Date().toISOString(),
+                      completedDate: undefined
+                    };
+                    
+                    addPot(newPot);
+                    setShowReuseDialog(false);
+                    setSelectedTab("active");
+                    
+                    toast({
+                      title: "Pot Created!",
+                      description: `${newPot.name} has been created. You can now edit it in the pot details.`,
+                    });
+                  }}
+                >
+                  Edit Details
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

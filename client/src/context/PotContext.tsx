@@ -7,6 +7,7 @@ interface PotContextType {
   };
   pots: PotType[];
   completedPots: PotType[];
+  savedPots: PotType[];
   transactions: TransactionType[];
   feedback: any[];
   simulateErrors: {
@@ -21,6 +22,8 @@ interface PotContextType {
   updatePot: (pot: PotType) => void;
   deletePot: (potId: string) => void;
   completePot: (potId: string) => void;
+  savePot: (potId: string) => void;
+  unsavePot: (potId: string) => void;
   addTransaction: (transaction: TransactionType) => void;
   updatePotBalance: (potId: string, amount: number) => void;
   updatePersonalPotBalance: (amount: number) => void;
@@ -186,6 +189,11 @@ export const PotProvider = ({ children }: PotProviderProps) => {
     return storedFeedback ? JSON.parse(storedFeedback) : [];
   });
   
+  const [savedPots, setSavedPots] = useState<PotType[]>(() => {
+    const storedSavedPots = localStorage.getItem("thePot_savedPots");
+    return storedSavedPots ? JSON.parse(storedSavedPots) : [];
+  });
+  
   const [simulateErrors, setSimulateErrors] = useState({
     depositFailure: false,
     withdrawalRejection: false,
@@ -220,6 +228,10 @@ export const PotProvider = ({ children }: PotProviderProps) => {
   useEffect(() => {
     localStorage.setItem("thePot_feedback", JSON.stringify(feedback));
   }, [feedback]);
+  
+  useEffect(() => {
+    localStorage.setItem("thePot_savedPots", JSON.stringify(savedPots));
+  }, [savedPots]);
   
   // Pot operations
   const addPot = (pot: PotType) => {
@@ -263,6 +275,19 @@ export const PotProvider = ({ children }: PotProviderProps) => {
       }
       return pot;
     }));
+  };
+  
+  // Save a pot for reuse
+  const savePot = (potId: string) => {
+    const potToSave = pots.find(p => p.id === potId);
+    if (potToSave && !savedPots.find(p => p.id === potId)) {
+      setSavedPots([...savedPots, potToSave]);
+    }
+  };
+  
+  // Remove a pot from saved pots
+  const unsavePot = (potId: string) => {
+    setSavedPots(savedPots.filter(p => p.id !== potId));
   };
   
   // Transaction operations
@@ -559,6 +584,7 @@ export const PotProvider = ({ children }: PotProviderProps) => {
         personalPot,
         pots: activePots,
         completedPots,
+        savedPots,
         transactions,
         feedback,
         simulateErrors,
@@ -567,6 +593,8 @@ export const PotProvider = ({ children }: PotProviderProps) => {
         updatePot,
         deletePot,
         completePot,
+        savePot,
+        unsavePot,
         addTransaction,
         updatePotBalance,
         updatePersonalPotBalance,

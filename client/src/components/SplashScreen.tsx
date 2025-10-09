@@ -22,8 +22,8 @@ const DEFAULT_BULLETS = [
   "Plan and fund group goals with transparency",
   "Flexible withdrawal rules that fit your use case",
   "Real-time progress and reminders",
-  "Built-in accountability & fewer awkward money chats",
-  "Earnable perks and smarter promo-code payouts",
+  "No more awkward \"did you send?\" group chats.",
+  "Imagine one trusted view of the money—live totals, names, and timestamps for everyone.",
   "Ready for roommates, teams, and group trips"
 ];
 
@@ -55,7 +55,7 @@ export default function SplashScreen({
 
         {/* Tagline */}
         <h1 className="splash-tagline">
-          Get started with the new Community Banking System
+          Saving Money Together has never been more comfortable!
         </h1>
 
         {/* Feature List */}

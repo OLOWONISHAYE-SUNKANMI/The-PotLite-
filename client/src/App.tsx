@@ -20,6 +20,7 @@ import NotFound from "./pages/not-found";
 import ScrollToTop from "./components/ScrollToTop";
 import FeatureChecklist from "./components/FeatureChecklist";
 import FeedbackModal from "./components/FeedbackModal";
+import SplashGate from "./components/SplashGate";
 import { useEffect, useState } from "react";
 
 function AppRouter() {
@@ -114,7 +115,9 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <PotProvider>
-          <AppContent />
+          <SplashGate>
+            <AppContent />
+          </SplashGate>
         </PotProvider>
       </ThemeProvider>
     </QueryClientProvider>

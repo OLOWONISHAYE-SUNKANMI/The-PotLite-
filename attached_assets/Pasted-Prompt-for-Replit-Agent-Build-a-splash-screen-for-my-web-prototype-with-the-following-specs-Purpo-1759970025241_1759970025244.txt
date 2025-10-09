@@ -1,0 +1,117 @@
+Prompt for Replit Agent
+
+Build a splash screen for my web prototype with the following specs:
+
+Purpose & Behavior
+
+Show a full-screen splash on app load for 4 seconds, then fade out to the main app.
+
+After a user has seen it once, do not show it again on the same device/browser (use localStorage flag like hasSeenSplash=true).
+
+Provide a manual “Skip” button that immediately hides the splash and sets the flag.
+
+Content
+
+Centered layout with:
+
+My logo at the top (placeholder path: /assets/logo.png; if missing, create a simple text logo).
+
+Tagline under the logo: “Get started with the new Community Banking System”
+
+A short list of 4–6 bullet points titled “What’s inside The Pot” (use these defaults for now):
+
+Plan and fund group goals with transparency
+
+Flexible withdrawal rules that fit your use case
+
+Real-time progress and reminders
+
+Built-in accountability & fewer awkward money chats
+
+Earnable perks and smarter promo-code payouts
+
+Ready for roommates, teams, and group trips
+
+Small footer line: “Prototype preview — features subject to change.”
+
+Design
+
+Modern, minimal, mobile-first.
+
+Center card on a subtle gradient background.
+
+Card styles: rounded-2xl, soft shadow, generous padding, tidy spacing.
+
+Smooth fade-in on mount and fade-out on dismiss/timeout.
+
+Respect prefers-reduced-motion (disable animations if set).
+
+Tech
+
+Implement in React (preferred) as <SplashScreen /> and wrap the app in a <SplashGate> that controls one-time display via localStorage.
+
+If the project isn’t React, create a vanilla HTML/CSS/JS version with the same behavior.
+
+No external CSS frameworks required; plain CSS modules or a single splash.css file is fine.
+
+Keep styles scoped to splash components.
+
+Files & Structure (React)
+
+src/components/SplashScreen.jsx
+
+Props: onDone (callback)
+
+Handles countdown, skip, and animations
+
+src/components/SplashGate.jsx
+
+Reads/writes localStorage
+
+Renders <SplashScreen /> or {children}
+
+src/styles/splash.css
+
+Update src/App.jsx to wrap main app with <SplashGate>.
+
+Accessibility
+
+Proper heading hierarchy.
+
+Button with aria-label="Skip splash".
+
+Sufficient color contrast.
+
+Keyboard focus visible on the Skip button.
+
+Animations
+
+CSS only (no libraries):
+
+.fade-in { opacity: 0 → 1 over 400ms }
+
+.fade-out { opacity: 1 → 0 over 300ms }
+
+Configuration
+
+Make the timeout easily changeable via a constant at the top of the file (default 4000 ms).
+
+Allow bullet points to be passed in as a prop; fall back to the defaults above.
+
+Acceptance Criteria
+
+On first load: splash shows, fades out after 4s, then never shows again on reload.
+
+“Skip” immediately hides splash and sets the flag.
+
+Responsive and looks good on mobile and desktop.
+
+If /assets/logo.png exists, it is displayed; otherwise, a styled text logo appears.
+
+Extras (nice-to-have)
+
+Subtle shimmer or pulse on the logo during the 4s window (respect reduced motion).
+
+Unit test for the localStorage logic (optional).
+
+Also add a comment at the top of each new file explaining usage and how to swap in my real logo.

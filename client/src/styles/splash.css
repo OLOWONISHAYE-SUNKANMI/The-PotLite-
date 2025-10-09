@@ -14,7 +14,8 @@
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%);
-  padding: 2rem;
+  padding: 1.5rem 1rem;
+  overflow-y: auto;
 }
 
 /* Fade animations */
@@ -58,51 +59,52 @@
 
 /* Main content container - no white card, just centered content */
 .splash-content {
-  max-width: 600px;
+  max-width: 550px;
   width: 100%;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2rem;
+  gap: 1.25rem;
+  margin: auto;
 }
 
 /* Logo container */
 .splash-logo-container {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0;
   display: flex;
   justify-content: center;
 }
 
 .splash-logo {
-  width: 150px;
-  height: 150px;
+  width: 110px;
+  height: 110px;
   object-fit: contain;
   animation: logoPulse 2.5s ease-in-out infinite;
-  filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.3));
+  filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.3));
 }
 
 /* Tagline - Golden Yellow */
 .splash-tagline {
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: #FFD94A; /* Golden Yellow - matches app primary */
   margin: 0;
-  line-height: 1.3;
+  line-height: 1.25;
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
 /* Features section */
 .splash-features {
   width: 100%;
-  max-width: 500px;
+  max-width: 480px;
 }
 
 .splash-features-title {
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 700;
   color: #FAF8FF; /* Light Lavender - matches card foreground */
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.875rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   text-align: center;
@@ -114,29 +116,29 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.875rem;
+  gap: 0.625rem;
   text-align: left;
 }
 
 .splash-feature-item {
   display: flex;
   align-items: flex-start;
-  gap: 0.875rem;
-  font-size: 0.95rem;
+  gap: 0.75rem;
+  font-size: 0.875rem;
   color: #FAF8FF; /* Light Lavender */
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 .splash-bullet-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   background: #FFD94A; /* Golden Yellow */
   color: #3D0F6C; /* Deep Plum */
   border-radius: 50%;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: bold;
   flex-shrink: 0;
   margin-top: 0.125rem;
@@ -144,7 +146,7 @@
 
 /* Footer text */
 .splash-footer {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: rgba(250, 248, 255, 0.7); /* Light Lavender with opacity */
   margin: 0;
   font-style: italic;
@@ -155,14 +157,14 @@
   background: linear-gradient(to right, #8E2DE2, #4A00E0);
   border: none;
   border-radius: 0.5rem;
-  padding: 1rem 2.5rem;
-  font-size: 1.125rem;
+  padding: 0.875rem 2.25rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: #FAF8FF; /* Light Lavender */
   cursor: pointer;
   transition: all 200ms ease;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-  margin-top: 1rem;
+  margin-top: 0.5rem;
 }
 
 .splash-start-btn:hover {
@@ -183,33 +185,51 @@
 /* Responsive adjustments for mobile */
 @media (max-width: 640px) {
   .splash-overlay {
-    padding: 1.5rem;
+    padding: 1rem 0.875rem;
   }
 
   .splash-content {
-    gap: 1.5rem;
+    gap: 1rem;
   }
 
   .splash-logo {
-    width: 120px;
-    height: 120px;
+    width: 90px;
+    height: 90px;
   }
 
   .splash-tagline {
-    font-size: 1.375rem;
+    font-size: 1.25rem;
+    line-height: 1.2;
   }
 
   .splash-features-title {
-    font-size: 1rem;
+    font-size: 0.9rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .splash-features-list {
+    gap: 0.5rem;
   }
 
   .splash-feature-item {
-    font-size: 0.875rem;
+    font-size: 0.8rem;
+    gap: 0.625rem;
+  }
+
+  .splash-bullet-icon {
+    width: 18px;
+    height: 18px;
+    font-size: 0.65rem;
+  }
+
+  .splash-footer {
+    font-size: 0.7rem;
   }
 
   .splash-start-btn {
-    padding: 0.875rem 2rem;
-    font-size: 1rem;
+    padding: 0.75rem 1.75rem;
+    font-size: 0.95rem;
+    margin-top: 0.25rem;
   }
 }
 

@@ -12,6 +12,26 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### October 9, 2025: Splash Screen & Saved Pots
+- **Splash Screen**: Implemented one-time splash screen on first app load
+  - Full-screen purple gradient overlay with branded logo
+  - Displays tagline "Get started with the new Community Banking System"
+  - Shows 6 feature bullet points explaining app capabilities
+  - Auto-dismisses after 4 seconds or manual skip
+  - Uses localStorage (hasSeenSplash) to prevent re-showing
+  - Fully responsive with smooth fade animations
+  - Respects prefers-reduced-motion accessibility setting
+- **Saved Pots Feature**: Users can now bookmark and reuse completed pots
+  - New "Saved Pots" tab added to dashboard
+  - Bookmark button on each cleaned pot
+  - Reuse dialog with "Reuse Same Details" and "Edit Details" options
+  - Preserves all pot data (members, settings) while resetting balance to ₡0
+- **Personal Pot Updates**: 
+  - Title changed to "Personal Pot (Wallet)"
+  - Description updated to include "safe place to save funds paid out from Pots"
+  - "Create Pot" button changed to "Create a Pot"
+  - Promo Code button hidden (functionality preserved)
+
 ### October 1, 2025: AI-Assisted Pot Creation
 - Implemented AI pot creation feature integrated with N8N workflow
 - Added `/ai-create` route with natural language prompt interface

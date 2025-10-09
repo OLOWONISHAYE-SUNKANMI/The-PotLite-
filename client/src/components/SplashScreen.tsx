@@ -24,7 +24,7 @@ const DEFAULT_BULLETS = [
   "Real-time progress and reminders",
   "No more awkward \"did you send?\" group chats.",
   "Imagine one trusted view of the money—live totals, names, and timestamps for everyone.",
-  "Ready for roommates, teams, and group trips"
+  "Collect fees on schedule and book/make purchases once targets are met."
 ];
 
 export default function SplashScreen({ 

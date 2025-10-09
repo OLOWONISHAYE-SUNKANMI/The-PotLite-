@@ -2,7 +2,7 @@
  * SplashScreen Component
  * 
  * Usage: Displays on first app load, user clicks button to dismiss.
- * To swap in your real logo: Replace /assets/logo.png in the public/assets folder.
+ * To swap in your real logo: Replace logo.png in the client/src/assets folder.
  * 
  * Props:
  *  - onDone: Callback fired when splash is dismissed
@@ -11,6 +11,7 @@
 
 import { useState } from 'react';
 import '../styles/splash.css';
+import logoImage from '../assets/logo.png';
 
 interface SplashScreenProps {
   onDone: () => void;
@@ -46,13 +47,9 @@ export default function SplashScreen({
         {/* Logo */}
         <div className="splash-logo-container">
           <img 
-            src="/assets/logo.png" 
+            src={logoImage} 
             alt="The Pot Logo" 
             className="splash-logo"
-            onError={(e) => {
-              console.error('Logo failed to load from /assets/logo.png');
-              e.currentTarget.style.display = 'none';
-            }}
           />
         </div>
 

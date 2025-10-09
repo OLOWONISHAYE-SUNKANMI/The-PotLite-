@@ -49,6 +49,10 @@ export default function SplashScreen({
             src="/assets/logo.png" 
             alt="The Pot Logo" 
             className="splash-logo"
+            onError={(e) => {
+              console.error('Logo failed to load from /assets/logo.png');
+              e.currentTarget.style.display = 'none';
+            }}
           />
         </div>
 

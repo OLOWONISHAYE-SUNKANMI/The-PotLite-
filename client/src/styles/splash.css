@@ -1,11 +1,11 @@
 /**
  * Splash Screen Styles
  * 
- * Includes responsive design, animations, and accessibility features.
+ * Matches app's purple/gold color scheme with no white card background.
  * Respects prefers-reduced-motion for users who prefer less animation.
  */
 
-/* Overlay - Full screen background */
+/* Overlay - Full screen background with purple gradient */
 .splash-overlay {
   position: fixed;
   inset: 0;
@@ -13,8 +13,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 1rem;
+  background: linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%);
+  padding: 2rem;
 }
 
 /* Fade animations */
@@ -51,71 +51,61 @@
     transform: scale(1);
   }
   50% {
-    opacity: 0.9;
-    transform: scale(1.02);
+    opacity: 0.95;
+    transform: scale(1.03);
   }
 }
 
-/* Main card container */
-.splash-card {
-  background: white;
-  border-radius: 1.5rem;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  padding: 2.5rem 2rem;
-  max-width: 500px;
+/* Main content container - no white card, just centered content */
+.splash-content {
+  max-width: 600px;
   width: 100%;
   text-align: center;
-  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
 }
 
 /* Logo container */
 .splash-logo-container {
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.5rem;
   display: flex;
   justify-content: center;
 }
 
 .splash-logo {
-  width: 120px;
-  height: 120px;
+  width: 150px;
+  height: 150px;
   object-fit: contain;
-  animation: logoPulse 2s ease-in-out infinite;
+  animation: logoPulse 2.5s ease-in-out infinite;
+  filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.3));
 }
 
-/* Text logo fallback */
-.splash-text-logo {
-  font-size: 2.5rem;
-  font-weight: 800;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  padding: 1rem 0;
-  animation: logoPulse 2s ease-in-out infinite;
-}
-
-/* Tagline */
+/* Tagline - Golden Yellow */
 .splash-tagline {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 2rem;
-  line-height: 1.5;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #FFD94A; /* Golden Yellow - matches app primary */
+  margin: 0;
+  line-height: 1.3;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
 /* Features section */
 .splash-features {
-  text-align: left;
-  margin-bottom: 1.5rem;
+  width: 100%;
+  max-width: 500px;
 }
 
 .splash-features-title {
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 700;
-  color: #4b5563;
-  margin-bottom: 1rem;
+  color: #FAF8FF; /* Light Lavender - matches card foreground */
+  margin-bottom: 1.25rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  text-align: center;
 }
 
 .splash-features-list {
@@ -124,15 +114,16 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.875rem;
+  text-align: left;
 }
 
 .splash-feature-item {
   display: flex;
   align-items: flex-start;
-  gap: 0.75rem;
-  font-size: 0.9rem;
-  color: #6b7280;
+  gap: 0.875rem;
+  font-size: 0.95rem;
+  color: #FAF8FF; /* Light Lavender */
   line-height: 1.5;
 }
 
@@ -140,10 +131,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  width: 22px;
+  height: 22px;
+  background: #FFD94A; /* Golden Yellow */
+  color: #3D0F6C; /* Deep Plum */
   border-radius: 50%;
   font-size: 0.75rem;
   font-weight: bold;
@@ -153,68 +144,72 @@
 
 /* Footer text */
 .splash-footer {
-  font-size: 0.75rem;
-  color: #9ca3af;
-  margin-top: 2rem;
-  margin-bottom: 0;
+  font-size: 0.8rem;
+  color: rgba(250, 248, 255, 0.7); /* Light Lavender with opacity */
+  margin: 0;
   font-style: italic;
 }
 
-/* Skip button */
-.splash-skip-btn {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  background: rgba(107, 114, 128, 0.1);
+/* Start button - matches app's gradient button style */
+.splash-start-btn {
+  background: linear-gradient(to right, #8E2DE2, #4A00E0);
   border: none;
   border-radius: 0.5rem;
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #6b7280;
+  padding: 1rem 2.5rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #FAF8FF; /* Light Lavender */
   cursor: pointer;
   transition: all 200ms ease;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  margin-top: 1rem;
 }
 
-.splash-skip-btn:hover {
-  background: rgba(107, 114, 128, 0.2);
-  color: #374151;
+.splash-start-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
 }
 
-.splash-skip-btn:focus {
-  outline: 2px solid #667eea;
-  outline-offset: 2px;
+.splash-start-btn:focus {
+  outline: 3px solid #FFD94A;
+  outline-offset: 3px;
+}
+
+.splash-start-btn:active {
+  transform: translateY(0);
 }
 
 /* Responsive adjustments for mobile */
 @media (max-width: 640px) {
-  .splash-card {
-    padding: 2rem 1.5rem;
-    border-radius: 1rem;
+  .splash-overlay {
+    padding: 1.5rem;
+  }
+
+  .splash-content {
+    gap: 1.5rem;
   }
 
   .splash-logo {
-    width: 100px;
-    height: 100px;
-  }
-
-  .splash-text-logo {
-    font-size: 2rem;
+    width: 120px;
+    height: 120px;
   }
 
   .splash-tagline {
-    font-size: 1.125rem;
+    font-size: 1.375rem;
+  }
+
+  .splash-features-title {
+    font-size: 1rem;
   }
 
   .splash-feature-item {
-    font-size: 0.85rem;
+    font-size: 0.875rem;
   }
 
-  .splash-skip-btn {
-    top: 0.75rem;
-    right: 0.75rem;
-    padding: 0.375rem 0.75rem;
-    font-size: 0.8rem;
+  .splash-start-btn {
+    padding: 0.875rem 2rem;
+    font-size: 1rem;
   }
 }
 
@@ -225,8 +220,7 @@
     animation: none;
   }
 
-  .splash-logo,
-  .splash-text-logo {
+  .splash-logo {
     animation: none;
   }
 

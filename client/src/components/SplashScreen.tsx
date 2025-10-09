@@ -1,25 +1,20 @@
 /**
  * SplashScreen Component
  * 
- * Usage: Displays on first app load, fades out after timeout, prevents showing again.
+ * Usage: Displays on first app load, user clicks button to dismiss.
  * To swap in your real logo: Replace /assets/logo.png in the public/assets folder.
  * 
  * Props:
- *  - onDone: Callback fired when splash is dismissed (timeout or skip)
+ *  - onDone: Callback fired when splash is dismissed
  *  - bullets: Optional array of feature strings (defaults to built-in list)
- *  - timeout: Optional timeout in ms (default 4000)
  */
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import '../styles/splash.css';
-
-// Configurable timeout (milliseconds)
-const DEFAULT_TIMEOUT = 4000;
 
 interface SplashScreenProps {
   onDone: () => void;
   bullets?: string[];
-  timeout?: number;
 }
 
 const DEFAULT_BULLETS = [
@@ -33,20 +28,9 @@ const DEFAULT_BULLETS = [
 
 export default function SplashScreen({ 
   onDone, 
-  bullets = DEFAULT_BULLETS,
-  timeout = DEFAULT_TIMEOUT 
+  bullets = DEFAULT_BULLETS
 }: SplashScreenProps) {
   const [fadeOut, setFadeOut] = useState(false);
-  const [logoError, setLogoError] = useState(false);
-
-  useEffect(() => {
-    // Auto-dismiss after timeout
-    const timer = setTimeout(() => {
-      handleDismiss();
-    }, timeout);
-
-    return () => clearTimeout(timer);
-  }, [timeout]);
 
   const handleDismiss = () => {
     setFadeOut(true);
@@ -58,19 +42,14 @@ export default function SplashScreen({
 
   return (
     <div className={`splash-overlay ${fadeOut ? 'fade-out' : 'fade-in'}`}>
-      <div className="splash-card">
+      <div className="splash-content">
         {/* Logo */}
         <div className="splash-logo-container">
-          {!logoError ? (
-            <img 
-              src="/assets/logo.png" 
-              alt="The Pot Logo" 
-              className="splash-logo"
-              onError={() => setLogoError(true)}
-            />
-          ) : (
-            <div className="splash-text-logo">The Pot</div>
-          )}
+          <img 
+            src="/assets/logo.png" 
+            alt="The Pot Logo" 
+            className="splash-logo"
+          />
         </div>
 
         {/* Tagline */}
@@ -96,13 +75,13 @@ export default function SplashScreen({
           Prototype preview — features subject to change.
         </p>
 
-        {/* Skip Button */}
+        {/* Start Button */}
         <button 
-          className="splash-skip-btn"
+          className="splash-start-btn"
           onClick={handleDismiss}
-          aria-label="Skip splash screen"
+          aria-label="Start using The Pot"
         >
-          Skip
+          Start Saving Together!
         </button>
       </div>
     </div>

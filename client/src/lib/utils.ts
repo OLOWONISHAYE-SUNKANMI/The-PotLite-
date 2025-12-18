@@ -65,6 +65,28 @@ export type TransactionType = {
   voteTotal?: number;
 };
 
+export type ChangeRequestType = {
+  id: string;
+  potId: string;
+  type: 'goal-change' | 'contribution-payout-change' | 'admin-change' | 'clean-pot' | 'withdrawal';
+  requestedBy: string;
+  timestamp: string;
+  status: 'pending' | 'approved' | 'rejected';
+  description: string;
+  votes: { user: string; approve: boolean }[];
+  voteThreshold: number;
+  approvalMode?: 'democratic' | 'admin';
+  details: {
+    newGoal?: number;
+    oldGoal?: number;
+    newAdmin?: string;
+    withdrawalAmount?: number;
+    cleanPotPayouts?: Record<string, number>;
+    newContributions?: Record<string, number>;
+    newPayouts?: Record<string, number>;
+  };
+};
+
 export function generateId(): string {
   return Math.random().toString(36).substring(2, 10);
 }

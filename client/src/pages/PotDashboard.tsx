@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import DepositSim from "@/components/DepositSim";
 import VotingUI from "@/components/VotingUI";
+import ChangeRequestVoting from "@/components/ChangeRequestVoting";
 import TimedRelease from "@/components/TimedRelease";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -34,7 +35,8 @@ export default function PotDashboard() {
     pots, 
     completedPots, 
     savedPots,
-    transactions, 
+    transactions,
+    changeRequests,
     simulateErrors, 
     completePot,
     savePot,
@@ -44,6 +46,8 @@ export default function PotDashboard() {
     withdrawFromPotToPersonal,
     approveWithdrawalToPersonal,
     addTransaction,
+    addChangeRequest,
+    voteOnChangeRequest,
     addPot
   } = usePot();
   const { currentUser } = useDummyUser();
@@ -847,10 +851,14 @@ export default function PotDashboard() {
                       <div className="text-sm text-secondary-foreground mb-1">Recipients</div>
                       <div className="font-medium text-primary">
                         {pot.payoutStructure === "many-to-one"
-                          ? "Sarah (Single Recipient)"
+                          ? (pot.recipients && pot.recipients.length > 0 
+                              ? `${pot.recipients[0]} (Single Recipient)` 
+                              : "No Recipient Set")
                           : pot.payoutStructure === "one-to-many"
                             ? "All Members"
-                            : "Selected Members"}
+                            : (pot.recipients && pot.recipients.length > 0 
+                                ? pot.recipients.join(", ") 
+                                : "No Recipients Set")}
                       </div>
                     </div>
                     <div className="bg-secondary rounded-lg p-3">
@@ -967,6 +975,13 @@ export default function PotDashboard() {
               {pot.status !== 'completed' && pot.withdrawalMethod === "democratic" && (
                 <div className="mt-4">
                   <VotingUI potId={pot.id} />
+                </div>
+              )}
+              
+              {/* Show change request voting for active pots */}
+              {pot.status !== 'completed' && (
+                <div className="mt-4">
+                  <ChangeRequestVoting potId={pot.id} />
                 </div>
               )}
               
@@ -1167,12 +1182,29 @@ export default function PotDashboard() {
                     return;
                   }
 
+                  addChangeRequest({
+                    id: generateId(),
+                    potId: pot.id,
+                    type: 'goal-change',
+                    requestedBy: currentUser,
+                    timestamp: new Date().toISOString(),
+                    status: 'pending',
+                    description: `Change pot goal from ₡${pot.goalAmount} to ₡${newGoalAmount}`,
+                    votes: [],
+                    voteThreshold: pot.voteThreshold || 75,
+                    details: {
+                      oldGoal: pot.goalAmount,
+                      newGoal: newGoalAmount
+                    }
+                  });
+
                   toast({
                     title: "Goal Change Request",
                     description: `Request to change goal from ₡${pot.goalAmount} to ₡${newGoalAmount} sent to all members for voting`,
                   });
                   
                   setShowGoalChangeDialog(false);
+                  setNewGoalAmount(0);
                 }}
                 disabled={!pot || newGoalAmount <= 0}
               >
@@ -1346,12 +1378,34 @@ export default function PotDashboard() {
                 Cancel
               </Button>
               <Button onClick={() => {
+                if (!pot) return;
+                
                 const approvalMethod = voteAdmission === "democratic" ? "democratic vote" : "admin approval";
+                
+                addChangeRequest({
+                  id: generateId(),
+                  potId: pot.id,
+                  type: 'contribution-payout-change',
+                  requestedBy: currentUser,
+                  timestamp: new Date().toISOString(),
+                  status: 'pending',
+                  description: `Change contribution/payout structure for this pot`,
+                  votes: [],
+                  voteThreshold: pot.voteThreshold || 75,
+                  approvalMode: voteAdmission as 'democratic' | 'admin',
+                  details: {
+                    newContributions: { ...tempMemberContributions },
+                    newPayouts: { ...tempMemberPayouts }
+                  }
+                });
+                
                 toast({
                   title: "Contribution/Payout Change Request",
                   description: `Request sent for ${approvalMethod}`,
                 });
                 setShowContributionPayoutDialog(false);
+                setTempMemberContributions({});
+                setTempMemberPayouts({});
               }}>
                 Submit Request
               </Button>
@@ -1388,7 +1442,7 @@ export default function PotDashboard() {
               </Button>
               <Button 
                 onClick={() => {
-                  if (!selectedNewAdmin) {
+                  if (!selectedNewAdmin || !pot) {
                     toast({
                       title: "No Selection",
                       description: "Please select a new admin",
@@ -1396,11 +1450,28 @@ export default function PotDashboard() {
                     });
                     return;
                   }
+                  
+                  addChangeRequest({
+                    id: generateId(),
+                    potId: pot.id,
+                    type: 'admin-change',
+                    requestedBy: currentUser,
+                    timestamp: new Date().toISOString(),
+                    status: 'pending',
+                    description: `Change pot admin from ${pot.creator} to ${selectedNewAdmin}`,
+                    votes: [],
+                    voteThreshold: pot.voteThreshold || 75,
+                    details: {
+                      newAdmin: selectedNewAdmin
+                    }
+                  });
+                  
                   toast({
                     title: "Admin Change Request",
                     description: `Request to make ${selectedNewAdmin} the new admin sent to all members for voting`,
                   });
                   setShowAdminChangeDialog(false);
+                  setSelectedNewAdmin("");
                 }}
                 disabled={!selectedNewAdmin}
               >
@@ -1589,16 +1660,19 @@ export default function PotDashboard() {
                     return;
                   }
                   
-                  // Add transaction to track the clean pot early action for checklist
-                  addTransaction({
+                  addChangeRequest({
                     id: generateId(),
                     potId: pot.id,
-                    type: 'request',
-                    amount: totalPayout,
-                    user: 'Current User',
-                    description: 'Clean Pot Early request submitted',
+                    type: 'clean-pot',
+                    requestedBy: currentUser,
                     timestamp: new Date().toISOString(),
-                    status: 'pending'
+                    status: 'pending',
+                    description: `Clean pot early and distribute ₡${totalPayout.toFixed(2)} among members`,
+                    votes: [],
+                    voteThreshold: pot.voteThreshold || 75,
+                    details: {
+                      cleanPotPayouts: { ...tempMemberPayouts }
+                    }
                   });
                   
                   toast({
@@ -1606,6 +1680,7 @@ export default function PotDashboard() {
                     description: `Request to clean pot early with new payout distribution sent to all members for voting`,
                   });
                   setShowCleanPotDialog(false);
+                  setTempMemberPayouts({});
                 }}
               >
                 Submit Request

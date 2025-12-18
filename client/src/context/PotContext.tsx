@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { PotType, TransactionType, generateId } from "@/lib/utils";
+import { PotType, TransactionType, ChangeRequestType, generateId } from "@/lib/utils";
 
 interface PotContextType {
   personalPot: {
@@ -9,6 +9,7 @@ interface PotContextType {
   completedPots: PotType[];
   savedPots: PotType[];
   transactions: TransactionType[];
+  changeRequests: ChangeRequestType[];
   feedback: any[];
   simulateErrors: {
     depositFailure: boolean;
@@ -25,6 +26,8 @@ interface PotContextType {
   savePot: (potId: string) => void;
   unsavePot: (potId: string) => void;
   addTransaction: (transaction: TransactionType) => void;
+  addChangeRequest: (changeRequest: ChangeRequestType) => void;
+  voteOnChangeRequest: (changeRequestId: string, user: string, approve: boolean) => void;
   updatePotBalance: (potId: string, amount: number) => void;
   updatePersonalPotBalance: (amount: number) => void;
   depositFromPersonalToPot: (potId: string, amount: number) => void;
@@ -193,6 +196,11 @@ export const PotProvider = ({ children }: PotProviderProps) => {
     const storedSavedPots = localStorage.getItem("thePot_savedPots");
     return storedSavedPots ? JSON.parse(storedSavedPots) : [];
   });
+
+  const [changeRequests, setChangeRequests] = useState<ChangeRequestType[]>(() => {
+    const storedChangeRequests = localStorage.getItem("thePot_changeRequests");
+    return storedChangeRequests ? JSON.parse(storedChangeRequests) : [];
+  });
   
   const [simulateErrors, setSimulateErrors] = useState({
     depositFailure: false,
@@ -232,6 +240,10 @@ export const PotProvider = ({ children }: PotProviderProps) => {
   useEffect(() => {
     localStorage.setItem("thePot_savedPots", JSON.stringify(savedPots));
   }, [savedPots]);
+
+  useEffect(() => {
+    localStorage.setItem("thePot_changeRequests", JSON.stringify(changeRequests));
+  }, [changeRequests]);
   
   // Pot operations
   const addPot = (pot: PotType) => {
@@ -293,6 +305,60 @@ export const PotProvider = ({ children }: PotProviderProps) => {
   // Transaction operations
   const addTransaction = (transaction: TransactionType) => {
     setTransactions([transaction, ...transactions]);
+  };
+
+  // Change request operations
+  const addChangeRequest = (changeRequest: ChangeRequestType) => {
+    setChangeRequests([changeRequest, ...changeRequests]);
+  };
+
+  const voteOnChangeRequest = (changeRequestId: string, user: string, approve: boolean) => {
+    setChangeRequests(changeRequests.map(cr => {
+      if (cr.id === changeRequestId) {
+        // Check if user already voted
+        const existingVote = cr.votes.find(v => v.user === user);
+        if (existingVote) {
+          return cr; // Already voted
+        }
+        
+        const newVotes = [...cr.votes, { user, approve }];
+        const pot = pots.find(p => p.id === cr.potId);
+        
+        // Handle admin-only approval mode
+        if (cr.approvalMode === 'admin') {
+          // Only the admin's vote matters
+          if (user === pot?.creator) {
+            return { 
+              ...cr, 
+              votes: newVotes, 
+              status: approve ? 'approved' as const : 'rejected' as const 
+            };
+          }
+          // Non-admin votes are recorded but don't affect status
+          return { ...cr, votes: newVotes };
+        }
+        
+        // Democratic voting logic
+        const totalMembers = pot?.members.length || 1;
+        const approvalVotes = newVotes.filter(v => v.approve).length;
+        const approvalPercentage = Math.round((approvalVotes / totalMembers) * 100);
+        
+        // Check if threshold is met
+        if (approvalPercentage >= cr.voteThreshold) {
+          return { ...cr, votes: newVotes, status: 'approved' as const };
+        }
+        
+        // Check if rejection is guaranteed (remaining votes can't reach threshold)
+        const remainingVotes = totalMembers - newVotes.length;
+        const maxPossibleApproval = ((approvalVotes + remainingVotes) / totalMembers) * 100;
+        if (maxPossibleApproval < cr.voteThreshold) {
+          return { ...cr, votes: newVotes, status: 'rejected' as const };
+        }
+        
+        return { ...cr, votes: newVotes };
+      }
+      return cr;
+    }));
   };
   
   // Update pot balance
@@ -437,6 +503,7 @@ export const PotProvider = ({ children }: PotProviderProps) => {
   const resetAllData = () => {
     setPots(defaultPots);
     setTransactions(defaultTransactions);
+    setChangeRequests([]);
     setFeedback([]);
     setSimulateErrors({
       depositFailure: false,
@@ -586,6 +653,7 @@ export const PotProvider = ({ children }: PotProviderProps) => {
         completedPots,
         savedPots,
         transactions,
+        changeRequests,
         feedback,
         simulateErrors,
         liveMode,
@@ -596,6 +664,8 @@ export const PotProvider = ({ children }: PotProviderProps) => {
         savePot,
         unsavePot,
         addTransaction,
+        addChangeRequest,
+        voteOnChangeRequest,
         updatePotBalance,
         updatePersonalPotBalance,
         depositFromPersonalToPot,

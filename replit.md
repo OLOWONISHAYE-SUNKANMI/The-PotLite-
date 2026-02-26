@@ -12,6 +12,21 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### February 2026: Pot Confirmation Flow & Contribution Ledger
+- **Confirmation Dialog**: "Create Pot" button renamed to "Confirm your Pot"
+  - Opens a summary ledger popup showing all entered pot details before creation
+  - Displays Goal Amount, Platform Fee (2%), and Total Pot Target
+  - Tooltip on platform fee: "Platform fee (2%) supports payment processing, security, and compliance for all users in this Pot."
+  - Two actions: "Go Back to Edit" and "Create Pot and Invite Members"
+- **Contribution/Payout Table moved to Confirmation Dialog**:
+  - Interactive member table with contribution and payout toggles
+  - Per-member platform fee breakdown shown next to contribution amounts
+  - Equal split option divides goal amount equally, with fee added on top
+  - Single recipient shows full goal amount; multiple recipients allow individual input
+  - Contribution method selection (Individual / Just Reach Goal) available for all contributor counts
+  - Invite Members section simplified to member list only
+- **Admin Approval Mode Fix**: Admin-only voting now correctly resolves on admin's vote alone (via approvalMode field on ChangeRequestType)
+
 ### October 9, 2025: Splash Screen & Saved Pots
 - **Splash Screen**: Implemented one-time splash screen on first app load
   - Full-screen purple gradient overlay with branded logo

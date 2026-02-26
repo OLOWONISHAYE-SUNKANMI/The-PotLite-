@@ -322,41 +322,37 @@ export default function CreatePot() {
       return;
     }
     
+    setShowConfirmation(true);
+  };
+
+  const handleCreatePot = () => {
     const contributingMembers = Object.keys(memberContributions);
     if (contributingMembers.length > 0 && contributionMethod !== "just-reach-goal") {
+      if (equalSplit === null && contributionMethod === null) {
+        toast({ title: "Missing Info", description: "Please select a contribution method for the contributing members", variant: "destructive" });
+        return;
+      }
+      
       const missingAmount = contributingMembers.some(member => 
         memberContributions[member] === 0 || memberContributions[member] === undefined
       );
       
       if (missingAmount && (equalSplit === true || contributionMethod === "individual")) {
-        setPotCreationError("Please enter contribution amounts for all members");
-        setMissingContributions(true);
+        toast({ title: "Error", description: "Please enter contribution amounts for all contributing members", variant: "destructive" });
         setPulsingInputs(true);
-        setTimeout(() => setPotCreationError(""), 5000);
         return;
       }
     }
     
-    if (payoutStructure === "many-to-one") {
-      if (Object.keys(memberPayouts).length !== 1) {
-        setPotCreationError("Many-to-One structure requires exactly one recipient");
-        setTimeout(() => setPotCreationError(""), 5000);
-        return;
-      }
+    if (payoutStructure === "many-to-one" && Object.keys(memberPayouts).length !== 1) {
+      toast({ title: "Error", description: "Many-to-One structure requires exactly one recipient", variant: "destructive" });
+      return;
     }
     
-    if (payoutStructure === "many-to-selected") {
-      if (Object.keys(memberPayouts).length >= members.length) {
-        setPotCreationError("Many-to-Selected structure requires at least one non-recipient member");
-        setTimeout(() => setPotCreationError(""), 5000);
-        return;
-      }
+    if (payoutStructure === "many-to-selected" && Object.keys(memberPayouts).length >= members.length) {
+      toast({ title: "Error", description: "Many-to-Selected requires at least one non-recipient member", variant: "destructive" });
+      return;
     }
-    
-    setShowConfirmation(true);
-  };
-
-  const handleCreatePot = () => {
     let potRecipients: string[] = [];
     
     if (Object.keys(memberPayouts).length > 0) {
@@ -651,324 +647,104 @@ export default function CreatePot() {
                         </Popover>
                       </div>
                       
-                      {/* Member Table */}
+                      {/* Member List */}
                       {members.length > 0 && (
                         <div className="bg-secondary rounded-lg p-4">
                           <div className="flex items-center justify-between mb-4">
                             <h3 className="font-medium text-primary">Added Members</h3>
-                            <div className="flex items-center gap-3 text-xs text-secondary-foreground">
-                              <div className="flex items-center">
-                                <span className="inline-block w-3 h-3 bg-gray-400 rounded-sm mr-1"></span>
-                                <span>No contribution/payout</span>
-                              </div>
-                              <div className="flex items-center">
-                                <span className="inline-block w-3 h-3 bg-amber-400 rounded-sm mr-1"></span>
-                                <span>Will contribute/receive payout</span>
-                              </div>
-                            </div>
+                            <span className="text-xs text-muted-foreground">{members.length} member{members.length !== 1 ? 's' : ''}</span>
                           </div>
                           
-                          {/* Equal Split Option */}
-                          {getContributingMembersCount() > 1 && (
-                            <div className="mb-4 bg-primary/5 p-3 rounded-md">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center">
-                                  <FaDollarSign size={16} className="text-primary mr-2" />
-                                  <span className="font-medium">Split contributions equally?</span>
-                                  {equalSplit === true && (
-                                    <span className="ml-2 text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">
-                                      ${Math.ceil(goalAmount / getContributingMembersCount())} per person
-                                    </span>
+                          <div className="space-y-2">
+                            {members.map(member => (
+                              <div key={member.id} className="flex items-center justify-between bg-background/50 rounded-lg px-3 py-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm text-secondary-foreground">{member.contact}</span>
+                                  {member.id === "admin-user" && <span className="text-amber-400">👑</span>}
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleRemoveMember(member.id)}
+                                  className="text-destructive hover:bg-destructive/10 hover:text-destructive p-1.5 h-8 w-8"
+                                  disabled={member.id === "admin-user"}
+                                >
+                                  <FaTimes size={14} />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                          
+                          <p className="text-xs text-muted-foreground mt-3">
+                            Contribution and payout settings will be configured in the confirmation step.
+                          </p>
+                        </div>
+                      )}
+                      
+                      {selectedUseCase && (
+                        <div className="mt-4 p-4 bg-primary/5 rounded-lg">
+                          <h3 className="font-medium text-primary mb-3">Withdrawal Method</h3>
+                          <RadioGroup 
+                            value={withdrawalMethod} 
+                            onValueChange={(value) => setWithdrawalMethod(value as any)}
+                            className="space-y-3"
+                          >
+                            {(payoutStructure === "one-to-many" || payoutStructure === "many-to-selected") && (
+                              <div className="flex items-start space-x-3">
+                                <RadioGroupItem value="democratic" id="democratic" className="mt-1" />
+                                <div className="flex-1">
+                                  <Label htmlFor="democratic" className="font-medium text-sm">Democratic Vote</Label>
+                                  <p className="text-xs text-secondary-foreground">Members vote; requires majority approval</p>
+                                  {withdrawalMethod === "democratic" && (
+                                    <div className="mt-2">
+                                      <Label className="block text-xs text-secondary-foreground mb-1">Required Approval %</Label>
+                                      <Select value={voteThreshold} onValueChange={setVoteThreshold}>
+                                        <SelectTrigger className="w-32 h-8 text-xs">
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="51">51%</SelectItem>
+                                          <SelectItem value="66">66%</SelectItem>
+                                          <SelectItem value="75">75%</SelectItem>
+                                          <SelectItem value="100">100%</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
                                   )}
                                 </div>
-                                <div className="flex space-x-2">
-                                  <button
-                                    type="button"
-                                    className={`px-3 py-1 rounded-full text-sm flex items-center ${
-                                      equalSplit === true 
-                                        ? 'bg-green-500 text-white' 
-                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                    }`}
-                                    onClick={() => handleEqualSplit(true)}
-                                  >
-                                    <FaCheck size={12} className="mr-1" /> Yes
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className={`px-3 py-1 rounded-full text-sm flex items-center ${
-                                      equalSplit === false 
-                                        ? 'bg-gray-700 text-white' 
-                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                    }`}
-                                    onClick={() => handleEqualSplit(false)}
-                                  >
-                                    <FaTimes size={12} className="mr-1" /> No
-                                  </button>
+                              </div>
+                            )}
+                            
+                            {(payoutStructure === "one-to-many" || payoutStructure === "many-to-one") && (
+                              <div className="flex items-start space-x-3">
+                                <RadioGroupItem value="timed" id="timed" className="mt-1" />
+                                <div className="flex-1">
+                                  <Label htmlFor="timed" className="font-medium text-sm">Timed Release</Label>
+                                  <p className="text-xs text-secondary-foreground">Funds locked until specific date</p>
+                                  {withdrawalMethod === "timed" && (
+                                    <div className="mt-2">
+                                      <Label className="block text-xs text-secondary-foreground mb-1">Release Date</Label>
+                                      <Input 
+                                        type="date" 
+                                        value={releaseDate}
+                                        onChange={e => setReleaseDate(e.target.value)}
+                                        className="w-40 h-8 text-xs"
+                                      />
+                                    </div>
+                                  )}
                                 </div>
                               </div>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                This will divide the goal amount of ${goalAmount.toFixed(2)} equally among {getContributingMembersCount()} members.
-                              </p>
-                              
-                              {/* Contribution Method Options */}
-                              {equalSplit === false && (
-                                <div className="mt-3 space-y-2">
-                                  <p className="text-sm font-medium text-primary">Choose contribution method:</p>
-                                  <div className="flex flex-col space-y-2">
-                                    <button
-                                      type="button"
-                                      className={`p-3 rounded-lg border text-left transition-all ${
-                                        contributionMethod === "individual"
-                                          ? 'border-primary bg-primary/10 text-primary'
-                                          : 'border-gray-300 hover:border-primary/50'
-                                      }`}
-                                      onClick={() => setContributionMethod("individual")}
-                                    >
-                                      <div className="font-medium">Input Individual Contribution</div>
-                                      <div className="text-xs text-muted-foreground mt-1">
-                                        Enter specific amounts for each contributing member
-                                      </div>
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className={`p-3 rounded-lg border text-left transition-all ${
-                                        contributionMethod === "just-reach-goal"
-                                          ? 'border-primary bg-primary/10 text-primary'
-                                          : 'border-gray-300 hover:border-primary/50'
-                                      }`}
-                                      onClick={() => setContributionMethod("just-reach-goal")}
-                                    >
-                                      <div className="font-medium">Just Reach Goal</div>
-                                      <div className="text-xs text-muted-foreground mt-1">
-                                        Members can deposit any amount to reach the target goal
-                                      </div>
-                                    </button>
-                                  </div>
-                                </div>
-                              )}
+                            )}
+                            
+                            <div className="flex items-start space-x-3">
+                              <RadioGroupItem value="auto-withdraw" id="auto-withdraw" className="mt-1" />
+                              <div className="flex-1">
+                                <Label htmlFor="auto-withdraw" className="font-medium text-sm">Auto-Withdraw</Label>
+                                <p className="text-xs text-secondary-foreground">Recipients automatically receive payouts</p>
+                              </div>
                             </div>
-                          )}
-                          
-                          {/* Table */}
-                          <div className="overflow-x-auto">
-                            <table className="w-full border-collapse">
-                              <thead>
-                                <tr className="text-left border-b border-primary/20">
-                                  <th className="pb-2 font-medium text-primary">Contact</th>
-                                  <th className="pb-2 font-medium text-primary text-center">Contribution?</th>
-                                  <th className="pb-2 font-medium text-primary text-center">Payout?</th>
-                                  <th className="pb-2 font-medium text-primary text-center">Actions</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {members.map(member => (
-                                  <tr key={member.id} className="border-b border-primary/10 hover:bg-primary/5">
-                                    <td className="py-2 text-secondary-foreground">
-                                      {member.id === "admin-user" ? (
-                                        <div className="flex flex-col">
-                                          <div className="flex items-center">
-                                            <span>{member.contact}</span>
-                                            <span className="text-amber-400 ml-2">👑</span>
-                                          </div>
-                                        </div>
-                                      ) : (
-                                        <div className="flex flex-col">
-                                          <span>{member.contact}</span>
-                                          {/* Display notification for non-subscribed users */}
-                                          {member.contact !== "admin@thepot.com" && (
-                                            <span className="text-xs text-amber-500 mt-1">
-                                              (User not subscribed, will incur INDIVIDUAL transaction fee upon Contribution/Payout.)
-                                            </span>
-                                          )}
-                                        </div>
-                                      )}
-                                    </td>
-                                    
-                                    {/* Contribution Column */}
-                                    <td className="py-2">
-                                      <div className="flex flex-col items-center justify-center">
-                                        <button
-                                          type="button"
-                                          onClick={() => toggleMemberContribution(member.contact)}
-                                          className="p-1 rounded-full focus:outline-none transition-transform hover:scale-110"
-                                          aria-label={
-                                            memberContributions[member.contact] 
-                                              ? "Remove contribution" 
-                                              : "Add contribution"
-                                          }
-                                        >
-                                          <FaUtensils 
-                                            className={
-                                              memberContributions[member.contact] !== undefined
-                                                ? "text-amber-400" 
-                                                : "text-gray-400"
-                                            } 
-                                            size={20} 
-                                          />
-                                        </button>
-                                        
-                                        {memberContributions[member.contact] !== undefined && (
-                                          <>
-                                            {/* Show input field only for equal split or individual contribution method */}
-                                            {(equalSplit === true || contributionMethod === "individual") && (
-                                              <div className="mt-1">
-                                                <Input
-                                                  type="number"
-                                                  min="0"
-                                                  placeholder="Amount"
-                                                  value={memberContributions[member.contact]}
-                                                  onChange={(e) => setMemberContributionAmount(member.contact, Number(e.target.value))}
-                                                  className={`w-16 text-xs h-7 px-2 bg-secondary text-secondary-foreground ${
-                                                    pulsingInputs && (memberContributions[member.contact] === 0 || memberContributions[member.contact] === undefined) 
-                                                      ? "border-amber-400 animate-pulse-border" 
-                                                      : "border-primary"
-                                                  }`}
-                                                />
-                                              </div>
-                                            )}
-                                            {/* Show "Any amount" text for just-reach-goal method */}
-                                            {contributionMethod === "just-reach-goal" && (
-                                              <div className="mt-1 text-xs text-muted-foreground">
-                                                Any amount
-                                              </div>
-                                            )}
-                                          </>
-                                        )}
-                                      </div>
-                                    </td>
-                                    
-                                    {/* Payout Column */}
-                                    <td className="py-2">
-                                      <div className="flex flex-col items-center justify-center">
-                                        <button
-                                          type="button"
-                                          onClick={() => toggleMemberPayout(member.contact)}
-                                          className="p-1 rounded-full focus:outline-none transition-transform hover:scale-110"
-                                          aria-label={
-                                            memberPayouts[member.contact] 
-                                              ? "Remove as recipient" 
-                                              : "Add as recipient"
-                                          }
-                                        >
-                                          <FaCoins 
-                                            className={
-                                              memberPayouts[member.contact] !== undefined
-                                                ? "text-amber-400" 
-                                                : "text-gray-400"
-                                            } 
-                                            size={20} 
-                                          />
-                                        </button>
-                                        
-                                        {memberPayouts[member.contact] !== undefined && (
-                                          payoutStructure !== "many-to-one" ? (
-                                            <div className="mt-1">
-                                              <Input
-                                                type="number"
-                                                min="0"
-                                                placeholder="Amount"
-                                                value={memberPayouts[member.contact]}
-                                                onChange={(e) => setMemberPayoutAmount(member.contact, Number(e.target.value))}
-                                                className="w-16 text-xs h-7 px-2 bg-secondary border border-primary text-secondary-foreground"
-                                              />
-                                            </div>
-                                          ) : (
-                                            <div className="mt-1 text-xs text-amber-400">
-                                              Full amount
-                                            </div>
-                                          )
-                                        )}
-                                      </div>
-                                    </td>
-                                    
-                                    {/* Actions Column */}
-                                    <td className="py-2 text-center">
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleRemoveMember(member.id)}
-                                        className="text-destructive hover:bg-destructive/10 hover:text-destructive p-1.5 h-8 w-8"
-                                        disabled={member.id === "admin-user"}
-                                      >
-                                        <FaTimes size={14} />
-                                      </Button>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                          
-                          {/* Withdrawal Method Radio Buttons */}
-                          {selectedUseCase && (
-                            <div className="mt-6 p-4 bg-primary/5 rounded-lg">
-                              <h3 className="font-medium text-primary mb-3">Withdrawal Method</h3>
-                              <RadioGroup 
-                                value={withdrawalMethod} 
-                                onValueChange={(value) => setWithdrawalMethod(value as any)}
-                                className="space-y-3"
-                              >
-                                {/* Democratic Vote - show for one-to-many and many-to-selected */}
-                                {(payoutStructure === "one-to-many" || payoutStructure === "many-to-selected") && (
-                                  <div className="flex items-start space-x-3">
-                                    <RadioGroupItem value="democratic" id="democratic" className="mt-1" />
-                                    <div className="flex-1">
-                                      <Label htmlFor="democratic" className="font-medium text-sm">Democratic Vote</Label>
-                                      <p className="text-xs text-secondary-foreground">Members vote; requires majority approval</p>
-                                      {withdrawalMethod === "democratic" && (
-                                        <div className="mt-2">
-                                          <Label className="block text-xs text-secondary-foreground mb-1">Required Approval %</Label>
-                                          <Select value={voteThreshold} onValueChange={setVoteThreshold}>
-                                            <SelectTrigger className="w-32 h-8 text-xs">
-                                              <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="51">51%</SelectItem>
-                                              <SelectItem value="66">66%</SelectItem>
-                                              <SelectItem value="75">75%</SelectItem>
-                                              <SelectItem value="100">100%</SelectItem>
-                                            </SelectContent>
-                                          </Select>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                )}
-                                
-                                {/* Timed Release - show for one-to-many and many-to-one */}
-                                {(payoutStructure === "one-to-many" || payoutStructure === "many-to-one") && (
-                                  <div className="flex items-start space-x-3">
-                                    <RadioGroupItem value="timed" id="timed" className="mt-1" />
-                                    <div className="flex-1">
-                                      <Label htmlFor="timed" className="font-medium text-sm">Timed Release</Label>
-                                      <p className="text-xs text-secondary-foreground">Funds locked until specific date</p>
-                                      {withdrawalMethod === "timed" && (
-                                        <div className="mt-2">
-                                          <Label className="block text-xs text-secondary-foreground mb-1">Release Date</Label>
-                                          <Input 
-                                            type="date" 
-                                            value={releaseDate}
-                                            onChange={e => setReleaseDate(e.target.value)}
-                                            className="w-40 h-8 text-xs"
-                                          />
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                )}
-                                
-                                {/* Auto-Withdraw - show for all payout structures */}
-                                <div className="flex items-start space-x-3">
-                                  <RadioGroupItem value="auto-withdraw" id="auto-withdraw" className="mt-1" />
-                                  <div className="flex-1">
-                                    <Label htmlFor="auto-withdraw" className="font-medium text-sm">Auto-Withdraw</Label>
-                                    <p className="text-xs text-secondary-foreground">Recipients automatically receive payouts</p>
-                                  </div>
-                                </div>
-                              </RadioGroup>
-                            </div>
-                          )}
+                          </RadioGroup>
                         </div>
                       )}
                     </div>
@@ -999,7 +775,7 @@ export default function CreatePot() {
       </Card>
 
       <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-center">Confirm Your Pot</DialogTitle>
           </DialogHeader>
@@ -1049,52 +825,250 @@ export default function CreatePot() {
                   <span className="font-medium">{new Date(releaseDate).toLocaleDateString()}</span>
                 </div>
               )}
+            </div>
 
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Members</span>
-                <span className="font-medium">{members.length}</span>
+            <div className="bg-secondary/30 rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-sm text-secondary-foreground uppercase tracking-wide">Members &amp; Contributions</h3>
+                <div className="flex items-center gap-3 text-xs text-secondary-foreground">
+                  <div className="flex items-center">
+                    <span className="inline-block w-3 h-3 bg-gray-400 rounded-sm mr-1"></span>
+                    <span>Not selected</span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="inline-block w-3 h-3 bg-amber-400 rounded-sm mr-1"></span>
+                    <span>Selected</span>
+                  </div>
+                </div>
               </div>
+              <Separator />
 
-              {members.length > 0 && (
-                <div className="text-sm">
-                  <span className="text-muted-foreground block mb-1">Member List</span>
-                  <div className="flex flex-wrap gap-1">
-                    {members.map(m => (
-                      <span key={m.id} className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full">
-                        {m.contact}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {Object.keys(memberContributions).length > 0 && (
-                <div className="text-sm">
-                  <span className="text-muted-foreground block mb-1">Contributions</span>
-                  <div className="space-y-1">
-                    {Object.entries(memberContributions).map(([member, amount]) => (
-                      <div key={member} className="flex justify-between text-xs bg-background/50 px-2 py-1 rounded">
-                        <span>{member}</span>
-                        <span className="font-medium">₡{amount}</span>
+              {getContributingMembersCount() >= 1 && (
+                <div className="bg-primary/5 p-3 rounded-md space-y-3">
+                  {getContributingMembersCount() > 1 && (
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <FaDollarSign size={14} className="text-primary mr-2" />
+                          <span className="font-medium text-sm">Split contributions equally?</span>
+                          {equalSplit === true && (
+                            <span className="ml-2 text-xs px-2 py-0.5 bg-green-100 text-green-800 rounded-full">
+                              ₡{Math.ceil(goalAmount / getContributingMembersCount())} per person
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex space-x-2">
+                          <button
+                            type="button"
+                            className={`px-3 py-1 rounded-full text-xs flex items-center ${
+                              equalSplit === true 
+                                ? 'bg-green-500 text-white' 
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            }`}
+                            onClick={() => {
+                              setEqualSplit(true);
+                              if (Object.keys(memberContributions).length > 0) {
+                                const contributingMembers = Object.keys(memberContributions);
+                                const amountPerMember = Math.ceil(goalAmount / contributingMembers.length);
+                                const updatedContributions = { ...memberContributions };
+                                contributingMembers.forEach(member => {
+                                  updatedContributions[member] = amountPerMember;
+                                });
+                                setMemberContributions(updatedContributions);
+                              }
+                            }}
+                          >
+                            <FaCheck size={10} className="mr-1" /> Yes
+                          </button>
+                          <button
+                            type="button"
+                            className={`px-3 py-1 rounded-full text-xs flex items-center ${
+                              equalSplit === false 
+                                ? 'bg-gray-700 text-white' 
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            }`}
+                            onClick={() => handleEqualSplit(false)}
+                          >
+                            <FaTimes size={10} className="mr-1" /> No
+                          </button>
+                        </div>
                       </div>
-                    ))}
-                  </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Divides the goal of ₡{goalAmount.toFixed(2)} equally among {getContributingMembersCount()} contributing members. The 2% platform fee is added on top.
+                      </p>
+                    </div>
+                  )}
+                  
+                  {(getContributingMembersCount() === 1 || equalSplit === false) && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium text-primary">Choose contribution method:</p>
+                      <div className="flex flex-col space-y-2">
+                        <button
+                          type="button"
+                          className={`p-2 rounded-lg border text-left transition-all text-sm ${
+                            contributionMethod === "individual"
+                              ? 'border-primary bg-primary/10 text-primary'
+                              : 'border-gray-300 hover:border-primary/50'
+                          }`}
+                          onClick={() => setContributionMethod("individual")}
+                        >
+                          <div className="font-medium text-xs">Input Individual Contribution</div>
+                          <div className="text-xs text-muted-foreground">Enter specific amounts for each member</div>
+                        </button>
+                        <button
+                          type="button"
+                          className={`p-2 rounded-lg border text-left transition-all text-sm ${
+                            contributionMethod === "just-reach-goal"
+                              ? 'border-primary bg-primary/10 text-primary'
+                              : 'border-gray-300 hover:border-primary/50'
+                          }`}
+                          onClick={() => setContributionMethod("just-reach-goal")}
+                        >
+                          <div className="font-medium text-xs">Just Reach Goal</div>
+                          <div className="text-xs text-muted-foreground">Members deposit any amount to reach the target</div>
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {Object.keys(memberPayouts).length > 0 && (
-                <div className="text-sm">
-                  <span className="text-muted-foreground block mb-1">Payouts</span>
-                  <div className="space-y-1">
-                    {Object.entries(memberPayouts).map(([member, amount]) => (
-                      <div key={member} className="flex justify-between text-xs bg-background/50 px-2 py-1 rounded">
-                        <span>{member}</span>
-                        <span className="font-medium">₡{amount}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-sm">
+                  <thead>
+                    <tr className="text-left border-b border-primary/20">
+                      <th className="pb-2 font-medium text-primary">Member</th>
+                      <th className="pb-2 font-medium text-primary text-center">Contributing?</th>
+                      <th className="pb-2 font-medium text-primary text-center whitespace-nowrap">Contribution + Fee</th>
+                      <th className="pb-2 font-medium text-primary text-center">Receiving?</th>
+                      <th className="pb-2 font-medium text-primary text-center">Payout</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {members.map(member => {
+                      const isContributing = memberContributions[member.contact] !== undefined;
+                      const contributionBase = memberContributions[member.contact] || 0;
+                      const contributionFee = Math.round(contributionBase * platformFeeRate * 100) / 100;
+                      const contributionWithFee = contributionBase + contributionFee;
+                      const isReceiving = memberPayouts[member.contact] !== undefined;
+                      const payoutRecipientCount = Object.keys(memberPayouts).length;
+
+                      return (
+                        <tr key={member.id} className="border-b border-primary/10 hover:bg-primary/5">
+                          <td className="py-2 text-secondary-foreground">
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs">{member.contact}</span>
+                              {member.id === "admin-user" && <span className="text-amber-400 text-xs">👑</span>}
+                            </div>
+                            {member.contact !== "admin@thepot.com" && (
+                              <span className="text-[10px] text-amber-500 block">
+                                Not subscribed — individual fee applies
+                              </span>
+                            )}
+                          </td>
+
+                          <td className="py-2 text-center">
+                            <button
+                              type="button"
+                              onClick={() => toggleMemberContribution(member.contact)}
+                              className="p-1 rounded-full focus:outline-none transition-transform hover:scale-110"
+                            >
+                              <FaUtensils 
+                                className={isContributing ? "text-amber-400" : "text-gray-400"} 
+                                size={16} 
+                              />
+                            </button>
+                          </td>
+
+                          <td className="py-2">
+                            <div className="flex flex-col items-center">
+                              {isContributing && (
+                                <>
+                                  {(equalSplit === true || contributionMethod === "individual") && (
+                                    <div className="flex flex-col items-center gap-0.5">
+                                      <Input
+                                        type="number"
+                                        min="0"
+                                        placeholder="Amount"
+                                        value={contributionBase || ""}
+                                        onChange={(e) => {
+                                          const val = e.target.value === "" ? 0 : Number(e.target.value);
+                                          setMemberContributionAmount(member.contact, val);
+                                        }}
+                                        className={`w-20 text-xs h-7 px-2 bg-secondary text-secondary-foreground text-center ${
+                                          pulsingInputs && contributionBase === 0
+                                            ? "border-amber-400 animate-pulse-border" 
+                                            : "border-primary"
+                                        }`}
+                                      />
+                                      {contributionBase > 0 && (
+                                        <span className="text-[10px] text-muted-foreground">
+                                          + ₡{contributionFee.toFixed(2)} fee = <span className="font-semibold text-primary">₡{contributionWithFee.toFixed(2)}</span>
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                  {contributionMethod === "just-reach-goal" && (
+                                    <span className="text-xs text-muted-foreground">Any amount</span>
+                                  )}
+                                  {equalSplit === null && contributionMethod === null && (
+                                    <span className="text-xs text-muted-foreground">Select method above</span>
+                                  )}
+                                </>
+                              )}
+                              {!isContributing && (
+                                <span className="text-xs text-muted-foreground">—</span>
+                              )}
+                            </div>
+                          </td>
+
+                          <td className="py-2 text-center">
+                            <button
+                              type="button"
+                              onClick={() => toggleMemberPayout(member.contact)}
+                              className="p-1 rounded-full focus:outline-none transition-transform hover:scale-110"
+                            >
+                              <FaCoins 
+                                className={isReceiving ? "text-amber-400" : "text-gray-400"} 
+                                size={16} 
+                              />
+                            </button>
+                          </td>
+
+                          <td className="py-2">
+                            <div className="flex flex-col items-center">
+                              {isReceiving && (
+                                <>
+                                  {payoutStructure === "many-to-one" ? (
+                                    <span className="text-xs font-semibold text-primary">₡{goalAmount.toLocaleString()}</span>
+                                  ) : payoutRecipientCount === 1 ? (
+                                    <span className="text-xs font-semibold text-primary">₡{goalAmount.toLocaleString()}</span>
+                                  ) : (
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      placeholder="Amount"
+                                      value={memberPayouts[member.contact] || ""}
+                                      onChange={(e) => {
+                                        const val = e.target.value === "" ? 0 : Number(e.target.value);
+                                        setMemberPayoutAmount(member.contact, val);
+                                      }}
+                                      className="w-20 text-xs h-7 px-2 bg-secondary border border-primary text-secondary-foreground text-center"
+                                    />
+                                  )}
+                                </>
+                              )}
+                              {!isReceiving && (
+                                <span className="text-xs text-muted-foreground">—</span>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             <Separator />
@@ -1128,6 +1102,14 @@ export default function CreatePot() {
                 <span className="font-bold">Total Pot Target</span>
                 <span className="font-bold text-primary">₡{totalPotTarget.toLocaleString()}</span>
               </div>
+
+              {Object.keys(memberContributions).length > 0 && (equalSplit === true || contributionMethod === "individual") && (
+                <div className="text-xs text-muted-foreground pt-1">
+                  Total contributions: ₡{Object.values(memberContributions).reduce((sum, val) => sum + val, 0).toLocaleString()}
+                  {' '}+ ₡{(Math.round(Object.values(memberContributions).reduce((sum, val) => sum + val, 0) * platformFeeRate * 100) / 100).toFixed(2)} fee
+                  {' '}= ₡{(Object.values(memberContributions).reduce((sum, val) => sum + val, 0) * (1 + platformFeeRate)).toFixed(2)} total
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 pt-2">

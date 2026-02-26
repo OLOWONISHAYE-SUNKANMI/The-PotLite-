@@ -10,9 +10,12 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { generateId } from "@/lib/utils";
 import { FaPlus, FaTimes, FaCoins, FaUtensils, FaCaretDown, FaUserPlus, FaInfo, FaCheck, FaTimes as FaTimesIcon, FaDollarSign, FaWindowClose } from "react-icons/fa";
+import { Info } from "lucide-react";
 
 type Member = {
   id: string;
@@ -56,6 +59,7 @@ export default function CreatePot() {
   const [contributionMethod, setContributionMethod] = useState<"individual" | "just-reach-goal" | null>(null);
   const [missingContributions, setMissingContributions] = useState<boolean>(false);
   const [pulsingInputs, setPulsingInputs] = useState<boolean>(false);
+  const [showConfirmation, setShowConfirmation] = useState<boolean>(false);
   
   // Auto-open sections when a use case is selected
   useEffect(() => {
@@ -268,54 +272,58 @@ export default function CreatePot() {
     return Object.keys(memberContributions).length;
   };
   
+  const platformFeeRate = 0.02;
+  const platformFee = Math.round(goalAmount * platformFeeRate * 100) / 100;
+  const totalPotTarget = goalAmount + platformFee;
+
+  const getPayoutStructureLabel = (ps: string) => {
+    switch (ps) {
+      case "one-to-many": return "One-to-Many";
+      case "many-to-one": return "Many-to-One";
+      case "many-to-selected": return "Many-to-Selected";
+      default: return ps;
+    }
+  };
+
+  const getWithdrawalMethodLabel = (wm: string) => {
+    switch (wm) {
+      case "democratic": return "Democratic Vote";
+      case "admin": return "Admin Approval";
+      case "timed": return "Timed Release";
+      case "auto-withdraw": return "Auto-Withdraw";
+      default: return wm;
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Clear any previous error
     setPotCreationError("");
     setMissingContributions(false);
     setPulsingInputs(false);
     
     if (!selectedUseCase) {
-      toast({
-        title: "Error",
-        description: "Please select a use case first",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Please select a use case first", variant: "destructive" });
       return;
     }
     
     if (!name) {
-      toast({
-        title: "Error",
-        description: "Please enter a pot name",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Please enter a pot name", variant: "destructive" });
       return;
     }
     
     if (goalAmount <= 0) {
-      toast({
-        title: "Error",
-        description: "Goal amount must be greater than zero",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Goal amount must be greater than zero", variant: "destructive" });
       return;
     }
     
     if (withdrawalMethod === "timed" && !releaseDate) {
-      toast({
-        title: "Error",
-        description: "Please select a release date for the timed withdrawal",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Please select a release date for the timed withdrawal", variant: "destructive" });
       return;
     }
     
-    // Check that all contributors have amounts entered (only if not using "Just Reach Goal" method)
     const contributingMembers = Object.keys(memberContributions);
     if (contributingMembers.length > 0 && contributionMethod !== "just-reach-goal") {
-      // Check if any contribution amount is missing or zero (only for equal split or individual contribution)
       const missingAmount = contributingMembers.some(member => 
         memberContributions[member] === 0 || memberContributions[member] === undefined
       );
@@ -329,7 +337,6 @@ export default function CreatePot() {
       }
     }
     
-    // Validate payout structure rules
     if (payoutStructure === "many-to-one") {
       if (Object.keys(memberPayouts).length !== 1) {
         setPotCreationError("Many-to-One structure requires exactly one recipient");
@@ -346,22 +353,22 @@ export default function CreatePot() {
       }
     }
     
-    // Determine recipients based on payouts and payout structure
+    setShowConfirmation(true);
+  };
+
+  const handleCreatePot = () => {
     let potRecipients: string[] = [];
     
     if (Object.keys(memberPayouts).length > 0) {
-      // Use members that have been marked as recipients with payout amounts
       potRecipients = Object.keys(memberPayouts);
     } else {
-      // Fall back to default logic
       potRecipients = payoutStructure === "one-to-many" 
         ? members.map(m => m.contact)
         : payoutStructure === "many-to-one"
-          ? ["Sarah"] // Default for demo
-          : ["Selected Members"]; // For many-to-selected
+          ? ["Sarah"]
+          : ["Selected Members"];
     }
     
-    // Create a new pot
     const newPot = {
       id: generateId(),
       name,
@@ -372,7 +379,7 @@ export default function CreatePot() {
       withdrawalMethod,
       voteThreshold: withdrawalMethod === "democratic" ? parseFloat(voteThreshold) : undefined,
       releaseDate: withdrawalMethod === "timed" ? releaseDate : undefined,
-      creator: "admin@thepot.com", // Admin as creator
+      creator: "admin@thepot.com",
       createdBy: "admin@thepot.com",
       members: members.map(m => m.contact),
       recipients: potRecipients,
@@ -380,12 +387,13 @@ export default function CreatePot() {
       memberPayouts: Object.keys(memberPayouts).length > 0 ? memberPayouts : undefined,
       contributionMethod: contributionMethod === 'individual' ? 'individual-contribution' : 
                        contributionMethod === 'just-reach-goal' ? 'just-reach-goal' : 
-                       'equal-split', // Track the original contribution method
+                       'equal-split',
       createdAt: new Date().toISOString(),
       status: 'active' as const
     };
     
     addPot(newPot);
+    setShowConfirmation(false);
     
     toast({
       title: "Success",
@@ -982,13 +990,164 @@ export default function CreatePot() {
                   className="w-full btn-gradient"
                   disabled={!selectedUseCase}
                 >
-                  {selectedUseCase ? "Create Pot" : "Select a Use Case First"}
+                  {selectedUseCase ? "Confirm your Pot" : "Select a Use Case First"}
                 </Button>
               </div>
             </div>
           </form>
         </CardContent>
       </Card>
+
+      <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-center">Confirm Your Pot</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="bg-secondary/30 rounded-lg p-4 space-y-3">
+              <h3 className="font-semibold text-sm text-secondary-foreground uppercase tracking-wide">Pot Details</h3>
+              <Separator />
+
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Pot Name</span>
+                <span className="font-medium">{name}</span>
+              </div>
+
+              {description && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Description</span>
+                  <span className="font-medium text-right max-w-[60%]">{description}</span>
+                </div>
+              )}
+
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Use Case</span>
+                <span className="font-medium capitalize">{selectedUseCase}</span>
+              </div>
+
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Payout Structure</span>
+                <span className="font-medium">{getPayoutStructureLabel(payoutStructure)}</span>
+              </div>
+
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Withdrawal Method</span>
+                <span className="font-medium">{getWithdrawalMethodLabel(withdrawalMethod)}</span>
+              </div>
+
+              {withdrawalMethod === "democratic" && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Vote Threshold</span>
+                  <span className="font-medium">{voteThreshold}%</span>
+                </div>
+              )}
+
+              {withdrawalMethod === "timed" && releaseDate && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Release Date</span>
+                  <span className="font-medium">{new Date(releaseDate).toLocaleDateString()}</span>
+                </div>
+              )}
+
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Members</span>
+                <span className="font-medium">{members.length}</span>
+              </div>
+
+              {members.length > 0 && (
+                <div className="text-sm">
+                  <span className="text-muted-foreground block mb-1">Member List</span>
+                  <div className="flex flex-wrap gap-1">
+                    {members.map(m => (
+                      <span key={m.id} className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full">
+                        {m.contact}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {Object.keys(memberContributions).length > 0 && (
+                <div className="text-sm">
+                  <span className="text-muted-foreground block mb-1">Contributions</span>
+                  <div className="space-y-1">
+                    {Object.entries(memberContributions).map(([member, amount]) => (
+                      <div key={member} className="flex justify-between text-xs bg-background/50 px-2 py-1 rounded">
+                        <span>{member}</span>
+                        <span className="font-medium">₡{amount}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {Object.keys(memberPayouts).length > 0 && (
+                <div className="text-sm">
+                  <span className="text-muted-foreground block mb-1">Payouts</span>
+                  <div className="space-y-1">
+                    {Object.entries(memberPayouts).map(([member, amount]) => (
+                      <div key={member} className="flex justify-between text-xs bg-background/50 px-2 py-1 rounded">
+                        <span>{member}</span>
+                        <span className="font-medium">₡{amount}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <Separator />
+
+            <div className="bg-primary/5 rounded-lg p-4 space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Goal Amount</span>
+                <span className="font-semibold">₡{goalAmount.toLocaleString()}</span>
+              </div>
+
+              <div className="flex justify-between text-sm items-center">
+                <div className="flex items-center gap-1">
+                  <span className="text-muted-foreground">Platform Fee (2%)</span>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-[250px] text-xs">
+                        Platform fee (2%) supports payment processing, security, and compliance for all users in this Pot.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <span className="font-semibold">₡{platformFee.toLocaleString()}</span>
+              </div>
+
+              <Separator />
+
+              <div className="flex justify-between text-base">
+                <span className="font-bold">Total Pot Target</span>
+                <span className="font-bold text-primary">₡{totalPotTarget.toLocaleString()}</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowConfirmation(false)}
+              >
+                Go Back to Edit
+              </Button>
+              <Button
+                className="flex-1 btn-gradient"
+                onClick={handleCreatePot}
+              >
+                Create Pot and Invite Members
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

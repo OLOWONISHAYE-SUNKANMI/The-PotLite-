@@ -6,3 +6,45 @@ id = "Xtf_G__V1_XNGThngRZux"
 uri = "file://ThePot_AppSummary.txt"
 type = "text"
 title = "The Pot — App Summary for Claude"
+
+[[outputs]]
+id = "f7urrybnbnIPKAIHPmTYk"
+uri = "file://ThePot_SourceFiles/schema.ts.txt"
+type = "text"
+title = "shared/schema.ts"
+
+[[outputs]]
+id = "5Sh5Kh-dumVwEiG-DPo5I"
+uri = "file://ThePot_SourceFiles/routes.ts.txt"
+type = "text"
+title = "server/routes.ts"
+
+[[outputs]]
+id = "Tdk_OH47D7_UgcsqmmJ3Y"
+uri = "file://ThePot_SourceFiles/PotContext.tsx.txt"
+type = "text"
+title = "PotContext.tsx"
+
+[[outputs]]
+id = "o5k9XuvUJ6wLt8_IJFTtr"
+uri = "file://ThePot_SourceFiles/DummyUserContext.tsx.txt"
+type = "text"
+title = "DummyUserContext.tsx"
+
+[[outputs]]
+id = "ZWzDzEzHdBC4hMBwhCtje"
+uri = "file://ThePot_SourceFiles/db_index.ts.txt"
+type = "text"
+title = "db/index.ts (DB connection)"
+
+[[outputs]]
+id = "pZLkGOfghXY7fy1dFYj9s"
+uri = "file://ThePot_SourceFiles/storage.ts.txt"
+type = "text"
+title = "server/storage.ts"
+
+[[outputs]]
+id = "aj6azSpgItcOKJVFtQEn8"
+uri = "file://ThePot_SourceFiles/package.json.txt"
+type = "text"
+title = "package.json"

@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "Xtf_G__V1_XNGThngRZux"
+uri = "file://ThePot_AppSummary.txt"
+type = "text"
+title = "The Pot — App Summary for Claude"

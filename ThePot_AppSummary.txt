@@ -1,0 +1,550 @@
+================================================================================
+THE POT — APP SUMMARY FOR CLAUDE COMPREHENSION
+================================================================================
+Last updated: February 2026
+Purpose: This document describes "The Pot" web application in full detail so
+Claude can understand the app's structure, features, and behavior without
+being able to view the live app directly.
+================================================================================
+
+
+OVERVIEW
+--------
+"The Pot" is a sandbox/demo group savings web application. It lets users create
+shared savings pools ("Pots"), invite members, deposit simulated funds (called
+"dummy coins," symbol ₡), and manage payouts using different governance models.
+
+IMPORTANT: This is a SANDBOX app. No real money is involved. All transactions
+are simulated. The currency symbol is ₡ (called "dummy coins"). The app uses
+localStorage to persist state across page refreshes, NOT a live database for
+most operations.
+
+The app's primary goal is to demonstrate a real-world community banking product
+concept and let testers explore all flows safely.
+
+
+TECH STACK
+----------
+- Frontend: React 18 + TypeScript, Vite, Wouter (routing), TailwindCSS,
+  Shadcn UI (component library on Radix UI), Lucide React icons
+- Backend: Express.js + TypeScript (mostly used for AI pot creation endpoint)
+- Database: Neon Serverless Postgres + Drizzle ORM (schema exists but most
+  state lives in React Context + localStorage for sandbox mode)
+- State: React Context API — two main contexts:
+    1. PotContext: pots, transactions, change requests, personal pot balance,
+       error simulation toggles, saved/completed pots
+    2. DummyUserContext: current user role simulation (admin/voter/recipient)
+
+
+ROUTING STRUCTURE
+-----------------
+/             → Main dashboard (PotDashboard page)
+/onboarding   → First-time user onboarding wizard
+/create       → Create a new Pot (manual form)
+/ai-create    → AI-assisted Pot creation (natural language prompt via N8N)
+/ai-invite-members → Post-AI-creation member invite step
+/transactions → Full transaction history log
+/feedback     → User feedback form
+/admin        → Admin panel (role simulation, error toggles, data reset)
+/voter-demo   → Demonstrates the voter role perspective
+/recipient-demo → Demonstrates the recipient role perspective
+
+
+FIRST LOAD BEHAVIOR
+-------------------
+1. On first ever visit: a full-screen splash screen appears (purple gradient
+   with logo and 6 feature bullet points). Auto-dismisses after 4 seconds or
+   user clicks "Skip". Controlled via localStorage key "hasSeenSplash".
+2. If user has no pots and hasn't completed onboarding, they are automatically
+   redirected to /onboarding.
+3. On subsequent visits: goes directly to the dashboard.
+
+
+ONBOARDING (/onboarding)
+------------------------
+A guided wizard page for first-time users. Walks them through the concept of
+Pots and encourages them to create their first one. Sets "hasSeenOnboarding"
+in localStorage when completed.
+
+
+FEATURE CHECKLIST
+-----------------
+A collapsible widget shown at the top of every non-onboarding page. Contains
+7 tasks users should try:
+  1. Create a Pot and Invite Members → links to /create
+  2. Deposit into an Active Pot → links to /
+  3. Clean an Active Pot Early → links to /
+  4. Request a Goal Change in an Active Pot → links to /
+  5. Cast Your Vote on a Withdrawal Request → links to /voter-demo
+  6. Explore Admin Panel (Try Recipient Role) → links to /admin
+  7. Submit Feedback → links to /feedback
+
+Auto-detects completion of tasks by watching context state changes (e.g.,
+pots.length > 0 means "Create a Pot" is done). When all 7 are checked, a
+feedback modal pops up automatically.
+
+
+POT DATA MODEL (PotType)
+------------------------
+Each Pot has:
+  - id: string (random)
+  - name: string
+  - description: string
+  - goalAmount: number (the target savings amount)
+  - currentBalance: number (current balance, starts at 0)
+  - payoutStructure: 'one-to-many' | 'many-to-one' | 'many-to-selected'
+  - withdrawalMethod: 'democratic' | 'admin' | 'timed' | 'auto-withdraw'
+  - voteThreshold?: number (percentage, e.g. 75 for 75% majority required)
+  - releaseDate?: string (ISO date for timed release)
+  - creator: string (email of creator, default "admin@thepot.com")
+  - createdBy: string (same as creator)
+  - members: string[] (list of member email addresses)
+  - recipients: string[] (who will receive the payout)
+  - memberContributions?: Record<string, number> (per-member contribution amounts)
+  - memberPayouts?: Record<string, number> (per-member payout amounts)
+  - contributionMethod?: 'equal-split' | 'individual-contribution' | 'just-reach-goal'
+  - createdAt: string (ISO timestamp)
+  - status?: 'active' | 'completed'
+  - completedDate?: string
+
+
+PAYOUT STRUCTURES (3 types)
+----------------------------
+1. ONE-TO-MANY: One main depositor, multiple recipients. Like a parent sending
+   allowances to multiple children. All members get a payout.
+
+2. MANY-TO-ONE: Multiple depositors contribute toward one single recipient.
+   Like collecting money for someone's birthday gift. Only one recipient.
+
+3. MANY-TO-SELECTED: Multiple depositors, selected recipients only. Like
+   a group trip where only some members claim expenses.
+
+
+WITHDRAWAL METHODS (4 types)
+-----------------------------
+1. DEMOCRATIC VOTE: Members vote to approve/reject withdrawal requests.
+   Configurable threshold (51%, 66%, 75%, or 100% approval required).
+
+2. ADMIN APPROVAL: Only the Pot creator (admin) can approve or reject.
+   The admin's single vote immediately resolves the request.
+
+3. TIMED RELEASE: Funds are locked until a preset release date. The
+   TimedRelease component displays a countdown and enforces the lock.
+
+4. AUTO-WITHDRAW: Recipients automatically receive payouts when conditions
+   are met (e.g., goal reached).
+
+
+CREATE POT PAGE (/create)
+--------------------------
+A multi-section accordion form with 4 collapsible sections. A use case must
+be selected first to unlock all other sections.
+
+SECTION 1 — Use Case Selector:
+  Templates: Rent Split, Vacation Fund, Gift Collection, Emergency Fund,
+  Group Investment, Custom. Selecting one auto-fills the form name and
+  opens all sections.
+
+SECTION 2 — Basic Info:
+  - Pot Name (text input)
+  - Description (textarea)
+  - Goal Amount (number input, default 500)
+  - Payout Structure (dropdown: One-to-Many / Many-to-One / Many-to-Selected)
+
+SECTION 3 — Payout Structure (detailed):
+  Shows a description of the selected payout structure with examples.
+
+SECTION 4 — Invite Members:
+  - Email/phone input + "Add" button to add members
+  - "Recent Members" dropdown with quick-add suggestions
+  - Shows a simplified list of added members (name + remove button)
+  - Admin (admin@thepot.com 👑) is always included and cannot be removed
+  - Non-subscribed members show a warning about individual transaction fees
+  - NOTE: The contribution/payout table was MOVED to the confirmation dialog
+    (see below), so this section only shows the member list now
+  - Withdrawal Method radio buttons (available options depend on payout
+    structure):
+      · Democratic Vote (for one-to-many and many-to-selected)
+      · Admin Approval (one-to-many and many-to-selected, NOT many-to-one)
+      · Timed Release (one-to-many and many-to-one)
+      · Auto-Withdraw (all structures)
+
+SUBMIT BUTTON: "Confirm your Pot" (previously "Create Pot")
+  - Validates: use case selected, name filled, goal > 0, release date if timed
+  - On success: opens the Confirmation Dialog (does NOT create the pot yet)
+
+
+CONFIRM YOUR POT DIALOG (popup after clicking "Confirm your Pot")
+-----------------------------------------------------------------
+This is a scrollable modal popup (max-width 2xl) that serves as a ledger
+and contribution/payout configuration step BEFORE the pot is actually created.
+
+SECTION A — Pot Details (read-only summary):
+  - Pot Name
+  - Description (if entered)
+  - Use Case
+  - Payout Structure
+  - Withdrawal Method
+  - Vote Threshold (if democratic)
+  - Release Date (if timed)
+
+SECTION B — Members & Contributions (interactive table):
+  This is where users configure who contributes and who receives payouts.
+
+  EQUAL SPLIT CONTROL (shown when 2+ contributors are selected):
+    - "Split contributions equally?" Yes/No toggle
+    - YES: Divides goalAmount equally among contributing members and
+           auto-fills their amounts. Shows "₡X per person" badge.
+    - NO: Shows contribution method choice:
+        · "Input Individual Contribution" — user enters per-member amounts
+        · "Just Reach Goal" — members deposit any amount freely
+
+  CONTRIBUTION METHOD (shown for 1 contributor OR when equal split = No):
+    - "Input Individual Contribution" — enter specific amounts per member
+    - "Just Reach Goal" — flexible, any amount accepted
+
+  MEMBER TABLE COLUMNS:
+    1. Member: email/contact + 👑 for admin, warning for non-subscribed
+    2. Contributing? — Toggle icon (FaUtensils fork icon, amber=selected,
+       gray=not selected). Click to toggle whether member contributes.
+    3. Contribution + Fee — Shows input field (when individual/equal-split
+       mode) with the base amount. Below the input shows:
+       "+ ₡X.XX fee = ₡Y.YY total" (2% platform fee added per member)
+       For "just-reach-goal" mode shows "Any amount".
+       For no method selected shows "Select method above".
+    4. Receiving? — Toggle icon (FaCoins coins icon, amber=selected). Click
+       to toggle whether member receives a payout.
+    5. Payout — For single recipient: shows "₡[goalAmount]" (full amount).
+       For multiple recipients: shows an input field to enter their share.
+       For many-to-one: always shows full goal amount, no input needed.
+
+  PAYOUT TOGGLE RULES:
+    - Many-to-One: only ONE recipient allowed (shows error if trying to add more)
+    - Many-to-Selected: cannot select ALL members as recipients
+
+SECTION C — Financial Summary (at bottom, always visible):
+  - Goal Amount: ₡[goalAmount]
+  - Platform Fee (2%): ₡[fee] — with info tooltip icon (ⓘ)
+    Tooltip text: "Platform fee (2%) supports payment processing, security,
+    and compliance for all users in this Pot."
+  - [separator line]
+  - Total Pot Target: ₡[goalAmount + fee] (bold, primary color)
+  - If contributions are set: shows running total of all contributions + fees
+
+TWO ACTION BUTTONS:
+  - "Go Back to Edit" — closes dialog, returns to form (no data lost)
+  - "Create Pot and Invite Members" — validates contributions then creates pot,
+    navigates to dashboard (/)
+
+VALIDATION ON CREATE:
+  - If contributors selected but no method chosen → error toast
+  - If individual/equal-split mode and any amount is 0 → error + pulsing inputs
+  - If many-to-one and ≠ 1 recipient → error
+  - If many-to-selected and all members are recipients → error
+
+
+MAIN DASHBOARD (/  →  PotDashboard)
+-------------------------------------
+The primary view after creating pots. Has two main areas:
+
+TOP — Personal Pot (Wallet):
+  - Always visible at the top of the dashboard
+  - Shows current balance in ₡ (dummy coins)
+  - "Add Funds" button → dialog to simulate depositing from bank to wallet
+  - "Withdraw Funds" button → dialog to simulate withdrawing to bank
+  - Balance persists via PotContext/localStorage
+
+POT TABS (below Personal Pot):
+  Three tabs:
+    1. "Active Pots" — pots in progress
+    2. "Completed Pots" — pots that have been cleaned/finalized
+    3. "Saved Pots" — bookmarked pot templates for reuse
+
+  LEFT PANEL — Pot list (when multiple pots exist):
+    Each pot shows name, balance/goal progress bar, member count.
+    Clicking a pot selects it and shows its detail on the right.
+
+  RIGHT PANEL — Pot Detail (for selected pot):
+    Three detail sub-tabs:
+      a) Summary
+      b) Transactions
+      c) Settings / Actions
+
+SUMMARY TAB:
+  - Pot name, description, goal amount, current balance
+  - Progress bar (currentBalance / goalAmount %)
+  - Members list with avatars/emails
+  - Recipients list (from pot.recipients array — actual recipients set at
+    creation, NOT hardcoded)
+  - Payout Structure and Withdrawal Method info
+  - "Deposit to Pot" button → dialog to transfer from Personal Pot to this Pot
+    (checks Personal Pot balance, triggers milestone celebrations)
+  - If withdrawal method is TIMED: shows TimedRelease countdown component
+  - If withdrawal method is DEMOCRATIC: shows VotingUI component
+  - Below summary: ChangeRequestVoting component (shows pending change requests)
+
+TRANSACTIONS TAB:
+  - List of all transactions for this pot
+  - Shows type (deposit/withdrawal/vote/request), amount, user, timestamp
+  - Status badges (completed/pending/rejected)
+
+SETTINGS / ACTIONS TAB (Active Pots only):
+  Contains a dropdown menu "Pot Actions" with these options:
+    1. Request Goal Change → opens dialog to propose new goal amount
+    2. Change Contribution/Payout → opens dialog to update who contributes/receives
+    3. Change Admin → opens dialog to propose transferring admin role
+    4. Manage Members → dialog to add/remove members
+    5. Clean Pot Early → dialog to distribute current balance to recipients now
+    6. Generate Promo Code → generates a shareable promo code
+
+  Each action creates a CHANGE REQUEST that goes through voting before taking effect.
+
+COMPLETED POTS TAB:
+  - Shows finalized pots with final balance/payouts
+  - Bookmark icon → saves pot to Saved Pots
+  - Cannot deposit into completed pots
+
+SAVED POTS TAB:
+  - Shows bookmarked pot templates
+  - "Reuse" button → opens dialog:
+      · "Reuse Same Details" — creates identical pot with ₡0 balance
+      · "Edit Details" — pre-fills Create Pot form with saved pot data
+  - Unbookmark button to remove from saved
+
+
+CHANGE REQUEST SYSTEM
+---------------------
+When users initiate Pot Actions (goal change, admin change, etc.), a
+ChangeRequest is created instead of immediately applying the change.
+
+ChangeRequestType structure:
+  - id: string
+  - potId: string
+  - type: 'goal-change' | 'contribution-payout-change' | 'admin-change' |
+          'clean-pot' | 'withdrawal'
+  - requestedBy: string (user email)
+  - timestamp: string (ISO)
+  - status: 'pending' | 'approved' | 'rejected'
+  - description: string (human-readable description)
+  - votes: Array of { user: string, approve: boolean }
+  - voteThreshold: number (percentage for democratic mode)
+  - approvalMode?: 'democratic' | 'admin'
+  - details: {
+      newGoal?: number,
+      oldGoal?: number,
+      newAdmin?: string,
+      withdrawalAmount?: number,
+      cleanPotPayouts?: Record<string, number>,
+      newContributions?: Record<string, number>,
+      newPayouts?: Record<string, number>
+    }
+
+VOTING RESOLUTION LOGIC:
+  - ADMIN mode: When the pot creator votes, their vote immediately sets
+    the status to 'approved' (if approve=true) or 'rejected' (if approve=false).
+    Other members' votes are recorded but don't affect the outcome.
+  - DEMOCRATIC mode: When approval percentage (approvalVotes/totalMembers * 100)
+    reaches or exceeds voteThreshold → status = 'approved'.
+    When remaining votes mathematically cannot reach threshold → status = 'rejected'.
+
+The ChangeRequestVoting component (shown below the Summary tab for active pots):
+  - Only renders if there are pending requests for that pot
+  - Shows each request with icon, title, description, requester, timestamp
+  - Shows vote progress bar (democratic) or "Awaiting Admin" text (admin mode)
+  - Approve/Reject buttons (disabled if user already voted)
+  - For goal-change: shows old goal vs new goal
+  - For admin-change: shows proposed new admin name
+  - For clean-pot: shows proposed payout amounts per member
+
+
+VOTING UI COMPONENT (VotingUI.tsx)
+-----------------------------------
+A separate legacy component shown on the Summary tab for democratic withdrawal
+voting on the default demo pot. This is a simplified/static demo component that
+shows a hardcoded "Sarah requested withdrawal ₡200 for booking hotel rooms."
+It uses simulated vote counts (currentVotes starts at 3, goes to 4 when you vote).
+This component is SEPARATE from the ChangeRequestVoting system — it demonstrates
+the voting UI but doesn't create real change requests.
+
+
+TIMED RELEASE COMPONENT (TimedRelease.tsx)
+-------------------------------------------
+Shows when a pot's withdrawalMethod is "timed". Displays:
+  - Countdown timer to the release date
+  - Lock icon with days/hours/minutes remaining
+  - When date is reached: shows "Release unlocked" state
+
+
+ERROR SIMULATION (Admin Panel feature)
+---------------------------------------
+The Admin Panel at /admin has toggles for simulating error conditions:
+  - Deposit Failure: makes deposits fail with an error
+  - Withdrawal Rejection: makes votes fail with an error
+  - Time Lock: simulates timed-release lock blocking withdrawal
+  - Invalid Recipient: simulates recipient validation failure
+
+These are stored in PotContext.simulateErrors and checked throughout components.
+
+
+ADMIN PANEL (/admin)
+--------------------
+A developer/tester panel with:
+  - Role Switcher: Switch current user role between Admin, Voter, Recipient
+  - Error Simulation toggles (see above)
+  - "Generate Random Scenario" button — populates the app with demo pots
+  - "Reset All Data" button — wipes all pots/transactions/localStorage
+
+
+AI POT CREATION (/ai-create)
+-----------------------------
+A natural language interface where user types a description like "I want to
+save for a vacation with 4 friends" and the app sends it to an N8N webhook
+(external AI workflow at nexark.app.n8n.cloud). The AI returns a structured
+pot configuration which is shown in a confirmation modal. User can edit the
+AI-generated details before creating the pot.
+
+After AI creation, user goes to /ai-invite-members to add members.
+
+
+VOTER DEMO (/voter-demo)
+-------------------------
+A dedicated page simulating the experience of a pot MEMBER (voter role).
+Shows a sample withdrawal request and lets the user cast a vote. Used in the
+Feature Checklist to demonstrate the voting flow.
+
+
+RECIPIENT DEMO (/recipient-demo)
+----------------------------------
+A dedicated page simulating the experience of a RECIPIENT. Shows what it looks
+like to receive a payout notification and accept funds.
+
+
+PROMO CODE SYSTEM
+-----------------
+Accessible from the Pot Actions menu on active pots. Generates shareable
+promo codes. Two types:
+  - PP (Personal Pot): requires $5+ balance in personal pot
+  - GP (Group Pot): requires the pot goal to be fully met
+
+Codes are stored in-memory on the backend (server/routes.ts). Verification
+endpoint checks code validity with merchants.
+
+
+TRANSACTION TYPES
+-----------------
+Transactions recorded in PotContext.transactions:
+  - deposit: money added to a pot (from personal pot)
+  - withdrawal: money taken from pot (to personal pot or recipient)
+  - vote: a vote was cast on a request
+  - request: a withdrawal was requested
+
+Each transaction has: id, potId, type, amount?, user, description?,
+timestamp, status?, balanceAfter?, voteCount?, voteTotal?
+
+
+PERSONAL POT (WALLET)
+---------------------
+Every user has one Personal Pot. It is NOT a group pot — it is their
+individual wallet. Balance starts at 0.
+  - "Add Funds": simulates bank transfer IN (updatePersonalPotBalance +amount)
+  - "Withdraw Funds": simulates bank transfer OUT (updatePersonalPotBalance -amount)
+  - "Deposit to Pot": transfers ₡ from personal pot TO a group pot
+    (depositFromPersonalToPot — deducts from personal, adds to pot balance)
+  - Receives money when a pot payout is approved
+    (withdrawFromPotToPersonal or approveWithdrawalToPersonal)
+
+
+MILESTONE CELEBRATIONS
+-----------------------
+When depositing into a pot, if the new balance crosses certain milestone
+amounts (₡100, ₡250, ₡500, ₡1000, ₡2500, ₡5000) or reaches the goal amount,
+an animated celebration overlay appears (MilestoneCelebration component).
+
+
+PLATFORM FEE
+------------
+A 2% platform fee is calculated on pot contributions. It appears in:
+  - The Confirm Your Pot dialog (per-member breakdown and total)
+  - Fee tooltip: "Platform fee (2%) supports payment processing, security,
+    and compliance for all users in this Pot."
+  - Formula: fee = goalAmount * 0.02, totalTarget = goalAmount + fee
+  - NOTE: Fee is shown for informational purposes in the sandbox. It is not
+    actually deducted from real balances.
+
+
+CURRENCY / DISPLAY
+------------------
+  - Symbol: ₡ (not $ or €)
+  - Called "dummy coins"
+  - All amounts displayed with ₡ prefix
+  - Amounts stored as plain numbers (not strings)
+
+
+NAVBAR
+------
+Top navigation bar shown on all pages (hidden during onboarding).
+Contains links to main sections and the app logo/branding.
+
+
+FOOTER
+------
+Simple footer with app info shown on all pages.
+
+
+FEEDBACK SYSTEM
+---------------
+  - /feedback page: standalone feedback form
+  - FeedbackModal: auto-pops up when all 7 checklist items are completed
+  - Feedback stored in PotContext.feedback array
+
+
+LOCALSTORAGE KEYS USED
+-----------------------
+  - hasSeenSplash: boolean — whether splash screen has been shown
+  - hasSeenOnboarding: boolean — whether onboarding was completed
+  - thepot_pots: serialized array of PotType objects (active pots)
+  - thepot_completed_pots: serialized array of completed PotType objects
+  - thepot_saved_pots: serialized array of saved/bookmarked PotType objects
+  - thepot_transactions: serialized array of TransactionType objects
+  - thepot_change_requests: serialized array of ChangeRequestType objects
+  - thepot_personal_balance: number (personal pot balance)
+  - thepot_has_seen_onboarding: boolean
+
+
+KNOWN DESIGN DECISIONS / CONVENTIONS
+--------------------------------------
+1. The app uses ₡ (not $) everywhere for the dummy currency.
+2. "admin@thepot.com" is always the default pot creator/admin user.
+3. The current logged-in user is always "Current User" (simulated via
+   DummyUserContext — no real auth).
+4. All state resets on "Reset All Data" in the admin panel.
+5. The contribution/payout table lives in the Confirm Your Pot dialog,
+   NOT on the Create Pot form page itself.
+6. Change requests are the proper way to modify active pots — direct edits
+   are not allowed. Changes require member votes or admin approval.
+7. VotingUI (legacy component) vs ChangeRequestVoting (new system) are two
+   separate components. VotingUI is the old demo; ChangeRequestVoting handles
+   the real change request workflow.
+8. Platform fee is informational only in the sandbox — shown in dialogs but
+   not actually deducted from in-app balances.
+9. "Cleaning" a pot means distributing its current balance to recipients
+   before the goal is reached (early payout).
+10. The Saved Pots feature lets users bookmark completed pots as templates
+    for reuse, preserving all settings but resetting balance to ₡0.
+
+
+COMMON UI PATTERNS
+------------------
+  - Purple/dark theme with lime-green accent buttons (btn-gradient class)
+  - Green action buttons: bg-[#B8E986] text-secondary (approve/add funds)
+  - Red destructive buttons: bg-destructive (reject/delete)
+  - Dialogs (shadcn Dialog) used for all pop-up interactions
+  - Toast notifications for all success/error feedback
+  - Progress bars for pot goal tracking and vote tallying
+  - Collapsible accordion sections (used in Create Pot form)
+  - Tabs (shadcn Tabs) used in PotDashboard for Active/Completed/Saved
+
+
+================================================================================
+END OF APP SUMMARY
+================================================================================

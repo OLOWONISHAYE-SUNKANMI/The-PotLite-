@@ -1,6 +1,6 @@
 import { db } from "@db";
 import * as schema from "@shared/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 
 // Pot operations
 export async function getPots() {
@@ -98,7 +98,7 @@ export async function createTransaction(data: schema.InsertTransaction) {
   if (data.type === "deposit" && data.status === "completed" && data.amount) {
     await db.update(schema.pots)
       .set({
-        currentBalance: db.raw`current_balance + ${data.amount}`
+        currentBalance: sql`current_balance + ${data.amount}`
       })
       .where(eq(schema.pots.id, data.potId));
   }
@@ -107,12 +107,79 @@ export async function createTransaction(data: schema.InsertTransaction) {
   if (data.type === "withdrawal" && data.status === "completed" && data.amount) {
     await db.update(schema.pots)
       .set({
-        currentBalance: db.raw`current_balance - ${data.amount}`
+        currentBalance: sql`current_balance - ${data.amount}`
       })
       .where(eq(schema.pots.id, data.potId));
   }
   
   return transaction;
+}
+
+// Payment operations
+export async function createPayment(data: schema.InsertPayment) {
+  const [payment] = await db.insert(schema.payments).values(data).returning();
+  return payment;
+}
+
+export async function getPaymentById(id: number) {
+  return await db.query.payments.findFirst({
+    where: eq(schema.payments.id, id),
+    with: {
+      user: true,
+      pot: true
+    }
+  });
+}
+
+export async function getPaymentByIntentId(intentId: string) {
+  return await db.query.payments.findFirst({
+    where: eq(schema.payments.stripePaymentIntentId, intentId),
+    with: {
+      user: true,
+      pot: true
+    }
+  });
+}
+
+export async function updatePayment(id: number, data: Partial<schema.InsertPayment>) {
+  const [payment] = await db.update(schema.payments)
+    .set(data)
+    .where(eq(schema.payments.id, id))
+    .returning();
+  return payment;
+}
+
+// Payout operations
+export async function createPayout(data: schema.InsertPayout) {
+  const [payout] = await db.insert(schema.payouts).values(data).returning();
+  return payout;
+}
+
+export async function getPayoutsByPotId(potId: number) {
+  return await db.query.payouts.findMany({
+    where: eq(schema.payouts.potId, potId),
+    with: {
+      initiatedBy: true
+    },
+    orderBy: [desc(schema.payouts.createdAt)]
+  });
+}
+
+export async function updatePayout(id: number, data: Partial<schema.InsertPayout>) {
+  const [payout] = await db.update(schema.payouts)
+    .set(data)
+    .where(eq(schema.payouts.id, id))
+    .returning();
+  return payout;
+}
+
+export async function getPotMembers(potId: number) {
+  return await db.query.potMembers.findMany({
+    where: eq(schema.potMembers.potId, potId),
+    with: {
+      user: true
+    }
+  });
 }
 
 // Feedback operations
@@ -129,3 +196,4 @@ export async function getAllFeedback() {
     orderBy: [desc(schema.feedback.createdAt)]
   });
 }
+

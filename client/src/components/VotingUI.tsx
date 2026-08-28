@@ -101,9 +101,8 @@ export default function VotingUI({ potId }: VotingUIProps) {
               value={votePercentage} 
               className="h-3 mb-4 bg-background"
               style={{
-                '--tw-bg-opacity': 1,
                 backgroundColor: 'var(--success)',
-              }}
+              } as React.CSSProperties}
             />
           </div>
           

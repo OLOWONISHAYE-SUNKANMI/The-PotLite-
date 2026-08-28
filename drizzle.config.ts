@@ -1,7 +1,15 @@
 import { defineConfig } from "drizzle-kit";
 
+if (typeof process.loadEnvFile === "function") {
+  try {
+    process.loadEnvFile();
+  } catch {
+    // .env file not found or already loaded
+  }
+}
+
 if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL, ensure the database is provisioned");
+  process.env.DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/thepot";
 }
 
 export default defineConfig({

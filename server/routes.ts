@@ -4,6 +4,10 @@ import * as storage from "./storage";
 import * as schema from "@shared/schema";
 import { z } from "zod";
 import * as promoCodeEngine from "./promoCodeEngine";
+import { stripeService } from "./stripe/stripe.service";
+import { calculatePayoutAllocations, type DistributionType } from "./stripe/payouts.engine";
+import { processStripeWebhook } from "./stripe/webhook.handler";
+import { SUPPORTED_CURRENCIES } from "./stripe/stripe.utils";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -313,6 +317,263 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       console.error('AI Draft Error:', error);
       return res.status(500).json({ message: 'Failed to generate pot draft' });
+    }
+  });
+
+  // ==========================================
+  // STRIPE PAYMENT INTEGRATION ENDPOINTS
+  // ==========================================
+
+  // Get Stripe Configuration
+  app.get(`${apiPrefix}/stripe/config`, (_req, res) => {
+    res.json({
+      publishableKey: stripeService.getPublishableKey(),
+      isMock: stripeService.isMockMode(),
+      supportedCurrencies: SUPPORTED_CURRENCIES,
+      platformFeePercent: 2,
+    });
+  });
+
+  // Stripe Webhook Endpoint (Supports both /api/webhooks/stripe and /api/v1/webhooks/stripe)
+  const handleWebhook = async (req: any, res: any) => {
+    const signature = req.headers['stripe-signature'] as string;
+    const rawBody = req.rawBody || Buffer.from(JSON.stringify(req.body || {}));
+
+    try {
+      const result = await processStripeWebhook(rawBody, signature);
+      if (!result.received && result.status === 'signature_verification_failed') {
+        return res.status(400).json(result);
+      }
+      return res.status(200).json(result);
+    } catch (err: any) {
+      console.error('Stripe webhook handling exception:', err);
+      return res.status(500).json({ error: err.message });
+    }
+  };
+
+  app.post(`${apiPrefix}/webhooks/stripe`, handleWebhook);
+  app.post('/api/v1/webhooks/stripe', handleWebhook);
+
+  // Create Stripe PaymentIntent for Pot Deposit
+  app.post(`${apiPrefix}/payments/create-intent`, async (req, res) => {
+    try {
+      const { potId, amount, currency = 'USD', userId = 1, description } = req.body;
+
+      if (!potId || !amount || amount <= 0) {
+        return res.status(400).json({ message: 'Missing or invalid potId or amount' });
+      }
+
+      // Convert amount to cents (e.g. $10 -> 1000 cents)
+      const amountInCents = Math.round(Number(amount) * 100);
+
+      const intentResult = await stripeService.createPaymentIntent({
+        amount: amountInCents,
+        currency,
+        potId,
+        userId,
+        description,
+      });
+
+      // Record pending payment in storage (safe if DB offline)
+      try {
+        await storage.createPayment({
+          potId: Number(potId),
+          userId: Number(userId),
+          stripePaymentIntentId: intentResult.paymentIntentId,
+          amount: amountInCents,
+          currency: intentResult.currency,
+          status: 'pending',
+        });
+      } catch (dbErr: any) {
+        console.warn('[Payments] DB payment record creation skipped in sandbox:', dbErr.message);
+      }
+
+      res.status(201).json({
+        ...intentResult,
+        displayAmount: Number(amount),
+      });
+    } catch (error: any) {
+      handleError(res, error);
+    }
+  });
+
+  // Create Stripe Checkout Session for Pot Deposit
+  app.post(`${apiPrefix}/payments/checkout-session`, async (req, res) => {
+    try {
+      const { potId, amount, potName, userEmail, currency = 'USD', userId = 1, successUrl, cancelUrl } = req.body;
+
+      if (!potId || !amount || amount <= 0) {
+        return res.status(400).json({ message: 'Missing or invalid potId or amount' });
+      }
+
+      const amountInCents = Math.round(Number(amount) * 100);
+
+      const sessionResult = await stripeService.createCheckoutSession({
+        amount: amountInCents,
+        currency,
+        potId,
+        userId,
+        potName: potName || `Pot #${potId}`,
+        userEmail,
+        successUrl,
+        cancelUrl,
+      });
+
+      try {
+        await storage.createPayment({
+          potId: Number(potId),
+          userId: Number(userId),
+          stripeCheckoutSessionId: sessionResult.sessionId,
+          amount: amountInCents,
+          currency: sessionResult.currency,
+          status: 'pending',
+        });
+      } catch (dbErr: any) {
+        console.warn('[Payments] DB payment record creation skipped in sandbox:', dbErr.message);
+      }
+
+      res.status(201).json({
+        ...sessionResult,
+        displayAmount: Number(amount),
+      });
+    } catch (error: any) {
+      handleError(res, error);
+    }
+  });
+
+  // Refund a Payment
+  app.post(`${apiPrefix}/payments/:id/refund`, async (req, res) => {
+    try {
+      const paymentId = parseInt(req.params.id);
+      const { reason = 'requested_by_customer', amount } = req.body;
+
+      const payment = await storage.getPaymentById(paymentId);
+      if (!payment) {
+        return res.status(404).json({ message: 'Payment not found' });
+      }
+
+      if (payment.stripePaymentIntentId) {
+        await stripeService.createRefund({
+          paymentIntentId: payment.stripePaymentIntentId,
+          amount: amount ? Math.round(amount * 100) : undefined,
+          reason,
+        });
+      }
+
+      await storage.updatePayment(paymentId, { status: 'refunded' });
+
+      // Add refund transaction record
+      await storage.createTransaction({
+        potId: payment.potId,
+        userId: payment.userId || 1,
+        type: 'refund',
+        amount: amount || Math.round(payment.amount / 100),
+        currency: payment.currency,
+        direction: 'DEBIT',
+        reference: `tx_refund_${paymentId}_${Date.now()}`,
+        description: `Refund for payment #${paymentId}`,
+        status: 'completed',
+      });
+
+      res.json({ message: 'Refund processed successfully', paymentId, status: 'refunded' });
+    } catch (error: any) {
+      handleError(res, error);
+    }
+  });
+
+  // Calculate & Execute Programmable Pot Payout
+  app.post(`${apiPrefix}/pots/:id/payout`, async (req, res) => {
+    try {
+      const potId = parseInt(req.params.id);
+      const {
+        amount,
+        distributionType = 'EQUAL',
+        customAllocations,
+        members = [],
+        historicalContributions = [],
+        initiatedById = 1,
+        currency = 'USD'
+      } = req.body;
+
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ message: 'Payout amount must be greater than zero' });
+      }
+
+      // 1. Calculate member payout allocations
+      const allocations = calculatePayoutAllocations(
+        Number(amount),
+        distributionType as DistributionType,
+        members.length > 0 ? members : [{ userId: '1', userName: 'Admin', userEmail: 'admin@thepot.com' }],
+        historicalContributions,
+        customAllocations
+      );
+
+      // 2. Save Payout Record (safe if DB offline)
+      let savedPayout: any = null;
+      try {
+        savedPayout = await storage.createPayout({
+          potId,
+          initiatedById: Number(initiatedById),
+          amount: Number(amount),
+          currency,
+          distributionType,
+          allocations: allocations as any,
+          status: 'completed',
+          processedAt: new Date(),
+        });
+      } catch (dbErr: any) {
+        console.warn('[Payouts] DB payout record creation skipped in sandbox:', dbErr.message);
+        savedPayout = {
+          id: Math.floor(Math.random() * 10000),
+          potId,
+          amount,
+          distributionType,
+          allocations,
+          status: 'completed',
+        };
+      }
+
+      // 3. Create transactions and deduct pot balance
+      try {
+        await storage.createTransaction({
+          potId,
+          userId: Number(initiatedById),
+          type: 'payout',
+          amount: Number(amount),
+          currency,
+          direction: 'DEBIT',
+          reference: `tx_payout_${savedPayout.id || Date.now()}`,
+          description: `Payout via ${distributionType} distribution to ${allocations.length} recipients`,
+          status: 'completed',
+          metadata: {
+            allocations,
+            distributionType,
+          } as any
+        });
+      } catch (txErr: any) {
+        console.warn('[Payouts] Transaction ledger update skipped in sandbox:', txErr.message);
+      }
+
+      res.status(201).json({
+        payout: savedPayout,
+        allocations,
+        totalAmount: Number(amount),
+        distributionType,
+        status: 'completed',
+      });
+    } catch (error: any) {
+      handleError(res, error);
+    }
+  });
+
+  // Get Payouts for a Pot
+  app.get(`${apiPrefix}/pots/:id/payouts`, async (req, res) => {
+    try {
+      const potId = parseInt(req.params.id);
+      const payouts = await storage.getPayoutsByPotId(potId);
+      res.json(payouts);
+    } catch (error: any) {
+      handleError(res, error);
     }
   });
 

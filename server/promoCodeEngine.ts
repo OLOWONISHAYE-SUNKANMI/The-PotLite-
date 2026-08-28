@@ -75,11 +75,11 @@ export function handleCodeReuse(userId: string) {
 // Additional helper functions for the app
 export function getPromoCodesByUser(userId: string): PromoCodeRecord[] {
   const userCodes: PromoCodeRecord[] = [];
-  for (const [code, record] of promoCodes) {
+  promoCodes.forEach((record) => {
     if (record.userId === userId) {
       userCodes.push(record);
     }
-  }
+  });
   return userCodes;
 }
 

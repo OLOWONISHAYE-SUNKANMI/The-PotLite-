@@ -19,6 +19,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import MilestoneCelebration from "@/components/MilestoneCelebration";
 import PotInviteSystem from "@/components/PotInviteSystem";
+import StripePaymentModal from "@/components/StripePaymentModal";
+import PayoutDistributionModal from "@/components/PayoutDistributionModal";
 import { 
   Dialog,
   DialogContent,
@@ -78,6 +80,30 @@ export default function PotDashboard() {
   const [isGeneratingPromoCode, setIsGeneratingPromoCode] = useState<boolean>(false);
   const [showReuseDialog, setShowReuseDialog] = useState<boolean>(false);
   const [selectedSavedPot, setSelectedSavedPot] = useState<PotType | null>(null);
+  const [showStripeModal, setShowStripeModal] = useState<boolean>(false);
+  const [showPayoutModal, setShowPayoutModal] = useState<boolean>(false);
+
+  // Check URL params for Stripe Checkout success/cancellation
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const paymentStatus = params.get("payment");
+    const sessionId = params.get("session_id");
+
+    if (paymentStatus === "success") {
+      toast({
+        title: "Stripe Payment Succeeded!",
+        description: `Your contribution was processed successfully. Transaction reference: ${sessionId || "verified"}`,
+      });
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (paymentStatus === "cancelled") {
+      toast({
+        title: "Payment Cancelled",
+        description: "Your Stripe Checkout session was cancelled.",
+        variant: "destructive",
+      });
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [toast]);
   
   // No pots to display
   const noActivePots = pots.length === 0;
@@ -781,6 +807,20 @@ export default function PotDashboard() {
                       Invite/Remove Members
                     </DropdownMenuItem>
                     
+                    <DropdownMenuItem onClick={() => {
+                      setShowStripeModal(true);
+                    }}>
+                      <CreditCard className="w-4 h-4 mr-2 text-primary" />
+                      Contribute via Stripe
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem onClick={() => {
+                      setShowPayoutModal(true);
+                    }}>
+                      <ArrowUp className="w-4 h-4 mr-2 text-primary" />
+                      Distribute Pot Payout
+                    </DropdownMenuItem>
+
                     <DropdownMenuItem onClick={() => {
                       // Initialize clean pot dialog with current member payouts
                       if (pot.memberPayouts) {
@@ -1801,6 +1841,22 @@ export default function PotDashboard() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Stripe Payment & Payout Modals */}
+      {pot && (
+        <>
+          <StripePaymentModal
+            isOpen={showStripeModal}
+            onClose={() => setShowStripeModal(false)}
+            pot={pot}
+          />
+          <PayoutDistributionModal
+            isOpen={showPayoutModal}
+            onClose={() => setShowPayoutModal(false)}
+            pot={pot}
+          />
+        </>
+      )}
     </div>
   );
 }

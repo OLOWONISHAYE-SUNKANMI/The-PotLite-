@@ -30,7 +30,7 @@ interface PotContextType {
   voteOnChangeRequest: (changeRequestId: string, user: string, approve: boolean) => void;
   updatePotBalance: (potId: string, amount: number) => void;
   updatePersonalPotBalance: (amount: number) => void;
-  depositFromPersonalToPot: (potId: string, amount: number) => void;
+  depositFromPersonalToPot: (potId: string, amount: number) => boolean;
   withdrawFromPotToPersonal: (potId: string, amount: number) => void;
   approveWithdrawalToPersonal: (potId: string, amount: number, recipient: string) => boolean;
   addFeedback: (feedback: any) => void;

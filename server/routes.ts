@@ -8,6 +8,12 @@ import { stripeService } from "./stripe/stripe.service";
 import { calculatePayoutAllocations, type DistributionType } from "./stripe/payouts.engine";
 import { processStripeWebhook } from "./stripe/webhook.handler";
 import { SUPPORTED_CURRENCIES } from "./stripe/stripe.utils";
+import {
+  paymentOrchestrator,
+  reconciliationService,
+  unitProvider,
+  feeEngine,
+} from "./modules/payments";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -317,6 +323,244 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       console.error('AI Draft Error:', error);
       return res.status(500).json({ message: 'Failed to generate pot draft' });
+    }
+  });
+
+  // ==========================================
+  // UNIT FINANCIAL INFRASTRUCTURE & ORCHESTRATOR
+  // ==========================================
+
+  // Unit Webhook Endpoint
+  app.post(`${apiPrefix}/webhooks/unit`, async (req, res) => {
+    const rawBody = (req as any).rawBody || Buffer.from(JSON.stringify(req.body || {}));
+    const signature = req.headers["unit-signature"] as string | undefined;
+
+    try {
+      const result = await unitProvider.handleWebhook(rawBody, signature);
+      res.status(200).json(result);
+    } catch (err: any) {
+      console.error("[Unit Webhook] Error processing event:", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Agnostic Funding (ACH via Unit or Card via Stripe)
+  app.post(`${apiPrefix}/payments/funding`, async (req, res) => {
+    try {
+      const { potId, amount, paymentRail = "ach", userId = 1, description, sourceToken, counterpartyId } = req.body;
+
+      if (!potId || !amount || amount <= 0) {
+        return res.status(400).json({ message: "potId and a positive amount are required" });
+      }
+
+      // Convert amount to cents if passed as decimal dollars (e.g. 25 -> 2500)
+      const amountInCents = Number(amount) > 1000 ? Math.round(Number(amount)) : Math.round(Number(amount) * 100);
+
+      const result = await paymentOrchestrator.fundPot({
+        potId: Number(potId),
+        userId: Number(userId),
+        amount: amountInCents,
+        paymentRail: paymentRail as "ach" | "card",
+        description,
+        sourceToken,
+        counterpartyId,
+        idempotencyKey: `fund_${potId}_${userId}_${Date.now()}`,
+      });
+
+      res.status(201).json({
+        ...result,
+        displayAmount: amountInCents / 100,
+      });
+    } catch (err: any) {
+      handleError(res, err);
+    }
+  });
+
+  // Agnostic Funding Status
+  app.get(`${apiPrefix}/payments/funding/:id`, async (req, res) => {
+    try {
+      const paymentId = parseInt(req.params.id);
+      const payment = await storage.getPaymentById(paymentId);
+      if (!payment) {
+        return res.status(404).json({ message: "Payment record not found" });
+      }
+      res.json(payment);
+    } catch (err: any) {
+      handleError(res, err);
+    }
+  });
+
+  // Agnostic Withdrawals (Outbound ACH via Unit)
+  app.post(`${apiPrefix}/payments/withdrawals`, async (req, res) => {
+    try {
+      const { potId, amount, destinationAccountId, userId = 1, description } = req.body;
+
+      if (!potId || !amount || amount <= 0) {
+        return res.status(400).json({ message: "potId and positive amount are required" });
+      }
+
+      const amountInCents = Number(amount) > 1000 ? Math.round(Number(amount)) : Math.round(Number(amount) * 100);
+
+      const result = await paymentOrchestrator.withdrawFromPot({
+        potId: Number(potId),
+        userId: Number(userId),
+        amount: amountInCents,
+        destinationAccountId,
+        description,
+        idempotencyKey: `with_${potId}_${userId}_${Date.now()}`,
+      });
+
+      res.status(201).json({
+        ...result,
+        displayAmount: amountInCents / 100,
+      });
+    } catch (err: any) {
+      handleError(res, err);
+    }
+  });
+
+  // Pot Transfers (Instant Book Payments between Personal Pot and Group Pot)
+  app.post(`${apiPrefix}/payments/transfers`, async (req, res) => {
+    try {
+      const { potId, amount, sourceAccountId = "22170443", destinationAccountId = "22170444", userId = 1, description } = req.body;
+
+      if (!potId || !amount || amount <= 0) {
+        return res.status(400).json({ message: "potId and positive amount are required" });
+      }
+
+      const amountInCents = Number(amount) > 1000 ? Math.round(Number(amount)) : Math.round(Number(amount) * 100);
+
+      const result = await paymentOrchestrator.transferBetweenPots({
+        potId: Number(potId),
+        userId: Number(userId),
+        amount: amountInCents,
+        sourceAccountId,
+        destinationAccountId,
+        description,
+        idempotencyKey: `trans_${potId}_${userId}_${Date.now()}`,
+      });
+
+      res.status(201).json({
+        ...result,
+        displayAmount: amountInCents / 100,
+      });
+    } catch (err: any) {
+      handleError(res, err);
+    }
+  });
+
+  // Get Banking & Deposit Account details for a Pot
+  app.get(`${apiPrefix}/banking/accounts`, async (req, res) => {
+    try {
+      const potId = req.query.potId ? parseInt(req.query.potId as string) : undefined;
+      const userId = req.query.userId ? parseInt(req.query.userId as string) : 1;
+
+      if (potId) {
+        const details = await paymentOrchestrator.getPotBankingDetails(potId, userId);
+        return res.json(details);
+      }
+
+      const userAccounts = await storage.getFinancialAccountsByUserId(userId);
+      res.json(userAccounts);
+    } catch (err: any) {
+      handleError(res, err);
+    }
+  });
+
+  // Connect External Bank Account
+  app.post(`${apiPrefix}/banking/connect`, async (req, res) => {
+    try {
+      const { userId = 1, routingNumber, accountNumber, institutionName, name } = req.body;
+
+      const last4 = accountNumber ? String(accountNumber).slice(-4) : "1234";
+      const method = await storage.createPaymentMethod({
+        userId: Number(userId),
+        provider: "unit",
+        type: "ach",
+        providerMethodId: `cp_unit_${Date.now()}`,
+        name: name || "Primary Checking",
+        last4,
+        routingNumber: routingNumber || "812345678",
+        institutionName: institutionName || "Unit Bank Partner",
+        isDefault: true,
+        status: "active",
+      });
+
+      res.status(201).json(method);
+    } catch (err: any) {
+      handleError(res, err);
+    }
+  });
+
+  // Fee calculation query applying $100+ rule
+  app.get(`${apiPrefix}/payments/fees`, (req, res) => {
+    const amount = req.query.amount ? parseFloat(req.query.amount as string) : 50;
+    const isPersonal = req.query.isPersonal === "true";
+    const amountInCents = Math.round(amount * 100);
+
+    const feeBreakdown = feeEngine.calculateFee(amountInCents, 0, isPersonal);
+    res.json({
+      ...feeBreakdown,
+      grossDollars: feeBreakdown.grossAmount / 100,
+      feeDollars: feeBreakdown.platformFee / 100,
+      netDollars: feeBreakdown.netAmount / 100,
+    });
+  });
+
+  // Reconciliation History
+  app.get(`${apiPrefix}/admin/reconciliation`, async (_req, res) => {
+    try {
+      const records = await reconciliationService.getHistory(20);
+      res.json(records);
+    } catch (err: any) {
+      handleError(res, err);
+    }
+  });
+
+  // Trigger On-Demand Reconciliation
+  app.post(`${apiPrefix}/admin/reconciliation/run`, async (req, res) => {
+    try {
+      const { provider = "all" } = req.body;
+      const result = await reconciliationService.runReconciliation(provider);
+      res.json(result);
+    } catch (err: any) {
+      handleError(res, err);
+    }
+  });
+
+  // Provider Transactions Log
+  app.get(`${apiPrefix}/admin/provider-transactions`, async (_req, res) => {
+    try {
+      const transactions = await storage.getProviderTransactions(50);
+      res.json(transactions);
+    } catch (err: any) {
+      handleError(res, err);
+    }
+  });
+
+  // Unit Sandbox Simulation Trigger
+  app.post(`${apiPrefix}/admin/unit/simulate`, async (req, res) => {
+    try {
+      const { action, paymentId, accountId = "22170443", amount = 10000 } = req.body;
+
+      let simResult: any;
+      if (action === "clear_ach") {
+        simResult = await unitProvider.simulations.clearAchPayment(paymentId || `ach_${Date.now()}`);
+      } else if (action === "return_ach") {
+        simResult = await unitProvider.simulations.returnAchPayment(paymentId || `ach_${Date.now()}`);
+      } else if (action === "receive_payment") {
+        simResult = await unitProvider.simulations.simulateReceivedPayment(accountId, amount);
+      } else {
+        return res.status(400).json({ message: "Unknown simulation action. Valid: clear_ach, return_ach, receive_payment" });
+      }
+
+      res.json({
+        status: "success",
+        action,
+        result: simResult,
+      });
+    } catch (err: any) {
+      handleError(res, err);
     }
   });
 

@@ -9,6 +9,7 @@ import { useLocation } from "wouter";
 import ErrorSimulationHandler from "@/components/ErrorSimulationHandler";
 import MilestoneCelebration from "@/components/MilestoneCelebration";
 import { FaCrown, FaUserFriends, FaHandHoldingUsd, FaExclamationCircle, FaBan, FaClock, FaUserSlash, FaRedo, FaMagic, FaVoteYea, FaMoneyBillWave } from "react-icons/fa";
+import { Building2, ShieldCheck, RefreshCw, CheckCircle2, AlertTriangle, ArrowUpRight, ArrowDownLeft, FileText, Landmark, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 
 export default function AdminPanel() {
@@ -30,6 +31,77 @@ export default function AdminPanel() {
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
   const [showMilestone, setShowMilestone] = useState(false);
   const [expandedExample, setExpandedExample] = useState<string | null>(null);
+
+  // Unit Sandbox Simulation & Reconciliation State
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [simMessage, setSimMessage] = useState<string | null>(null);
+  const [isReconciling, setIsReconciling] = useState(false);
+  const [recSummary, setRecSummary] = useState<any>(null);
+  const [providerTxs, setProviderTxs] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch("/api/admin/provider-transactions")
+      .then((res) => res.json())
+      .then((data) => setProviderTxs(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }, []);
+
+  const handleSimulateAction = async (action: string) => {
+    setIsSimulating(true);
+    setSimMessage(null);
+    try {
+      const res = await fetch("/api/admin/unit/simulate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, accountId: "22170443", amount: 10000 }),
+      });
+      const data = await res.json();
+      setSimMessage(`Success: ${action} triggered. Result: ${JSON.stringify(data.result?.attributes || data.result?.status || data.status)}`);
+      toast({
+        title: "Simulation Executed",
+        description: `Action ${action} succeeded on Unit Sandbox.`,
+      });
+    } catch (err: any) {
+      toast({
+        title: "Simulation Error",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSimulating(false);
+    }
+  };
+
+  const handleRunReconciliation = async () => {
+    setIsReconciling(true);
+    try {
+      const res = await fetch("/api/admin/reconciliation/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider: "all" }),
+      });
+      const data = await res.json();
+      setRecSummary(data);
+
+      // Refresh provider transactions
+      fetch("/api/admin/provider-transactions")
+        .then((r) => r.json())
+        .then((txs) => setProviderTxs(Array.isArray(txs) ? txs : []));
+
+      toast({
+        title: "Reconciliation Complete",
+        description: `Audited ${data.totalChecked} transactions. ${data.matchedCount} matched, ${data.discrepancyCount} discrepancies.`,
+      });
+    } catch (err: any) {
+      toast({
+        title: "Reconciliation Error",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsReconciling(false);
+    }
+  };
   
   // Track scroll to bottom for checklist completion
   useEffect(() => {
@@ -438,8 +510,166 @@ export default function AdminPanel() {
         </CardContent>
       </Card>
       
+      {/* Unit Financial Banking Sandbox & Reconciliation Console */}
+      <Card className="mb-6 border-emerald-500/30 bg-card shadow-lg shadow-emerald-500/5">
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 pb-4 border-b border-border">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600">
+                <Landmark className="w-6 h-6" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+                  Unit Banking Infrastructure Console
+                  <span className="text-xs bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 px-2 py-0.5 rounded-full font-semibold">
+                    Primary Provider
+                  </span>
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  Org: The Pot Unlimited (ID: 11002) • Sandbox: api.s.unit.sh
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRunReconciliation}
+                disabled={isReconciling}
+                className="text-xs gap-1.5 border-primary/40 text-primary hover:bg-primary/10"
+              >
+                {isReconciling ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                Run Reconciliation
+              </Button>
+            </div>
+          </div>
+
+          {/* Connected Unit Accounts Overview */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 my-4">
+            <div className="bg-muted/40 p-3 rounded-lg border border-border">
+              <span className="text-xs text-muted-foreground block">Deposit Checking Account</span>
+              <span className="font-mono text-sm font-semibold block mt-0.5">22170443 (Checking)</span>
+              <span className="text-[11px] text-muted-foreground">Routing: 812345678 • Status: Open</span>
+            </div>
+            <div className="bg-muted/40 p-3 rounded-lg border border-border">
+              <span className="text-xs text-muted-foreground block">Bill-Pay Wallet Account</span>
+              <span className="font-mono text-sm font-semibold block mt-0.5">22170444 (Wallet)</span>
+              <span className="text-[11px] text-muted-foreground">Routing: 087621228 • Status: Open</span>
+            </div>
+            <div className="bg-muted/40 p-3 rounded-lg border border-border">
+              <span className="text-xs text-muted-foreground block">Org Credit Loan Line</span>
+              <span className="font-mono text-sm font-semibold text-emerald-600 block mt-0.5">$1,000,000.00 Limit</span>
+              <span className="text-[11px] text-muted-foreground">Org GL: 22170438 / 22170441</span>
+            </div>
+          </div>
+
+          {/* Sandbox Event Simulators */}
+          <div className="mt-4 pt-4 border-t border-border">
+            <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+              <Building2 className="w-4 h-4 text-emerald-500" />
+              Sandbox Event Simulators (Unit Simulation Rails)
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={isSimulating}
+                onClick={() => handleSimulateAction("receive_payment")}
+                className="text-xs justify-start h-9"
+              >
+                <ArrowDownLeft className="w-3.5 h-3.5 mr-1.5 text-emerald-500" />
+                Simulate Inbound ACH ($100)
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={isSimulating}
+                onClick={() => handleSimulateAction("clear_ach")}
+                className="text-xs justify-start h-9"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-blue-500" />
+                Simulate ACH Cleared
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={isSimulating}
+                onClick={() => handleSimulateAction("return_ach")}
+                className="text-xs justify-start h-9"
+              >
+                <AlertTriangle className="w-3.5 h-3.5 mr-1.5 text-amber-500" />
+                Simulate ACH Return (NSF)
+              </Button>
+            </div>
+
+            {simMessage && (
+              <div className="mt-3 p-2.5 bg-muted/60 border border-border rounded text-xs font-mono text-foreground break-all">
+                {simMessage}
+              </div>
+            )}
+          </div>
+
+          {/* Reconciliation Audit Results */}
+          {recSummary && (
+            <div className="mt-4 pt-4 border-t border-border">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-semibold flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-primary" />
+                  Audit & Reconciliation Summary
+                </h3>
+                <span className="text-xs text-muted-foreground font-mono">
+                  {new Date(recSummary.runAt).toLocaleTimeString()}
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                <div className="bg-muted/30 p-2 rounded border border-border">
+                  <span className="text-muted-foreground block">Audited</span>
+                  <span className="text-base font-bold">{recSummary.totalChecked}</span>
+                </div>
+                <div className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 p-2 rounded border border-emerald-500/20">
+                  <span className="block">Matched</span>
+                  <span className="text-base font-bold">{recSummary.matchedCount}</span>
+                </div>
+                <div className="bg-amber-500/10 text-amber-700 dark:text-amber-400 p-2 rounded border border-amber-500/20">
+                  <span className="block">Discrepancies</span>
+                  <span className="text-base font-bold">{recSummary.discrepancyCount}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Provider Transactions Log snippet */}
+          {providerTxs.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-border">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                Recent Provider Transactions Log
+              </h3>
+              <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                {providerTxs.slice(0, 5).map((tx, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-xs p-2 rounded bg-muted/20 border border-border">
+                    <div className="flex items-center gap-2">
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${tx.provider === 'unit' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-blue-500/10 text-blue-600'}`}>
+                        {tx.provider}
+                      </span>
+                      <span className="font-mono text-muted-foreground">{tx.providerTransactionId}</span>
+                      <span className="text-muted-foreground">• {tx.type}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">${((tx.amount || 0) / 100).toFixed(2)}</span>
+                      <span className="text-emerald-600 text-[11px] font-medium uppercase">{tx.status}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Test Data Management */}
       <Card>
+
         <CardContent className="p-6">
           <h2 className="text-xl font-bold text-primary mb-4">Test Data Management</h2>
           <div className="space-y-4">

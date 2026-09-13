@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { usePot } from "@/context/PotContext";
 import { useDummyUser } from "@/context/DummyUserContext";
 import { useToast } from "@/hooks/use-toast";
-import { CreditCard, Sparkles } from "lucide-react";
-import StripePaymentModal from "./StripePaymentModal";
+import { Building2, CreditCard, Sparkles } from "lucide-react";
+import PaymentFundingModal from "./PaymentFundingModal";
 
 type DepositSimProps = {
   potId: string;
@@ -16,7 +16,7 @@ type DepositSimProps = {
 export default function DepositSim({ potId }: DepositSimProps) {
   const [amount, setAmount] = useState<number>(10);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [showStripeModal, setShowStripeModal] = useState(false);
+  const [showFundingModal, setShowFundingModal] = useState(false);
   const coinContainerRef = useRef<HTMLDivElement>(null);
   
   const { pots, addTransaction, updatePotBalance, simulateErrors } = usePot();
@@ -101,31 +101,17 @@ export default function DepositSim({ potId }: DepositSimProps) {
     
     coinContainerRef.current.appendChild(coin);
     
-    // Remove coin after animation
+    // Remove after animation completes
     setTimeout(() => {
       coin.remove();
-    }, 1500);
+    }, 1000);
   };
   
   return (
     <>
-      <Card className="mb-6">
+      <Card className="mb-6 bg-card border border-border">
         <CardContent className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-primary">Make a Deposit</h2>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setShowStripeModal(true)}
-              className="border-primary/40 text-primary hover:bg-primary/10 text-xs font-semibold flex items-center gap-1.5"
-            >
-              <CreditCard className="w-3.5 h-3.5" />
-              Pay with Stripe Card
-            </Button>
-          </div>
-
-          <div className="flex flex-col md:flex-row justify-between items-center gap-3">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="w-full md:w-1/2">
               <Label className="block text-secondary-foreground text-sm mb-2">Amount (₡ / USD)</Label>
               <Input 
@@ -144,14 +130,14 @@ export default function DepositSim({ potId }: DepositSimProps) {
                 className="flex-1 bg-secondary border border-border hover:bg-secondary/80 text-foreground font-semibold"
               >
                 <Sparkles className="w-4 h-4 mr-1.5 text-accent" />
-                Quick Sandbox Deposit
+                Quick Sim Deposit
               </Button>
               <Button 
-                onClick={() => setShowStripeModal(true)}
-                className="flex-1 btn-gradient font-bold"
+                onClick={() => setShowFundingModal(true)}
+                className="flex-1 btn-gradient font-bold shadow-md shadow-primary/20"
               >
-                <CreditCard className="w-4 h-4 mr-1.5" />
-                Pay with Stripe
+                <Building2 className="w-4 h-4 mr-1.5 text-emerald-300" />
+                Fund Pot (Unit / Stripe)
               </Button>
             </div>
           </div>
@@ -164,10 +150,10 @@ export default function DepositSim({ potId }: DepositSimProps) {
         </CardContent>
       </Card>
 
-      {/* Stripe Payment Modal */}
-      <StripePaymentModal
-        isOpen={showStripeModal}
-        onClose={() => setShowStripeModal(false)}
+      {/* Primary Unit & Secondary Stripe Payment Modal */}
+      <PaymentFundingModal
+        isOpen={showFundingModal}
+        onClose={() => setShowFundingModal(false)}
         pot={currentPot}
       />
     </>

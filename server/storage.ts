@@ -197,3 +197,111 @@ export async function getAllFeedback() {
   });
 }
 
+// Financial Accounts
+export async function createFinancialAccount(data: schema.InsertFinancialAccount) {
+  const [account] = await db.insert(schema.financialAccounts).values(data).returning();
+  return account;
+}
+
+export async function getFinancialAccountByPotId(potId: number) {
+  return await db.query.financialAccounts.findFirst({
+    where: eq(schema.financialAccounts.potId, potId)
+  });
+}
+
+export async function getFinancialAccountsByUserId(userId: number) {
+  return await db.query.financialAccounts.findMany({
+    where: eq(schema.financialAccounts.userId, userId)
+  });
+}
+
+export async function getFinancialAccountByProviderAccountId(providerAccountId: string) {
+  return await db.query.financialAccounts.findFirst({
+    where: eq(schema.financialAccounts.providerAccountId, providerAccountId)
+  });
+}
+
+export async function updateFinancialAccount(id: number, data: Partial<schema.InsertFinancialAccount>) {
+  const [account] = await db.update(schema.financialAccounts)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(schema.financialAccounts.id, id))
+    .returning();
+  return account;
+}
+
+// Provider Transactions
+export async function createProviderTransaction(data: schema.InsertProviderTransaction) {
+  const [tx] = await db.insert(schema.providerTransactions).values(data).returning();
+  return tx;
+}
+
+export async function getProviderTransactions(limit = 100) {
+  return await db.query.providerTransactions.findMany({
+    orderBy: [desc(schema.providerTransactions.occurredAt)],
+    limit
+  });
+}
+
+export async function getProviderTransactionByProviderId(providerTransactionId: string) {
+  return await db.query.providerTransactions.findFirst({
+    where: eq(schema.providerTransactions.providerTransactionId, providerTransactionId)
+  });
+}
+
+// Provider Webhook Events
+export async function createProviderWebhookEvent(data: schema.InsertProviderWebhookEvent) {
+  const [event] = await db.insert(schema.providerWebhookEvents).values(data).returning();
+  return event;
+}
+
+export async function getProviderWebhookEvent(providerEventId: string) {
+  return await db.query.providerWebhookEvents.findFirst({
+    where: eq(schema.providerWebhookEvents.providerEventId, providerEventId)
+  });
+}
+
+export async function updateProviderWebhookEvent(id: number, data: Partial<schema.InsertProviderWebhookEvent>) {
+  const [event] = await db.update(schema.providerWebhookEvents)
+    .set(data)
+    .where(eq(schema.providerWebhookEvents.id, id))
+    .returning();
+  return event;
+}
+
+// Reconciliation Records
+export async function createReconciliationRecord(data: schema.InsertReconciliationRecord) {
+  const [rec] = await db.insert(schema.reconciliationRecords).values(data).returning();
+  return rec;
+}
+
+export async function getReconciliationRecords(limit = 50) {
+  return await db.query.reconciliationRecords.findMany({
+    orderBy: [desc(schema.reconciliationRecords.runAt)],
+    limit
+  });
+}
+
+// Payment Methods
+export async function createPaymentMethod(data: schema.InsertPaymentMethod) {
+  const [method] = await db.insert(schema.paymentMethods).values(data).returning();
+  return method;
+}
+
+export async function getPaymentMethodsByUserId(userId: number) {
+  return await db.query.paymentMethods.findMany({
+    where: eq(schema.paymentMethods.userId, userId)
+  });
+}
+
+// Payments query
+export async function getPayments(limit = 100) {
+  return await db.query.payments.findMany({
+    orderBy: [desc(schema.payments.createdAt)],
+    limit,
+    with: {
+      user: true,
+      pot: true
+    }
+  });
+}
+

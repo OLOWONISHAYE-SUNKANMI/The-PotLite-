@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { cn, formatTimestamp, PotType, generateId } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowUp, ArrowDown, Plus, Info, Clock, Users, CreditCard, ChevronDown, AlertTriangle, Crown, Sparkles, Bookmark } from "lucide-react";
+import { ArrowUp, ArrowDown, Plus, Info, Clock, Users, CreditCard, ChevronDown, AlertTriangle, Crown, Sparkles, Bookmark, Building2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -20,6 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import MilestoneCelebration from "@/components/MilestoneCelebration";
 import PotInviteSystem from "@/components/PotInviteSystem";
 import StripePaymentModal from "@/components/StripePaymentModal";
+import PaymentFundingModal from "@/components/PaymentFundingModal";
 import PayoutDistributionModal from "@/components/PayoutDistributionModal";
 import { 
   Dialog,
@@ -810,8 +811,8 @@ export default function PotDashboard() {
                     <DropdownMenuItem onClick={() => {
                       setShowStripeModal(true);
                     }}>
-                      <CreditCard className="w-4 h-4 mr-2 text-primary" />
-                      Contribute via Stripe
+                      <Building2 className="w-4 h-4 mr-2 text-emerald-500" />
+                      Fund Pot (Unit ACH / Card)
                     </DropdownMenuItem>
 
                     <DropdownMenuItem onClick={() => {
@@ -914,6 +915,18 @@ export default function PotDashboard() {
                             ? "Admin Approval"
                             : "Timed Release"}
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Unit Financial Infrastructure Account Strip */}
+                  <div className="mt-3 p-3 bg-muted/30 border border-border rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                      <span><strong>Unit Banking Rail:</strong> Checking Deposit Account <code className="font-mono text-muted-foreground">#22170443</code></span>
+                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground font-mono">
+                      <span>Routing: 812345678</span>
+                      <span className="text-emerald-600 font-semibold uppercase flex items-center gap-1">• Active</span>
                     </div>
                   </div>
                   
@@ -1842,10 +1855,10 @@ export default function PotDashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* Stripe Payment & Payout Modals */}
+      {/* Payment & Payout Modals */}
       {pot && (
         <>
-          <StripePaymentModal
+          <PaymentFundingModal
             isOpen={showStripeModal}
             onClose={() => setShowStripeModal(false)}
             pot={pot}
@@ -1857,6 +1870,7 @@ export default function PotDashboard() {
           />
         </>
       )}
+
     </div>
   );
 }

@@ -9,7 +9,8 @@ import { useLocation } from "wouter";
 import ErrorSimulationHandler from "@/components/ErrorSimulationHandler";
 import MilestoneCelebration from "@/components/MilestoneCelebration";
 import { FaCrown, FaUserFriends, FaHandHoldingUsd, FaExclamationCircle, FaBan, FaClock, FaUserSlash, FaRedo, FaMagic, FaVoteYea, FaMoneyBillWave } from "react-icons/fa";
-import { Building2, ShieldCheck, RefreshCw, CheckCircle2, AlertTriangle, ArrowUpRight, ArrowDownLeft, FileText, Landmark, Loader2 } from "lucide-react";
+import { Building2, ShieldCheck, RefreshCw, CheckCircle2, AlertTriangle, ArrowUpRight, ArrowDownLeft, FileText, Landmark, Loader2, Zap, Wallet } from "lucide-react";
+
 import { useState, useEffect } from "react";
 
 export default function AdminPanel() {
@@ -71,6 +72,37 @@ export default function AdminPanel() {
       setIsSimulating(false);
     }
   };
+
+  const handleMoovSimulate = async (action: string, extra: any = {}) => {
+    setIsSimulating(true);
+    setSimMessage(null);
+    try {
+      const res = await fetch("/api/admin/moov/simulate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, potId: 1, amount: 2500, count: 5, ...extra }),
+      });
+      const data = await res.json();
+      setSimMessage(`Moov Action [${action}] executed: ${JSON.stringify(data.result)}`);
+      toast({
+        title: "Moov Sandbox Simulation Executed",
+        description: `Action ${action} completed successfully on Moov Sandbox.`,
+      });
+      // Refresh provider transactions
+      fetch("/api/admin/provider-transactions")
+        .then((r) => r.json())
+        .then((txs) => setProviderTxs(Array.isArray(txs) ? txs : []));
+    } catch (err: any) {
+      toast({
+        title: "Simulation Error",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSimulating(false);
+    }
+  };
+
 
   const handleRunReconciliation = async () => {
     setIsReconciling(true);
@@ -510,23 +542,23 @@ export default function AdminPanel() {
         </CardContent>
       </Card>
       
-      {/* Unit Financial Banking Sandbox & Reconciliation Console */}
+      {/* Moov Financial Infrastructure & Reconciliation Console */}
       <Card className="mb-6 border-emerald-500/30 bg-card shadow-lg shadow-emerald-500/5">
         <CardContent className="p-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 pb-4 border-b border-border">
             <div className="flex items-center gap-2.5">
               <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600">
-                <Landmark className="w-6 h-6" />
+                <Zap className="w-6 h-6" />
               </div>
               <div>
                 <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-                  Unit Banking Infrastructure Console
+                  Moov Financial Infrastructure Console
                   <span className="text-xs bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 px-2 py-0.5 rounded-full font-semibold">
-                    Primary Provider
+                    Primary Provider (Active)
                   </span>
                 </h2>
                 <p className="text-xs text-muted-foreground">
-                  Org: The Pot Unlimited (ID: 11002) • Sandbox: api.s.unit.sh
+                  Facilitator: moov_sandbox_facilitator_01 • Rails: Low-Fee ACH & Digital Wallets
                 </p>
               </div>
             </div>
@@ -545,61 +577,75 @@ export default function AdminPanel() {
             </div>
           </div>
 
-          {/* Connected Unit Accounts Overview */}
+          {/* Connected Moov Wallets Overview */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 my-4">
             <div className="bg-muted/40 p-3 rounded-lg border border-border">
-              <span className="text-xs text-muted-foreground block">Deposit Checking Account</span>
-              <span className="font-mono text-sm font-semibold block mt-0.5">22170443 (Checking)</span>
-              <span className="text-[11px] text-muted-foreground">Routing: 812345678 • Status: Open</span>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground block">Operational Pot Wallet</span>
+                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded">Moov Wallet</span>
+              </div>
+              <span className="font-mono text-sm font-semibold block mt-1">wallet_moov_operational_01</span>
+              <span className="text-[11px] text-muted-foreground">Status: Active • Rail: Moov ACH & Ledger</span>
             </div>
+
             <div className="bg-muted/40 p-3 rounded-lg border border-border">
-              <span className="text-xs text-muted-foreground block">Bill-Pay Wallet Account</span>
-              <span className="font-mono text-sm font-semibold block mt-0.5">22170444 (Wallet)</span>
-              <span className="text-[11px] text-muted-foreground">Routing: 087621228 • Status: Open</span>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground block">Personal User Wallets</span>
+                <span className="text-[10px] font-bold text-blue-600 bg-blue-500/10 px-1.5 py-0.5 rounded">P2P Escrow</span>
+              </div>
+              <span className="font-mono text-sm font-semibold block mt-1">wallet_moov_user_*</span>
+              <span className="text-[11px] text-muted-foreground">Capabilities: transfers, wallet.balance</span>
             </div>
+
             <div className="bg-muted/40 p-3 rounded-lg border border-border">
-              <span className="text-xs text-muted-foreground block">Org Credit Loan Line</span>
-              <span className="font-mono text-sm font-semibold text-emerald-600 block mt-0.5">$1,000,000.00 Limit</span>
-              <span className="text-[11px] text-muted-foreground">Org GL: 22170438 / 22170441</span>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground block">Commercial Fee Rule</span>
+                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded">Engine Active</span>
+              </div>
+              <span className="font-mono text-sm font-semibold text-emerald-600 block mt-1">$100+ Free Benefit</span>
+              <span className="text-[11px] text-muted-foreground">Under $100: 2% • $100+: 0% Platform Fee</span>
             </div>
           </div>
 
-          {/* Sandbox Event Simulators */}
+          {/* Sandbox Event Simulators & Stress Test */}
           <div className="mt-4 pt-4 border-t border-border">
-            <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
-              <Building2 className="w-4 h-4 text-emerald-500" />
-              Sandbox Event Simulators (Unit Simulation Rails)
+            <h3 className="text-sm font-semibold mb-2 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <Building2 className="w-4 h-4 text-emerald-500" />
+                Moov Sandbox Event Simulators & Stress Testing
+              </span>
+              <span className="text-[11px] font-normal text-muted-foreground">Live & Simulated Rails</span>
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <Button
                 variant="secondary"
                 size="sm"
                 disabled={isSimulating}
-                onClick={() => handleSimulateAction("receive_payment")}
+                onClick={() => handleMoovSimulate("complete_transfer", { potId: 1, amount: 2500 })}
                 className="text-xs justify-start h-9"
               >
                 <ArrowDownLeft className="w-3.5 h-3.5 mr-1.5 text-emerald-500" />
-                Simulate Inbound ACH ($100)
+                Simulate Inbound ACH ($25)
               </Button>
               <Button
                 variant="secondary"
                 size="sm"
                 disabled={isSimulating}
-                onClick={() => handleSimulateAction("clear_ach")}
-                className="text-xs justify-start h-9"
-              >
-                <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-blue-500" />
-                Simulate ACH Cleared
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={isSimulating}
-                onClick={() => handleSimulateAction("return_ach")}
+                onClick={() => handleMoovSimulate("fail_transfer", { transferId: "moov_fail_demo" })}
                 className="text-xs justify-start h-9"
               >
                 <AlertTriangle className="w-3.5 h-3.5 mr-1.5 text-amber-500" />
                 Simulate ACH Return (NSF)
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                disabled={isSimulating}
+                onClick={() => handleMoovSimulate("stress_test", { potId: 1, count: 5, amount: 1500 })}
+                className="text-xs justify-start h-9 btn-gradient font-bold"
+              >
+                <Zap className="w-3.5 h-3.5 mr-1.5 text-yellow-300" />
+                Sandbox Stress Test (5 ACH)
               </Button>
             </div>
 
@@ -639,17 +685,25 @@ export default function AdminPanel() {
             </div>
           )}
 
-          {/* Provider Transactions Log snippet */}
+          {/* Provider Transactions Log */}
           {providerTxs.length > 0 && (
             <div className="mt-4 pt-4 border-t border-border">
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                 Recent Provider Transactions Log
               </h3>
-              <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-                {providerTxs.slice(0, 5).map((tx, idx) => (
+              <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                {providerTxs.slice(0, 8).map((tx, idx) => (
                   <div key={idx} className="flex items-center justify-between text-xs p-2 rounded bg-muted/20 border border-border">
                     <div className="flex items-center gap-2">
-                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${tx.provider === 'unit' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-blue-500/10 text-blue-600'}`}>
+                      <span
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${
+                          tx.provider === "moov"
+                            ? "bg-emerald-500/15 text-emerald-600 border border-emerald-500/30"
+                            : tx.provider === "stripe"
+                            ? "bg-blue-500/10 text-blue-600"
+                            : "bg-purple-500/10 text-purple-600"
+                        }`}
+                      >
                         {tx.provider}
                       </span>
                       <span className="font-mono text-muted-foreground">{tx.providerTransactionId}</span>

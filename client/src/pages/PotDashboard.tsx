@@ -812,7 +812,7 @@ export default function PotDashboard() {
                       setShowStripeModal(true);
                     }}>
                       <Building2 className="w-4 h-4 mr-2 text-emerald-500" />
-                      Fund Pot (Unit ACH / Card)
+                      Fund Pot (Moov ACH / Card)
                     </DropdownMenuItem>
 
                     <DropdownMenuItem onClick={() => {
@@ -918,14 +918,14 @@ export default function PotDashboard() {
                     </div>
                   </div>
 
-                  {/* Unit Financial Infrastructure Account Strip */}
+                  {/* Moov Financial Infrastructure Account Strip */}
                   <div className="mt-3 p-3 bg-muted/30 border border-border rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                     <div className="flex items-center gap-2">
                       <Building2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                      <span><strong>Unit Banking Rail:</strong> Checking Deposit Account <code className="font-mono text-muted-foreground">#22170443</code></span>
+                      <span><strong>Moov Digital Wallet Rail:</strong> Pot Wallet <code className="font-mono text-muted-foreground">#wallet_moov_pot_{pot.id}</code></span>
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground font-mono">
-                      <span>Routing: 812345678</span>
+                      <span>Gateway: Moov ACH</span>
                       <span className="text-emerald-600 font-semibold uppercase flex items-center gap-1">• Active</span>
                     </div>
                   </div>

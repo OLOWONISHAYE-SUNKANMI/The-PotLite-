@@ -137,7 +137,7 @@ export default function DepositSim({ potId }: DepositSimProps) {
                 className="flex-1 btn-gradient font-bold shadow-md shadow-primary/20"
               >
                 <Building2 className="w-4 h-4 mr-1.5 text-emerald-300" />
-                Fund Pot (Unit / Stripe)
+                Fund Pot (Moov / Stripe)
               </Button>
             </div>
           </div>
@@ -150,7 +150,7 @@ export default function DepositSim({ potId }: DepositSimProps) {
         </CardContent>
       </Card>
 
-      {/* Primary Unit & Secondary Stripe Payment Modal */}
+      {/* Primary Moov & Secondary Stripe Payment Modal */}
       <PaymentFundingModal
         isOpen={showFundingModal}
         onClose={() => setShowFundingModal(false)}

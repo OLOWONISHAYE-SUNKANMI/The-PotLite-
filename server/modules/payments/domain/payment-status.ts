@@ -10,7 +10,37 @@ export type StandardPaymentStatus =
 
 export type PaymentRail = "ach" | "book_payment" | "card" | "transfer";
 
-export type ProviderType = "unit" | "stripe";
+export type ProviderType = "moov" | "unit" | "stripe";
+
+export function mapMoovStatusToStandard(moovStatus: string): StandardPaymentStatus {
+  switch (moovStatus?.toLowerCase()) {
+    case "created":
+      return "PENDING";
+    case "pending":
+    case "processing":
+    case "originated":
+      return "PROCESSING";
+    case "completed":
+    case "paid":
+    case "succeeded":
+    case "settled":
+      return "COMPLETED";
+    case "canceled":
+    case "cancelled":
+      return "CANCELLED";
+    case "failed":
+    case "rejected":
+      return "FAILED";
+    case "reversed":
+    case "returned":
+      return "RETURNED";
+    case "refunded":
+      return "REFUNDED";
+    default:
+      return "PENDING";
+  }
+}
+
 
 export function mapUnitStatusToStandard(unitStatus: string): StandardPaymentStatus {
   switch (unitStatus?.toLowerCase()) {

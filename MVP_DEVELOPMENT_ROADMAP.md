@@ -19,6 +19,7 @@ The current repository serves as a **single-browser sandbox/demo prototype**. Wh
 | Group Governance & Voting      | Simulated in-browser state        | Database Voting State Machine |
 | Member Invitations             | Mock email string list            | Tokenized Links & Email Dispatch|
 | Personal Wallet                | Raw number in LocalStorage        | Atomic User Wallet & Ledger   |
+| Payments & Wallets Rail        | Simulated Sandbox / Stripe Mock   | Moov Gateway (Low ACH, Wallets)|
 | Timed Release Pots             | Client-side countdown timer       | Background Scheduler (Cron)   |
 | Demo vs Live Experience        | Mixed sandbox/demo components     | Clean SaaS UI with Gated Admin|
 +--------------------------------+-----------------------------------+-------------------------------+
@@ -182,10 +183,12 @@ Timeline Overview:
 
 | Component | Task Description | Deliverables |
 | :--- | :--- | :--- |
+| **Moov Gateway & Wallets** | • Integrate `@moovio/sdk` with unified Client, Accounts, Transfers, Simulations, and HMAC-SHA512 Webhooks.<br>• Map Personal & Group Pots to Moov Wallets (`wallet.balance`).<br>• Enable low-cost Inbound ACH debits and Outbound ACH credits.<br>• Implement instant zero-marginal-cost wallet-to-wallet pot contributions.<br>• Connect sandbox stress testing simulation endpoints. | Primary payment coordination and wallet engine locked in. |
 | **Timed Release Cron** | • Implement server-side cron scheduler (`node-cron`) running every 5–10 minutes.<br>• Identify expired pots (`release_date <= NOW()`) and automatically unlock funds.<br>• Dispatch notification emails to members when a pot unlocks. | Automated timed-release lifecycle worker. |
 | **Promo Codes & Saved Pots**| • Migrate `promoCodeEngine.ts` from RAM to `promo_codes` PostgreSQL table.<br>• Persist saved/bookmarked pot templates in the database for cross-device reuse. | Persistent promo code and template system. |
 | **AI Pot Creator Hardening**| • Add timeout handling (10s), error fallbacks, and direct database persistence for `/ai-create`. | Robust AI pot creation flow. |
 | **Alpha Freeze (Oct 1)** | • Complete end-to-end multi-device testing (Pot creation -> Email invite -> Member join -> Vote -> Payout). | **Feature Complete Alpha Prototype** 🎯 |
+
 
 ---
 
@@ -219,6 +222,7 @@ Timeline Overview:
 | :--- | :--- | :--- | :---: |
 | **M1** | Sept 1 – Sept 14 | Multi-User Auth, Session Management & DB Migration | `[ Planned ]` |
 | **M2** | Sept 15 – Sept 24 | Email Invites, Public `/join` Links & Dynamic Governance | `[ Planned ]` |
-| **M3** | Sept 25 – **Oct 1** | Timed Release Cron, Wallet Ledger & **Alpha Feature Freeze** | `[ Planned ]` |
+| **M3** | Sept 25 – **Oct 1** | Moov Gateway & Wallets, Timed Release & **Alpha Freeze** | `[ In Progress ]` 🚀 |
 | **M4** | Oct 2 – Oct 10 | Security Hardening, Mobile Polish & Demo Separation | `[ Planned ]` |
 | **M5** | Oct 11 – **Oct 15** | Production Infrastructure, Monitoring & **Public Launch** | `[ Planned ]` |
+

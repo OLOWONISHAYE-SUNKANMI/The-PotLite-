@@ -11,9 +11,11 @@ import { SUPPORTED_CURRENCIES } from "./stripe/stripe.utils";
 import {
   paymentOrchestrator,
   reconciliationService,
+  moovProvider,
   unitProvider,
   feeEngine,
 } from "./modules/payments";
+
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -327,11 +329,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ==========================================
+  // MOOV PAYMENT GATEWAY & WALLET INTEGRATION
+  // ==========================================
+
+  // Moov Webhook Endpoint (HMAC-SHA512 Verified)
+  app.post(`${apiPrefix}/webhooks/moov`, async (req, res) => {
+    const rawBody = (req as any).rawBody || Buffer.from(JSON.stringify(req.body || {}));
+    const signature = (req.headers["x-signature"] || req.headers["X-Signature"]) as string | undefined;
+
+    try {
+      const result = await moovProvider.handleWebhook(rawBody, signature, req.headers);
+      if (result.status === "invalid_signature") {
+        return res.status(401).json(result);
+      }
+      res.status(200).json(result);
+    } catch (err: any) {
+      console.error("[Moov Webhook] Error processing event:", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Moov Configuration & Status
+  app.get(`${apiPrefix}/moov/config`, (_req, res) => {
+    res.json({
+      provider: "moov",
+      isMock: moovProvider.isMockMode(),
+      supportedRails: ["ach", "transfer"],
+      capabilities: ["transfers", "wallet.balance"],
+      facilitatorAccountId: process.env.MOOV_ACCOUNT_ID || "moov_sandbox_facilitator_01",
+    });
+  });
+
+  // ==========================================
   // UNIT FINANCIAL INFRASTRUCTURE & ORCHESTRATOR
   // ==========================================
 
   // Unit Webhook Endpoint
   app.post(`${apiPrefix}/webhooks/unit`, async (req, res) => {
+
     const rawBody = (req as any).rawBody || Buffer.from(JSON.stringify(req.body || {}));
     const signature = req.headers["unit-signature"] as string | undefined;
 
@@ -534,7 +569,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const transactions = await storage.getProviderTransactions(50);
       res.json(transactions);
     } catch (err: any) {
-      handleError(res, err);
+      console.warn("[Admin] DB unavailable for provider transactions, returning empty list:", err.message);
+      res.json([]);
     }
   });
 
@@ -564,9 +600,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Moov Sandbox Simulation & Stress Test Trigger
+  app.post(`${apiPrefix}/admin/moov/simulate`, async (req, res) => {
+    try {
+      const { action, transferId, potId = 1, amount = 2500, count = 5 } = req.body;
+
+      let simResult: any;
+      if (action === "complete_transfer") {
+        simResult = await moovProvider.simulations.simulateTransferCompleted(transferId || `moov_${Date.now()}`, potId, amount);
+      } else if (action === "fail_transfer") {
+        simResult = await moovProvider.simulations.simulateTransferFailed(transferId || `moov_${Date.now()}`, "R01_INSUFFICIENT_FUNDS");
+      } else if (action === "stress_test") {
+        simResult = await moovProvider.simulations.stressTestInboundAch(Number(potId), Number(count), Number(amount));
+      } else {
+        return res.status(400).json({
+          message: "Unknown simulation action. Valid: complete_transfer, fail_transfer, stress_test",
+        });
+      }
+
+      res.json({
+        status: "success",
+        action,
+        result: simResult,
+      });
+    } catch (err: any) {
+      handleError(res, err);
+    }
+  });
+
   // ==========================================
   // STRIPE PAYMENT INTEGRATION ENDPOINTS
   // ==========================================
+
 
   // Get Stripe Configuration
   app.get(`${apiPrefix}/stripe/config`, (_req, res) => {

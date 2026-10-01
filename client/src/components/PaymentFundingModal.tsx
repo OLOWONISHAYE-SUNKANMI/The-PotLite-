@@ -23,6 +23,8 @@ import {
   Loader2,
   ArrowRight,
   Info,
+  Wallet,
+  Zap,
 } from "lucide-react";
 import { PotType } from "@/lib/utils";
 
@@ -39,6 +41,7 @@ export default function PaymentFundingModal({
 }: PaymentFundingModalProps) {
   const [amount, setAmount] = useState<number>(25);
   const [paymentRail, setPaymentRail] = useState<"ach" | "card">("ach");
+  const [fundingSource, setFundingSource] = useState<"bank_ach" | "moov_wallet">("bank_ach");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
   const [lastPaymentResult, setLastPaymentResult] = useState<any>(null);
@@ -98,17 +101,23 @@ export default function PaymentFundingModal({
     setIsLoading(true);
 
     try {
-      // Call agnostic funding API
+      // Call agnostic funding API (routed by orchestrator to Moov for ACH/Wallet)
       const res = await fetch("/api/payments/funding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           potId: pot.id,
-          amount, // in dollars, backend converts
+          amount, // in dollars, backend converts to cents
           paymentRail,
           userId: 1,
-          description: `Deposit to ${pot.name} via ${paymentRail === "ach" ? "Unit Bank ACH" : "Stripe Card"}`,
-          counterpartyId: paymentRail === "ach" ? "22170443" : undefined,
+          description: `Deposit to ${pot.name} via ${
+            paymentRail === "ach"
+              ? fundingSource === "moov_wallet"
+                ? "Moov Digital Wallet"
+                : "Moov Bank ACH"
+              : "Stripe Card"
+          }`,
+          sourceToken: paymentRail === "ach" ? "pm_moov_verified_bank_01" : undefined,
         }),
       });
 
@@ -120,8 +129,15 @@ export default function PaymentFundingModal({
       const result = await res.json();
       setLastPaymentResult(result);
 
-      // Record in local state for immediate feedback
+      // Record in local state for immediate visual feedback
       const txId = `tx_${result.provider}_${result.providerPaymentId || Date.now()}`;
+      const providerLabel =
+        result.provider === "moov"
+          ? fundingSource === "moov_wallet"
+            ? "Moov Digital Wallet"
+            : "Moov Bank ACH"
+          : "Stripe Card";
+
       addTransaction({
         id: txId,
         potId: pot.id,
@@ -130,15 +146,15 @@ export default function PaymentFundingModal({
         user: currentUser || "User",
         timestamp: new Date().toISOString(),
         status: "completed",
-        description: `Deposit via ${result.provider === "unit" ? "Unit ACH" : "Stripe Card"}`,
+        description: `Deposit via ${providerLabel}`,
       });
 
       updatePotBalance(pot.id, amount);
       setIsSuccess(true);
 
       toast({
-        title: "Funding Successful!",
-        description: `Deposited $${amount.toFixed(2)} into ${pot.name} via ${result.provider === "unit" ? "Unit ACH Rail" : "Stripe Card Rail"}.`,
+        title: "Deposit Successful! 🎉",
+        description: `Deposited $${amount.toFixed(2)} into ${pot.name} via ${providerLabel}.`,
       });
     } catch (err: any) {
       toast({
@@ -166,13 +182,13 @@ export default function PaymentFundingModal({
             Fund {pot.name}
           </DialogTitle>
           <DialogDescription>
-            Choose your preferred payment method. Unit handles primary banking ACH rails; Stripe handles card payments.
+            Choose your preferred payment rail. <strong>Moov Financial</strong> powers our low-fee ACH and digital wallets; Stripe powers card payments.
           </DialogDescription>
         </DialogHeader>
 
         {isSuccess ? (
           <div className="py-6 flex flex-col items-center text-center space-y-4">
-            <div className="w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+            <div className="w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center animate-bounce">
               <CheckCircle2 className="w-10 h-10" />
             </div>
             <div>
@@ -183,21 +199,30 @@ export default function PaymentFundingModal({
             </div>
 
             <div className="w-full bg-muted/40 rounded-xl p-4 text-left text-sm space-y-2 border border-border">
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Provider:</span>
-                <span className="font-semibold capitalize text-primary flex items-center gap-1">
-                  {lastPaymentResult?.provider === "unit" ? "Unit Banking (Primary)" : "Stripe (Secondary)"}
+                <span className="font-semibold capitalize text-emerald-600 flex items-center gap-1.5">
+                  <Zap className="w-3.5 h-3.5 text-emerald-500" />
+                  {lastPaymentResult?.provider === "moov"
+                    ? "Moov Financial (Primary Gateway)"
+                    : lastPaymentResult?.provider === "unit"
+                    ? "Unit Banking"
+                    : "Stripe Card Elements"}
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Payment Rail:</span>
-                <span className="font-semibold uppercase">{lastPaymentResult?.paymentRail || paymentRail}</span>
+                <span className="font-semibold uppercase tracking-wider text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                  {lastPaymentResult?.paymentRail || paymentRail}
+                </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Transaction Ref:</span>
-                <span className="font-mono text-xs text-muted-foreground">{lastPaymentResult?.providerPaymentId || "pay_mock_123"}</span>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Transaction ID:</span>
+                <span className="font-mono text-xs text-muted-foreground">
+                  {lastPaymentResult?.providerPaymentId || "pay_moov_mock_01"}
+                </span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Platform Fee:</span>
                 <span className="font-semibold text-emerald-600">
                   {feeBreakdown.isFeeWaived ? "$0.00 (Waived)" : `$${feeBreakdown.feeDollars.toFixed(2)}`}
@@ -205,8 +230,8 @@ export default function PaymentFundingModal({
               </div>
             </div>
 
-            <Button onClick={handleReset} className="w-full mt-2">
-              Done
+            <Button onClick={handleReset} className="w-full mt-2 btn-gradient font-semibold">
+              Done & Return to Dashboard
             </Button>
           </div>
         ) : (
@@ -260,58 +285,117 @@ export default function PaymentFundingModal({
 
             {/* Provider Rail Tabs */}
             <div>
-              <Label className="text-sm font-semibold mb-1.5 block">Payment Provider & Rail</Label>
+              <Label className="text-sm font-semibold mb-1.5 block">Payment Gateway Rail</Label>
               <Tabs value={paymentRail} onValueChange={(val: any) => setPaymentRail(val)} className="w-full">
                 <TabsList className="grid grid-cols-2 w-full">
-                  <TabsTrigger value="ach" className="flex items-center gap-2 text-xs font-semibold py-2">
-                    <Building2 className="w-4 h-4 text-emerald-500" />
-                    Bank ACH (Unit)
-                    <span className="ml-1 text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">Primary</span>
+                  <TabsTrigger value="ach" className="flex items-center gap-1.5 text-xs font-semibold py-2">
+                    <Building2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                    Moov ACH & Wallet
+                    <span className="ml-1 text-[10px] bg-emerald-500/20 text-emerald-600 px-1.5 py-0.5 rounded-full font-bold">
+                      Primary
+                    </span>
                   </TabsTrigger>
-                  <TabsTrigger value="card" className="flex items-center gap-2 text-xs font-semibold py-2">
-                    <CreditCard className="w-4 h-4 text-blue-500" />
+                  <TabsTrigger value="card" className="flex items-center gap-1.5 text-xs font-semibold py-2">
+                    <CreditCard className="w-4 h-4 text-blue-500 shrink-0" />
                     Card (Stripe)
-                    <span className="ml-1 text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">Secondary</span>
+                    <span className="ml-1 text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">
+                      Secondary
+                    </span>
                   </TabsTrigger>
                 </TabsList>
 
-                {/* Unit ACH Details */}
+                {/* Moov ACH & Wallet Details */}
                 <TabsContent value="ach" className="mt-3 space-y-3 bg-muted/20 border border-border rounded-lg p-4">
                   <div className="flex items-center justify-between pb-2 border-b border-border text-xs">
-                    <span className="text-muted-foreground font-medium">Banking Partner Rail</span>
+                    <span className="text-muted-foreground font-medium">Gateway Partner</span>
                     <span className="font-semibold text-emerald-600 flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Unit Financial API
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Moov Financial API
                     </span>
                   </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Account Holder</Label>
-                    <Input
-                      value={accountHolder}
-                      onChange={(e) => setAccountHolder(e.target.value)}
-                      className="h-8 text-xs mt-1"
-                    />
-                  </div>
+
+                  {/* Funding Source Toggle */}
                   <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Routing Number</Label>
-                      <Input
-                        value={routingNumber}
-                        onChange={(e) => setRoutingNumber(e.target.value)}
-                        className="h-8 text-xs font-mono mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Account Number</Label>
-                      <Input
-                        value={accountNumber}
-                        onChange={(e) => setAccountNumber(e.target.value)}
-                        className="h-8 text-xs font-mono mt-1"
-                      />
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setFundingSource("bank_ach")}
+                      className={`p-2.5 rounded-lg border text-left flex items-start gap-2 transition-colors ${
+                        fundingSource === "bank_ach"
+                          ? "border-emerald-500 bg-emerald-500/10 text-foreground"
+                          : "border-border hover:bg-muted/40 text-muted-foreground"
+                      }`}
+                    >
+                      <Building2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="text-xs font-bold block">Bank ACH Debit</span>
+                        <span className="text-[10px] opacity-80 block">Lowest fees, direct bank pull</span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setFundingSource("moov_wallet")}
+                      className={`p-2.5 rounded-lg border text-left flex items-start gap-2 transition-colors ${
+                        fundingSource === "moov_wallet"
+                          ? "border-emerald-500 bg-emerald-500/10 text-foreground"
+                          : "border-border hover:bg-muted/40 text-muted-foreground"
+                      }`}
+                    >
+                      <Wallet className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="text-xs font-bold block">Moov Wallet</span>
+                        <span className="text-[10px] opacity-80 block">Instant ledger transfer</span>
+                      </div>
+                    </button>
                   </div>
-                  <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                    <Info className="w-3.5 h-3.5 shrink-0" />
-                    Direct ACH pull into your verified Pot Checking Account. Zero card processing fees.
+
+                  {fundingSource === "bank_ach" ? (
+                    <>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Account Holder</Label>
+                        <Input
+                          value={accountHolder}
+                          onChange={(e) => setAccountHolder(e.target.value)}
+                          className="h-8 text-xs mt-1"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Routing Number</Label>
+                          <Input
+                            value={routingNumber}
+                            onChange={(e) => setRoutingNumber(e.target.value)}
+                            className="h-8 text-xs font-mono mt-1"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Account Number</Label>
+                          <Input
+                            value={accountNumber}
+                            onChange={(e) => setAccountNumber(e.target.value)}
+                            className="h-8 text-xs font-mono mt-1"
+                          />
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="p-3 bg-muted/40 border border-border rounded-lg text-xs space-y-1">
+                      <div className="flex justify-between items-center font-medium">
+                        <span>Personal Moov Wallet:</span>
+                        <span className="font-mono text-emerald-600">wallet_moov_user_01</span>
+                      </div>
+                      <div className="flex justify-between items-center text-muted-foreground">
+                        <span>Available Balance:</span>
+                        <span className="font-bold text-foreground">$500.00</span>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground block pt-1">
+                        Transfers from your personal wallet to group pots are 100% free and instant.
+                      </span>
+                    </div>
+                  )}
+
+                  <p className="text-[11px] text-muted-foreground flex items-center gap-1 pt-1">
+                    <Info className="w-3.5 h-3.5 shrink-0 text-primary" />
+                    Powered by Moov: flat-fee ACH, zero card interchange overhead, 24/7 wallet ledgering.
                   </p>
                 </TabsContent>
 
@@ -364,11 +448,11 @@ export default function PaymentFundingModal({
                   ${amount > 0 ? (amount + (feeBreakdown.isFeeWaived ? 0 : amount * 0.02)).toFixed(2) : "0.00"}
                 </span>
               </div>
-              <Button type="submit" disabled={isLoading || amount <= 0} className="px-6 gap-2">
+              <Button type="submit" disabled={isLoading || amount <= 0} className="px-6 gap-2 btn-gradient font-bold shadow-md shadow-primary/20">
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Processing...
+                    Processing via Moov...
                   </>
                 ) : (
                   <>

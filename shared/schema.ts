@@ -349,3 +349,6 @@ export const aiPotDraftSchema = z.object({
 });
 
 export type AiPotDraft = z.infer<typeof aiPotDraftSchema>;
+
+// Export ThePotLite V1 Pilot Schema & Types
+export * from "./thepotlite-schema";

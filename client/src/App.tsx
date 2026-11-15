@@ -4,6 +4,7 @@ import { queryClient } from "@/lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "./context/DummyUserContext";
 import { PotProvider } from "./context/PotContext";
+import { ThePotLiteThemeProvider } from "./context/ThePotLiteThemeContext";
 import { ThePotLiteProvider, useThePotLite } from "./context/ThePotLiteContext";
 import { ThePotLiteAppShell } from "./components/ThePotLiteAppShell";
 import { ThePotLiteOrganizerDashboard } from "./pages/ThePotLiteOrganizerDashboard";
@@ -44,16 +45,18 @@ function AppRouter() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <PotProvider>
-          <ThePotLiteProvider>
-            <ThePotLiteAppShell>
-              <AppRouter />
-              <Toaster />
-            </ThePotLiteAppShell>
-          </ThePotLiteProvider>
-        </PotProvider>
-      </ThemeProvider>
+      <ThePotLiteThemeProvider>
+        <ThemeProvider>
+          <PotProvider>
+            <ThePotLiteProvider>
+              <ThePotLiteAppShell>
+                <AppRouter />
+                <Toaster />
+              </ThePotLiteAppShell>
+            </ThePotLiteProvider>
+          </PotProvider>
+        </ThemeProvider>
+      </ThePotLiteThemeProvider>
     </QueryClientProvider>
   );
 }

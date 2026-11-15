@@ -12,6 +12,9 @@ import {
   FileText,
   Clock,
   ArrowRight,
+  Info,
+  DollarSign,
+  UserCheck,
 } from "lucide-react";
 
 export const ThePotLiteInviteLanding: React.FC = () => {
@@ -63,120 +66,138 @@ export const ThePotLiteInviteLanding: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center items-center p-4">
-      <div className="w-full max-w-lg space-y-6">
-        {/* Brand header */}
-        <div className="text-center space-y-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-950/80 border border-purple-800 text-purple-300 text-xs font-semibold mb-2">
-            <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-            Official ThePotLite Invitation
-          </div>
-          <h1 className="text-2xl font-extrabold text-white">{invite.potName}</h1>
-          <p className="text-sm text-slate-400">
-            {invite.organization} · {invite.team}
-          </p>
+    <div className="w-full max-w-2xl mx-auto py-6 space-y-6">
+      {/* Brand header */}
+      <div className="text-center space-y-2">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 dark:bg-purple-950/70 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 text-xs font-semibold">
+          <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
+          <span>Official ThePotLite Invitation · Terms Version {invite.termsVersion}</span>
         </div>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          {invite.potName}
+        </h1>
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+          {invite.organization} · {invite.team} · Organized by {invite.coach}
+        </p>
+      </div>
 
-        {accepted ? (
-          <Card className="bg-slate-900 border-emerald-800/60 p-6 text-center space-y-4">
-            <div className="w-12 h-12 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto">
-              <CheckCircle2 className="w-6 h-6" />
-            </div>
+      {accepted ? (
+        <div className="bg-white dark:bg-[#0f172a] rounded-3xl border border-emerald-500/30 p-8 text-center space-y-5 shadow-sm">
+          <div className="w-14 h-14 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center mx-auto shadow-sm">
+            <CheckCircle2 className="w-8 h-8" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">You're In! Obligation Created</h2>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1.5 max-w-md mx-auto">
+              Your explicit consent to Terms Version {invite.termsVersion} has been recorded in the immutable audit log. No money has moved; your schedule is live on your Parent Dashboard.
+            </p>
+          </div>
+          <Link href="/">
+            <Button className="w-full sm:w-auto bg-[#1b3d2f] hover:bg-[#142e23] text-emerald-300 font-bold px-8 py-3 rounded-full text-xs shadow-sm">
+              Open Parent Dashboard <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </Link>
+        </div>
+      ) : declined ? (
+        <div className="bg-white dark:bg-[#0f172a] rounded-3xl border border-slate-200 dark:border-slate-800 p-8 text-center space-y-4 shadow-sm">
+          <h2 className="text-lg font-bold text-slate-700 dark:text-slate-300">Invitation Declined</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+            An invite not accepted is not an obligation. No records or charges were created, and the organizers have been notified.
+          </p>
+          <Link href="/">
+            <Button variant="outline" className="rounded-full text-xs border-slate-300 dark:border-slate-700">
+              Return Home
+            </Button>
+          </Link>
+        </div>
+      ) : (
+        <div className="bg-white dark:bg-[#0f172a] rounded-3xl border border-slate-200/90 dark:border-slate-800/90 shadow-sm overflow-hidden transition-colors">
+          {/* Top Banner */}
+          <div className="bg-gradient-to-r from-purple-50 to-amber-50 dark:from-purple-950/30 dark:to-amber-950/20 px-6 py-4 border-b border-slate-100 dark:border-slate-800/80 flex justify-between items-center">
             <div>
-              <h2 className="text-lg font-bold text-white">You're In!</h2>
-              <p className="text-xs text-slate-300 mt-1">
-                Your acceptance of Terms Version {invite.termsVersion} was recorded at {new Date().toLocaleTimeString()}.
+              <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">
+                Total Commitment Requested
+              </span>
+              <span className="text-2xl font-black text-slate-900 dark:text-white">
+                {invite.totalAmount}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-100/70 dark:bg-amber-950/60 px-3 py-1.5 rounded-full">
+              <Clock className="w-3.5 h-3.5" />
+              <span>Expires in {invite.expiryHoursLeft}h</span>
+            </div>
+          </div>
+
+          <div className="p-6 sm:p-7 space-y-6">
+            {/* Purpose */}
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                Purpose & Scope
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                {invite.purpose}
               </p>
             </div>
-            <Link href="/">
-              <Button className="w-full bg-emerald-600 hover:bg-emerald-500 text-white">
-                Go to Member Dashboard <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </Link>
-          </Card>
-        ) : declined ? (
-          <Card className="bg-slate-900 border-slate-800 p-6 text-center space-y-4">
-            <h2 className="text-lg font-bold text-slate-300">Invitation Declined</h2>
-            <p className="text-xs text-slate-400">
-              An invite not accepted is not an obligation. No records or charges were created.
-            </p>
-            <Link href="/">
-              <Button variant="outline" className="w-full border-slate-700">
-                Return Home
-              </Button>
-            </Link>
-          </Card>
-        ) : (
-          <Card className="bg-slate-900 border-slate-800 shadow-xl overflow-hidden">
-            <CardHeader className="bg-slate-800/40 border-b border-slate-800 pb-4">
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-400">Total Commitment:</span>
-                <span className="text-lg font-bold text-amber-400">{invite.totalAmount}</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-[11px] text-amber-400/80 pt-1">
-                <Clock className="w-3.5 h-3.5" />
-                <span>Invite expires in {invite.expiryHoursLeft} hours</span>
-              </div>
-            </CardHeader>
 
-            <CardContent className="p-6 space-y-5 text-xs">
-              {/* Purpose */}
-              <div>
-                <span className="font-semibold text-slate-300 block mb-1">Collection Purpose:</span>
-                <p className="text-slate-400">{invite.purpose}</p>
-              </div>
-
-              {/* Installment Schedule */}
-              <div>
-                <span className="font-semibold text-slate-300 block mb-2">Installment Schedule:</span>
-                <div className="space-y-1.5">
-                  {invite.schedule.map((s) => (
-                    <div
-                      key={s.num}
-                      className="flex justify-between items-center p-2 rounded bg-slate-800/60 border border-slate-800"
-                    >
-                      <span className="text-slate-200">
-                        Part #{s.num}: <strong>{s.amount}</strong>
+            {/* Installments Table */}
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5">
+                Proposed Installment Schedule
+              </h3>
+              <div className="divide-y divide-slate-100 dark:divide-slate-800/80 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl overflow-hidden">
+                {invite.schedule.map((inst) => (
+                  <div
+                    key={inst.num}
+                    className="p-3.5 bg-slate-50/50 dark:bg-slate-900/40 flex justify-between items-center text-xs"
+                  >
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">
+                      Installment #{inst.num}
+                    </span>
+                    <div className="text-right">
+                      <span className="font-extrabold text-slate-900 dark:text-white block">
+                        {inst.amount}
                       </span>
-                      <span className="text-slate-400">Due {s.dueDate}</span>
+                      <span className="text-[11px] text-slate-400">Due {inst.dueDate}</span>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
+            </div>
 
-              {/* Organization Rules & Governance */}
-              <div className="bg-slate-950/60 rounded-lg p-3 border border-slate-800/80 space-y-2">
-                <span className="font-semibold text-slate-300 block">Organization Rules in Force:</span>
-                <ul className="space-y-1 text-slate-400">
-                  {invite.rules.map((r, i) => (
-                    <li key={i} className="flex items-start gap-1.5">
-                      <span className="text-purple-400 font-bold">•</span>
-                      <span>{r}</span>
-                    </li>
-                  ))}
-                </ul>
+            {/* Governance Guarantees */}
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5">
+                ThePotLite Governance Guarantees
+              </h3>
+              <div className="space-y-2">
+                {invite.rules.map((rule, idx) => (
+                  <div key={idx} className="flex items-start gap-2.5 text-xs text-slate-600 dark:text-slate-300">
+                    <CheckCircle2 className="w-4 h-4 text-[#a3e635] shrink-0 mt-0.5" />
+                    <span>{rule}</span>
+                  </div>
+                ))}
               </div>
-            </CardContent>
+            </div>
+          </div>
 
-            <CardFooter className="bg-slate-800/30 border-t border-slate-800 p-4 flex gap-3">
-              <Button
-                variant="outline"
-                onClick={handleDecline}
-                className="flex-1 border-slate-700 text-slate-300 hover:bg-slate-800 text-xs"
-              >
-                Decline
-              </Button>
-              <Button
-                onClick={handleAccept}
-                className="flex-1 bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs"
-              >
-                Accept Terms & Commit
-              </Button>
-            </CardFooter>
-          </Card>
-        )}
-      </div>
+          {/* Footer Actions */}
+          <div className="p-6 bg-slate-50/60 dark:bg-slate-900/60 border-t border-slate-100 dark:border-slate-800/80 flex flex-col sm:flex-row gap-3">
+            <Button
+              onClick={handleDecline}
+              variant="outline"
+              className="flex-1 rounded-full text-xs font-semibold py-2.5 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              Decline Invite
+            </Button>
+            <Button
+              onClick={handleAccept}
+              className="flex-1 rounded-full text-xs font-bold py-2.5 bg-[#a3e635] hover:bg-[#8ece28] text-slate-950 shadow-md shadow-[#a3e635]/20"
+            >
+              Accept Terms (Version {invite.termsVersion})
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
-

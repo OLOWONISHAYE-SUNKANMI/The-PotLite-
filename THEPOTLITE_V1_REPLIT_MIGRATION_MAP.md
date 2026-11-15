@@ -261,3 +261,4 @@ Before declaring the migration complete and ready for the youth sports pilot:
 - [ ] Assistance requests default to Organizer-only visibility.
 - [ ] Group votes require written reasons for 'No' votes and enforce post-vote individual acceptance.
 - [ ] Append-only audit log records every transition with actor, role, and terms version.
+

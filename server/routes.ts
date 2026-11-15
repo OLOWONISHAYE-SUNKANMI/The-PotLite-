@@ -15,11 +15,15 @@ import {
   unitProvider,
   feeEngine,
 } from "./modules/payments";
+import { thePotLiteRouter } from "./thepotlite/routes";
 
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
   
+  // ThePotLite V1 Pilot API Routes
+  app.use('/api/v1', thePotLiteRouter);
+
   // API prefix
   const apiPrefix = '/api';
   

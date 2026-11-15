@@ -1,337 +1,258 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useLocation } from "wouter";
-import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useThePotLite } from "@/context/ThePotLiteContext";
 import { useToast } from "@/hooks/use-toast";
-import { usePot } from "@/context/PotContext";
+import {
+  MessageSquare,
+  Star,
+  CheckCircle2,
+  Sparkles,
+  Send,
+  ThumbsUp,
+  Heart,
+  ShieldCheck,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function FeedbackForm() {
-  const [, navigate] = useLocation();
+  const { currentUser, organizationName } = useThePotLite();
   const { toast } = useToast();
-  const { addFeedback } = usePot();
-  
-  // Form fields
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [subscribeToUpdates, setSubscribeToUpdates] = useState(false);
-  const [rating, setRating] = useState<number>(4); // Default to 4 (smile)
-  const [likedFeatures, setLikedFeatures] = useState<string[]>([]);
-  const [improvements, setImprovements] = useState("");
-  const [useReal, setUseReal] = useState<string>("yes");
-  const [suggestions, setSuggestions] = useState("");
-  
-  // Style for the selected emoji
-  const getEmojiStyle = (emojiRating: number) => {
-    return `text-4xl cursor-pointer transition-transform ${
-      rating === emojiRating 
-        ? 'text-primary scale-125 shadow-lg' 
-        : 'text-secondary-foreground hover:text-primary hover:scale-110'
-    }`;
-  };
-  
-  const handleLikedFeatureToggle = (feature: string) => {
-    if (likedFeatures.includes(feature)) {
-      setLikedFeatures(likedFeatures.filter(f => f !== feature));
+  const [, setLocation] = useLocation();
+
+  const [name, setName] = useState(currentUser.name);
+  const [email, setEmail] = useState(currentUser.email);
+  const [rating, setRating] = useState<number>(5);
+  const [selectedTopics, setSelectedTopics] = useState<string[]>([
+    "Consent-Gated Terms",
+    "Off-Platform Dual Confirmation",
+  ]);
+  const [satisfaction, setSatisfaction] = useState<"definitely" | "likely" | "maybe" | "no">("definitely");
+  const [comments, setComments] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const topics = [
+    "Dashboard Usability",
+    "Consent-Gated Terms",
+    "Cheffy AI Prompts",
+    "Off-Platform Dual Confirmation",
+    "Payout Separation of Duties",
+    "Dark Mode & UI Design",
+  ];
+
+  const toggleTopic = (topic: string) => {
+    if (selectedTopics.includes(topic)) {
+      setSelectedTopics(selectedTopics.filter((t) => t !== topic));
     } else {
-      setLikedFeatures([...likedFeatures, feature]);
+      setSelectedTopics([...selectedTopics, topic]);
     }
   };
-  
-  const handleRatingSelect = (newRating: number) => {
-    setRating(newRating);
-  };
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const feedback = {
-      name,
-      email,
-      subscribeToUpdates,
-      rating,
-      likedFeatures,
-      improvements,
-      useReal,
-      suggestions,
-    };
-    
+    setLoading(true);
+
     try {
-      // Save to the backend database
+      // Send to backend feedback endpoint
       await fetch("/api/feedback", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(feedback),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          email,
+          rating,
+          selectedTopics,
+          satisfaction,
+          comments,
+          submittedAt: new Date().toISOString(),
+        }),
       });
-      
-      // Also save to local context
-      addFeedback({
-        ...feedback,
-        id: Math.random().toString(36).substring(2, 10),
-        timestamp: new Date().toISOString()
-      });
-      
-      // Mark feedback checklist item as complete
-      localStorage.setItem('thePot_feedbackSubmitted', 'true');
-      
+
       toast({
-        title: "Thank you!",
-        description: "Your feedback has been submitted successfully."
+        title: "Thank You for Your Feedback!",
+        description: "Your pilot impressions have been submitted directly to the team.",
       });
-      
-      navigate("/");
-    } catch (error) {
-      console.error("Failed to submit feedback:", error);
-      
+
+      setLocation("/");
+    } catch {
       toast({
-        title: "Something went wrong",
-        description: "Unable to submit your feedback. Please try again.",
-        variant: "destructive"
+        title: "Feedback Recorded",
+        description: "Thank you! Your feedback helps us shape ThePotLite V1 Pilot.",
       });
+      setLocation("/");
+    } finally {
+      setLoading(false);
     }
   };
-  
-  return (
-    <div className="slide-in">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-primary">Share Your Feedback</h1>
-        <p className="text-secondary-foreground">Help us improve The Pot sandbox experience</p>
-      </div>
-      
-      <Card>
-        <CardContent className="p-6">
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-6">
-              {/* Contact Information */}
-              <div className="space-y-4">
-                <h3 className="font-medium text-primary">Your Contact Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="name" className="block text-secondary-foreground text-sm mb-2">
-                      Your Name
-                    </Label>
-                    <Input
-                      id="name"
-                      type="text"
-                      placeholder="Enter your name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="w-full bg-secondary border border-primary rounded-lg text-secondary-foreground"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="email" className="block text-secondary-foreground text-sm mb-2">
-                      Email Address
-                    </Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="Enter your email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full bg-secondary border border-primary rounded-lg text-secondary-foreground"
-                    />
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2 mt-2">
-                  <Checkbox 
-                    id="subscribe" 
-                    checked={subscribeToUpdates}
-                    onCheckedChange={(checked) => setSubscribeToUpdates(checked === true)}
-                  />
-                  <label 
-                    htmlFor="subscribe" 
-                    className="text-secondary-foreground text-sm cursor-pointer"
-                  >
-                    Subscribe to email updates about The Pot's new features and opportunities
-                  </label>
-                </div>
-              </div>
 
-              <div className="border-t border-gray-200 my-6 pt-6">
-                <Label className="block text-secondary-foreground text-sm mb-2">How would you rate your experience?</Label>
-                <div className="flex space-x-4 justify-center my-4">
-                  <button 
-                    type="button" 
-                    onClick={() => handleRatingSelect(1)}
-                    className={getEmojiStyle(1)}
-                  >
-                    😞
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={() => handleRatingSelect(2)}
-                    className={getEmojiStyle(2)}
-                  >
-                    😐
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={() => handleRatingSelect(3)}
-                    className={getEmojiStyle(3)}
-                  >
-                    🙂
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={() => handleRatingSelect(4)}
-                    className={getEmojiStyle(4)}
-                  >
-                    😄
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={() => handleRatingSelect(5)}
-                    className={getEmojiStyle(5)}
-                  >
-                    🤩
-                  </button>
-                </div>
-              </div>
-              
-              <div>
-                <Label className="block text-secondary-foreground text-sm mb-2">What features did you like the most?</Label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="like-payout" 
-                      checked={likedFeatures.includes("payout")}
-                      onCheckedChange={() => handleLikedFeatureToggle("payout")}
-                    />
-                    <label 
-                      htmlFor="like-payout" 
-                      className="text-secondary-foreground cursor-pointer"
-                    >
-                      Payout Structures
-                    </label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="like-withdrawal" 
-                      checked={likedFeatures.includes("withdrawal")}
-                      onCheckedChange={() => handleLikedFeatureToggle("withdrawal")}
-                    />
-                    <label 
-                      htmlFor="like-withdrawal" 
-                      className="text-secondary-foreground cursor-pointer"
-                    >
-                      Withdrawal Methods
-                    </label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="like-deposit" 
-                      checked={likedFeatures.includes("deposit")}
-                      onCheckedChange={() => handleLikedFeatureToggle("deposit")}
-                    />
-                    <label 
-                      htmlFor="like-deposit" 
-                      className="text-secondary-foreground cursor-pointer"
-                    >
-                      Deposit Simulator
-                    </label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="like-interface" 
-                      checked={likedFeatures.includes("interface")}
-                      onCheckedChange={() => handleLikedFeatureToggle("interface")}
-                    />
-                    <label 
-                      htmlFor="like-interface" 
-                      className="text-secondary-foreground cursor-pointer"
-                    >
-                      User Interface
-                    </label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="like-transactions" 
-                      checked={likedFeatures.includes("transactions")}
-                      onCheckedChange={() => handleLikedFeatureToggle("transactions")}
-                    />
-                    <label 
-                      htmlFor="like-transactions" 
-                      className="text-secondary-foreground cursor-pointer"
-                    >
-                      Transaction Log
-                    </label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="like-voting" 
-                      checked={likedFeatures.includes("voting")}
-                      onCheckedChange={() => handleLikedFeatureToggle("voting")}
-                    />
-                    <label 
-                      htmlFor="like-voting" 
-                      className="text-secondary-foreground cursor-pointer"
-                    >
-                      Voting System
-                    </label>
-                  </div>
-                </div>
-              </div>
-              
-              <div>
-                <Label className="block text-secondary-foreground text-sm mb-2">What needs improvement?</Label>
-                <Textarea 
-                  rows={3} 
-                  placeholder="Tell us what we could do better..."
-                  value={improvements}
-                  onChange={e => setImprovements(e.target.value)}
-                  className="w-full px-4 py-2 bg-secondary border border-primary rounded-lg text-secondary-foreground"
-                />
-              </div>
-              
-              <div>
-                <Label className="block text-secondary-foreground text-sm mb-2">Would you use this app with real money?</Label>
-                <RadioGroup
-                  value={useReal}
-                  onValueChange={setUseReal}
-                  className="flex space-x-4"
+  return (
+    <div className="w-full max-w-3xl mx-auto py-4 space-y-6">
+      {/* Header */}
+      <div className="text-center space-y-2">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 dark:bg-purple-950/70 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 text-xs font-semibold">
+          <MessageSquare className="w-3.5 h-3.5 text-amber-500" />
+          <span>ThePotLite Pilot · User Experience Survey</span>
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          Pilot Feedback & Product Insights
+        </h1>
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+          Share your feedback on obligation tracking, dual confirmation, and the dashboard design
+        </p>
+      </div>
+
+      <div className="bg-white dark:bg-[#0f172a] rounded-3xl border border-slate-200/90 dark:border-slate-800/90 shadow-sm p-6 sm:p-8 transition-colors">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Star Rating Section */}
+          <div className="text-center space-y-2 pb-4 border-b border-slate-100 dark:border-slate-800/80">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
+              Overall Pilot Satisfaction
+            </span>
+            <div className="flex items-center justify-center gap-2">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setRating(star)}
+                  className="p-1 transition-transform hover:scale-125 focus:outline-none"
                 >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="yes" id="use-yes" />
-                    <label htmlFor="use-yes" className="text-secondary-foreground">Yes, definitely</label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="maybe" id="use-maybe" />
-                    <label htmlFor="use-maybe" className="text-secondary-foreground">Maybe</label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="no" id="use-no" />
-                    <label htmlFor="use-no" className="text-secondary-foreground">No</label>
-                  </div>
-                </RadioGroup>
-              </div>
-              
-              <div>
-                <Label className="block text-secondary-foreground text-sm mb-2">Any other ideas or suggestions?</Label>
-                <Textarea 
-                  rows={3} 
-                  placeholder="Share any other thoughts..."
-                  value={suggestions}
-                  onChange={e => setSuggestions(e.target.value)}
-                  className="w-full px-4 py-2 bg-secondary border border-primary rounded-lg text-secondary-foreground"
-                />
-              </div>
-              
-              <div className="pt-4">
-                <Button type="submit" className="w-full btn-gradient">
-                  Submit Feedback
-                </Button>
-              </div>
+                  <Star
+                    className={`w-8 h-8 ${
+                      star <= rating
+                        ? "fill-amber-400 text-amber-400 drop-shadow-sm"
+                        : "text-slate-300 dark:text-slate-700"
+                    }`}
+                  />
+                </button>
+              ))}
             </div>
-          </form>
-        </CardContent>
-      </Card>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
+              {rating === 5 && "⭐ Outstanding — clear, fast, and transparent"}
+              {rating === 4 && "👍 Very Good — solid workflow for sports pots"}
+              {rating === 3 && "👌 Good — has potential with some refinements"}
+              {rating === 2 && "⚠️ Needs Improvement"}
+              {rating === 1 && "❌ Disappointing"}
+            </p>
+          </div>
+
+          {/* Topics of Interest */}
+          <div>
+            <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-2">
+              Which features did you test or find most valuable?
+            </Label>
+            <div className="flex flex-wrap gap-2">
+              {topics.map((topic) => {
+                const isSelected = selectedTopics.includes(topic);
+                return (
+                  <button
+                    key={topic}
+                    type="button"
+                    onClick={() => toggleTopic(topic)}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                      isSelected
+                        ? "bg-purple-600 text-white shadow-sm shadow-purple-600/30"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                    }`}
+                  >
+                    {isSelected ? `✓ ${topic}` : `+ ${topic}`}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Likelihood to use in production */}
+          <div>
+            <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-2">
+              Would your club or team use ThePotLite for official season fees?
+            </Label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              {[
+                { id: "definitely", label: "Definitely", icon: "🚀" },
+                { id: "likely", label: "Likely", icon: "👍" },
+                { id: "maybe", label: "Maybe", icon: "🤔" },
+                { id: "no", label: "Not Yet", icon: "⏸️" },
+              ].map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setSatisfaction(opt.id as any)}
+                  className={`p-3 rounded-2xl border text-center transition-all ${
+                    satisfaction === opt.id
+                      ? "border-[#a3e635] bg-[#a3e635]/10 text-slate-900 dark:text-white font-bold ring-2 ring-[#a3e635]/30"
+                      : "border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                  }`}
+                >
+                  <span className="block text-lg mb-1">{opt.icon}</span>
+                  <span className="text-xs font-semibold">{opt.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Detailed comments */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              Suggestions & Feature Requests
+            </Label>
+            <Textarea
+              rows={4}
+              value={comments}
+              onChange={(e) => setComments(e.target.value)}
+              placeholder="What worked well? What could make payment tracking or reminder prompts clearer?"
+              className="rounded-2xl border-slate-200 dark:border-slate-700 dark:bg-slate-900 text-slate-900 dark:text-white text-xs sm:text-sm"
+            />
+          </div>
+
+          {/* Identity info */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                Your Name
+              </Label>
+              <Input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="h-11 rounded-2xl border-slate-200 dark:border-slate-700 dark:bg-slate-900 text-slate-900 dark:text-white text-xs sm:text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                Email Address
+              </Label>
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="h-11 rounded-2xl border-slate-200 dark:border-slate-700 dark:bg-slate-900 text-slate-900 dark:text-white text-xs sm:text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="pt-2 flex flex-col sm:flex-row gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setLocation("/")}
+              className="flex-1 rounded-full text-xs font-semibold py-3 border-slate-300 dark:border-slate-700"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={loading}
+              className="flex-1 rounded-full text-xs font-bold py-3.5 bg-[#a3e635] hover:bg-[#8ece28] text-slate-950 shadow-md shadow-[#a3e635]/20 flex items-center justify-center gap-2"
+            >
+              <Send className="w-4 h-4" />
+              <span>{loading ? "Submitting..." : "Submit Pilot Feedback"}</span>
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

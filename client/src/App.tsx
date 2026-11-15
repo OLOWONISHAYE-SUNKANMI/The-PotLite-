@@ -11,9 +11,12 @@ import { ThePotLiteOrganizerDashboard } from "./pages/ThePotLiteOrganizerDashboa
 import { ThePotLiteMemberDashboard } from "./pages/ThePotLiteMemberDashboard";
 import { ThePotLiteInviteLanding } from "./pages/ThePotLiteInviteLanding";
 import { ThePotLiteAuditLog } from "./pages/ThePotLiteAuditLog";
+import { ThePotLiteLogin } from "./pages/ThePotLiteLogin";
+import { ThePotLiteRegister } from "./pages/ThePotLiteRegister";
+import { ThePotLiteTwoFactor } from "./pages/ThePotLiteTwoFactor";
 import CreatePot from "./pages/CreatePot";
 import FeedbackForm from "./pages/FeedbackForm";
-import PotDashboard from "./pages/PotDashboard";
+import ThePotLiteLegacyArchive from "./pages/ThePotLiteLegacyArchive";
 import NotFound from "./pages/not-found";
 
 function ThePotLiteHome() {
@@ -36,7 +39,13 @@ function AppRouter() {
       <Route path="/audit" component={ThePotLiteAuditLog} />
       <Route path="/create" component={CreatePot} />
       <Route path="/feedback" component={FeedbackForm} />
-      <Route path="/legacy" component={PotDashboard} />
+      <Route path="/legacy" component={ThePotLiteLegacyArchive} />
+
+      {/* Authentication Pages */}
+      <Route path="/login" component={ThePotLiteLogin} />
+      <Route path="/register" component={ThePotLiteRegister} />
+      <Route path="/auth/2fa" component={ThePotLiteTwoFactor} />
+
       <Route component={NotFound} />
     </Switch>
   );

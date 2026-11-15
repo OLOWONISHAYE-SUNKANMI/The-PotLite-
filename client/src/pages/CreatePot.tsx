@@ -1,1135 +1,421 @@
-import { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useLocation } from "wouter";
-import { usePot } from "@/context/PotContext";
-import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Separator } from "@/components/ui/separator";
+import { useThePotLite } from "@/context/ThePotLiteContext";
 import { useToast } from "@/hooks/use-toast";
-import { generateId } from "@/lib/utils";
-import { FaPlus, FaTimes, FaCoins, FaUtensils, FaCaretDown, FaUserPlus, FaInfo, FaCheck, FaTimes as FaTimesIcon, FaDollarSign, FaWindowClose } from "react-icons/fa";
-import { Info } from "lucide-react";
+import {
+  ShieldCheck,
+  Plus,
+  Trash2,
+  Calendar,
+  DollarSign,
+  Users,
+  CheckCircle2,
+  ArrowRight,
+  Info,
+  Clock,
+  Sparkles,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
-type Member = {
-  id: string;
-  contact: string;
-};
-
-export default function CreatePot() {
-  const { addPot } = usePot();
-  const [, navigate] = useLocation();
+export const CreatePot: React.FC = () => {
+  const { currentUser, organizationName } = useThePotLite();
   const { toast } = useToast();
-  
-  // Basic information state
-  const [selectedUseCase, setSelectedUseCase] = useState<string>("");
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [goalAmount, setGoalAmount] = useState<number>(500);
-  const [payoutStructure, setPayoutStructure] = useState<"one-to-many" | "many-to-one" | "many-to-selected">("one-to-many");
-  const [withdrawalMethod, setWithdrawalMethod] = useState<"democratic" | "admin" | "timed" | "auto-withdraw">("democratic");
-  const [voteThreshold, setVoteThreshold] = useState<string>("75");
-  const [releaseDate, setReleaseDate] = useState<string>("");
-  
-  // Section dropdown states
-  const [basicInfoOpen, setBasicInfoOpen] = useState<boolean>(false);
-  const [payoutStructureOpen, setPayoutStructureOpen] = useState<boolean>(false);
-  const [withdrawalMethodOpen, setWithdrawalMethodOpen] = useState<boolean>(false);
-  const [inviteMembersOpen, setInviteMembersOpen] = useState<boolean>(false);
-  
-  // Member management state
-  const [memberInput, setMemberInput] = useState("");
-  const [members, setMembers] = useState<Member[]>([
-    // Admin is included by default
-    { id: "admin-user", contact: "admin@thepot.com" }
+  const [, setLocation] = useLocation();
+
+  // Pilot Pot Types
+  const potTypes = [
+    { id: "season fee", label: "Season Fee", icon: "⚽", desc: "Registration, field fees, league entry" },
+    { id: "tournament", label: "Tournament", icon: "🏆", desc: "State Cup, showcase entry & ref fees" },
+    { id: "uniforms and gear", label: "Uniforms & Gear", icon: "👕", desc: "Jerseys, practice kits, training gear" },
+    { id: "travel", label: "Travel", icon: "🚌", desc: "Team bus, hotel blocks, away games" },
+    { id: "fundraiser", label: "Fundraiser", icon: "🎯", desc: "Equipment drive, club donation match" },
+    { id: "other", label: "Other", icon: "📋", desc: "Custom club expense or team event" },
+  ];
+
+  const [selectedType, setSelectedType] = useState<string>("tournament");
+  const [name, setName] = useState("State Cup Tournament & Travel");
+  const [description, setDescription] = useState(
+    "Referee fees, official tournament entry registration, and team bench shelter."
+  );
+  const [goalAmount, setGoalAmount] = useState("2400.00");
+  const [perMemberAmount, setPerMemberAmount] = useState("200.00");
+  const [expectedMembers, setExpectedMembers] = useState("12");
+
+  // Installments state
+  const [installments, setInstallments] = useState<
+    Array<{ num: number; amount: string; dueDate: string }>
+  >([
+    { num: 1, amount: "100.00", dueDate: "2026-10-15" },
+    { num: 2, amount: "100.00", dueDate: "2026-11-18" },
   ]);
-  const [recentMembers] = useState<string[]>(["john@example.com", "sarah@example.com", "mike@example.com", "alex@example.com"]);
-  const [memberContributions, setMemberContributions] = useState<Record<string, number>>({});
-  const [memberPayouts, setMemberPayouts] = useState<Record<string, number>>({});
-  
-  // UI states
-  const [potCreationError, setPotCreationError] = useState<string>("");
-  const [equalSplit, setEqualSplit] = useState<boolean | null>(null);
-  const [contributionMethod, setContributionMethod] = useState<"individual" | "just-reach-goal" | null>(null);
-  const [missingContributions, setMissingContributions] = useState<boolean>(false);
-  const [pulsingInputs, setPulsingInputs] = useState<boolean>(false);
-  const [showConfirmation, setShowConfirmation] = useState<boolean>(false);
-  
-  // Auto-open sections when a use case is selected
-  useEffect(() => {
-    if (selectedUseCase) {
-      setBasicInfoOpen(true);
-      setPayoutStructureOpen(true);
-      setWithdrawalMethodOpen(true);
-      setInviteMembersOpen(true);
-    }
-  }, [selectedUseCase]);
-  
-  // Update contribution amounts when equal split is selected
-  useEffect(() => {
-    if (equalSplit === true && Object.keys(memberContributions).length > 0) {
-      const contributingMembers = Object.keys(memberContributions);
-      const amountPerMember = Math.ceil(goalAmount / contributingMembers.length);
-      
-      const updatedContributions = { ...memberContributions };
-      contributingMembers.forEach(member => {
-        updatedContributions[member] = amountPerMember;
-      });
-      
-      setMemberContributions(updatedContributions);
-    }
-  }, [equalSplit, goalAmount, memberContributions]);
-  
-  // Set allowed withdrawal methods based on payout structure
-  useEffect(() => {
-    // Reset withdrawal method if current one isn't allowed for the selected payout structure
-    if (payoutStructure === "one-to-many") {
-      if (withdrawalMethod === "admin") {
-        setWithdrawalMethod("democratic");
-      }
-    } else if (payoutStructure === "many-to-one") {
-      if (withdrawalMethod === "admin" || withdrawalMethod === "democratic") {
-        setWithdrawalMethod("timed");
-      }
-    } else if (payoutStructure === "many-to-selected") {
-      if (withdrawalMethod === "admin" || withdrawalMethod === "timed") {
-        setWithdrawalMethod("democratic");
-      }
-    }
-  }, [payoutStructure, withdrawalMethod]);
-  
-  // Handle pulsing animation for missing contribution inputs
-  useEffect(() => {
-    if (pulsingInputs) {
-      const timer = setTimeout(() => {
-        setPulsingInputs(false);
-      }, 3000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [pulsingInputs]);
-  
-  const handleAddMember = () => {
-    if (!memberInput.trim()) return;
-    
-    // Check if member already exists
-    if (members.some(m => m.contact === memberInput.trim())) {
+
+  const [loading, setLoading] = useState(false);
+
+  const addInstallment = () => {
+    if (installments.length >= 4) {
       toast({
-        title: "Member already exists",
-        description: "This contact has already been added",
-        variant: "destructive",
+        title: "Max Installments Reached",
+        description: "V1 Pilot supports up to 4 installments per pot.",
       });
       return;
     }
-    
-    const newMember = {
-      id: generateId(),
-      contact: memberInput.trim(),
-    };
-    
-    setMembers([...members, newMember]);
-    setMemberInput("");
+    const nextNum = installments.length + 1;
+    setInstallments([
+      ...installments,
+      { num: nextNum, amount: "50.00", dueDate: "2026-12-15" },
+    ]);
   };
-  
-  const handleAddRecentMember = (contact: string) => {
-    // Check if this member is already added
-    if (members.some(m => m.contact === contact)) {
+
+  const removeInstallment = (index: number) => {
+    if (installments.length <= 1) {
       toast({
-        title: "Member already exists",
-        description: "This contact has already been added",
-        variant: "destructive",
+        title: "Minimum Required",
+        description: "A pot must have at least one scheduled installment.",
       });
       return;
     }
-    
-    const newMember = {
-      id: generateId(),
-      contact,
-    };
-    
-    setMembers([...members, newMember]);
-  };
-  
-  const handleRemoveMember = (id: string) => {
-    // Don't allow removing the admin
-    if (id === "admin-user") {
-      toast({
-        title: "Cannot Remove Admin",
-        description: "The admin must remain a member of the pot.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setMembers(members.filter(member => member.id !== id));
-    
-    // Also remove any contributions or payouts for this member
-    const member = members.find(m => m.id === id);
-    if (member) {
-      const updatedContributions = { ...memberContributions };
-      const updatedPayouts = { ...memberPayouts };
-      
-      delete updatedContributions[member.contact];
-      delete updatedPayouts[member.contact];
-      
-      setMemberContributions(updatedContributions);
-      setMemberPayouts(updatedPayouts);
-    }
-  };
-  
-  const toggleMemberContribution = (contact: string) => {
-    const updatedContributions = { ...memberContributions };
-    
-    if (updatedContributions[contact] !== undefined) {
-      // If contribution exists, remove it (deselect)
-      delete updatedContributions[contact];
-      setEqualSplit(null); // Reset equal split when changing contributors
-    } else {
-      // If no contribution, add it with default value (select)
-      updatedContributions[contact] = 0; // Default value, will be updated with input
-    }
-    
-    setMemberContributions(updatedContributions);
-  };
-  
-  const setMemberContributionAmount = (contact: string, amount: number) => {
-    setMemberContributions({
-      ...memberContributions,
-      [contact]: amount
-    });
-    
-    // If user manually enters an amount, we're no longer doing equal split
-    if (equalSplit) {
-      setEqualSplit(false);
-    }
-  };
-  
-  const toggleMemberPayout = (contact: string) => {
-    const updatedPayouts = { ...memberPayouts };
-    
-    if (updatedPayouts[contact] !== undefined) {
-      // If payout exists, remove it (deselect)
-      delete updatedPayouts[contact];
-    } else {
-      // Check for Many-to-One rule: only one recipient allowed
-      if (payoutStructure === "many-to-one" && Object.keys(memberPayouts).length > 0) {
-        toast({
-          title: "Error",
-          description: "Only one recipient is allowed with Many-to-One payout structure.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Check for Many-to-Selected rule: cannot select all members
-      if (payoutStructure === "many-to-selected" && Object.keys(updatedPayouts).length >= members.length - 1) {
-        toast({
-          title: "Error",
-          description: "At least one member must be left without payout in Many-to-Selected structure.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // If no payout, add it with default value (select)
-      updatedPayouts[contact] = 0; // Default value, will be updated with input
-    }
-    
-    setMemberPayouts(updatedPayouts);
-  };
-  
-  const setMemberPayoutAmount = (contact: string, amount: number) => {
-    setMemberPayouts({
-      ...memberPayouts,
-      [contact]: amount
-    });
-  };
-  
-  const handleEqualSplit = (split: boolean) => {
-    setEqualSplit(split);
-    
-    if (split && Object.keys(memberContributions).length > 0) {
-      // Calculate equal split automatically
-      const contributingMembers = Object.keys(memberContributions);
-      const amountPerMember = Math.ceil(goalAmount / contributingMembers.length);
-      
-      const updatedContributions = { ...memberContributions };
-      contributingMembers.forEach(member => {
-        updatedContributions[member] = amountPerMember;
-      });
-      
-      setMemberContributions(updatedContributions);
-    }
-  };
-  
-  const getContributingMembersCount = () => {
-    return Object.keys(memberContributions).length;
-  };
-  
-  const platformFeeRate = 0.02;
-  const platformFee = Math.round(goalAmount * platformFeeRate * 100) / 100;
-  const totalPotTarget = goalAmount + platformFee;
-
-  const getPayoutStructureLabel = (ps: string) => {
-    switch (ps) {
-      case "one-to-many": return "One-to-Many";
-      case "many-to-one": return "Many-to-One";
-      case "many-to-selected": return "Many-to-Selected";
-      default: return ps;
-    }
+    const updated = installments
+      .filter((_, idx) => idx !== index)
+      .map((item, idx) => ({ ...item, num: idx + 1 }));
+    setInstallments(updated);
   };
 
-  const getWithdrawalMethodLabel = (wm: string) => {
-    switch (wm) {
-      case "democratic": return "Democratic Vote";
-      case "admin": return "Admin Approval";
-      case "timed": return "Timed Release";
-      case "auto-withdraw": return "Auto-Withdraw";
-      default: return wm;
-    }
+  const handleInstallmentChange = (
+    index: number,
+    field: "amount" | "dueDate",
+    value: string
+  ) => {
+    const updated = [...installments];
+    updated[index][field] = value;
+    setInstallments(updated);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    setPotCreationError("");
-    setMissingContributions(false);
-    setPulsingInputs(false);
-    
-    if (!selectedUseCase) {
-      toast({ title: "Error", description: "Please select a use case first", variant: "destructive" });
+    if (!name || !goalAmount) {
+      toast({
+        title: "Missing Information",
+        description: "Please provide a pot title and total goal amount.",
+        variant: "destructive",
+      });
       return;
     }
-    
-    if (!name) {
-      toast({ title: "Error", description: "Please enter a pot name", variant: "destructive" });
-      return;
+
+    setLoading(true);
+    try {
+      // Send to API
+      const res = await fetch("/api/v1/pots", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          organizationId: 1,
+          teamId: 1,
+          name,
+          potType: selectedType,
+          description,
+          goalAmount,
+          currency: "USD",
+          installments: installments.map((i) => ({
+            installmentNumber: i.num,
+            amount: i.amount,
+            dueDate: new Date(i.dueDate).toISOString(),
+          })),
+        }),
+      });
+
+      toast({
+        title: "Pot Initialized Successfully!",
+        description: `"${name}" created with Human Rules v1 and ready for parent invitations.`,
+      });
+
+      setLocation("/");
+    } catch (err: any) {
+      toast({
+        title: "Pot Created (Demo Mode)",
+        description: `"${name}" configured for ${organizationName}.`,
+      });
+      setLocation("/");
+    } finally {
+      setLoading(false);
     }
-    
-    if (goalAmount <= 0) {
-      toast({ title: "Error", description: "Goal amount must be greater than zero", variant: "destructive" });
-      return;
-    }
-    
-    if (withdrawalMethod === "timed" && !releaseDate) {
-      toast({ title: "Error", description: "Please select a release date for the timed withdrawal", variant: "destructive" });
-      return;
-    }
-    
-    setShowConfirmation(true);
   };
 
-  const handleCreatePot = () => {
-    const contributingMembers = Object.keys(memberContributions);
-    if (contributingMembers.length > 0 && contributionMethod !== "just-reach-goal") {
-      if (equalSplit === null && contributionMethod === null) {
-        toast({ title: "Missing Info", description: "Please select a contribution method for the contributing members", variant: "destructive" });
-        return;
-      }
-      
-      const missingAmount = contributingMembers.some(member => 
-        memberContributions[member] === 0 || memberContributions[member] === undefined
-      );
-      
-      if (missingAmount && (equalSplit === true || contributionMethod === "individual")) {
-        toast({ title: "Error", description: "Please enter contribution amounts for all contributing members", variant: "destructive" });
-        setPulsingInputs(true);
-        return;
-      }
-    }
-    
-    if (payoutStructure === "many-to-one" && Object.keys(memberPayouts).length !== 1) {
-      toast({ title: "Error", description: "Many-to-One structure requires exactly one recipient", variant: "destructive" });
-      return;
-    }
-    
-    if (payoutStructure === "many-to-selected" && Object.keys(memberPayouts).length >= members.length) {
-      toast({ title: "Error", description: "Many-to-Selected requires at least one non-recipient member", variant: "destructive" });
-      return;
-    }
-    let potRecipients: string[] = [];
-    
-    if (Object.keys(memberPayouts).length > 0) {
-      potRecipients = Object.keys(memberPayouts);
-    } else {
-      potRecipients = payoutStructure === "one-to-many" 
-        ? members.map(m => m.contact)
-        : payoutStructure === "many-to-one"
-          ? ["Sarah"]
-          : ["Selected Members"];
-    }
-    
-    const newPot = {
-      id: generateId(),
-      name,
-      description,
-      goalAmount,
-      currentBalance: 0,
-      payoutStructure,
-      withdrawalMethod,
-      voteThreshold: withdrawalMethod === "democratic" ? parseFloat(voteThreshold) : undefined,
-      releaseDate: withdrawalMethod === "timed" ? releaseDate : undefined,
-      creator: "admin@thepot.com",
-      createdBy: "admin@thepot.com",
-      members: members.map(m => m.contact),
-      recipients: potRecipients,
-      memberContributions: Object.keys(memberContributions).length > 0 ? memberContributions : undefined,
-      memberPayouts: Object.keys(memberPayouts).length > 0 ? memberPayouts : undefined,
-      contributionMethod: (contributionMethod === 'individual' ? 'individual-contribution' : 
-                       contributionMethod === 'just-reach-goal' ? 'just-reach-goal' : 
-                       'equal-split') as 'equal-split' | 'individual-contribution' | 'just-reach-goal',
-      createdAt: new Date().toISOString(),
-      status: 'active' as const
-    };
-    
-    addPot(newPot);
-    setShowConfirmation(false);
-    
-    toast({
-      title: "Success",
-      description: "Pot created successfully!",
-    });
-    
-    navigate("/");
-  };
-  
   return (
-    <div className="slide-in">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-primary">Create a New Pot</h1>
-        <p className="text-secondary-foreground">Set up your group savings with customized rules</p>
+    <div className="w-full max-w-4xl mx-auto py-4 space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 dark:bg-purple-950/70 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 text-xs font-semibold mb-2">
+            <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
+            <span>ThePotLite Pilot · Human Rules Engine</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            Create a New Pilot Pot
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            Set up an expense target, configure installment schedules, and invite team parents
+          </p>
+        </div>
+
+        <div className="p-3 rounded-2xl bg-white dark:bg-[#0f172a] border border-slate-200/90 dark:border-slate-800/90 text-right shadow-sm hidden sm:block">
+          <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+            Organization
+          </span>
+          <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+            {organizationName}
+          </span>
+        </div>
       </div>
-      
-      <Card>
-        <CardContent className="p-6">
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-6">
-              {/* Select Use Case */}
-              <div>
-                <h2 className="text-xl font-bold text-primary mb-4">Select Use</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div 
-                    className={`bg-secondary rounded-lg p-4 cursor-pointer transition-all ${selectedUseCase === "bills-rent" ? "border-2 border-primary" : "border border-primary/30"}`}
-                    onClick={() => setSelectedUseCase("bills-rent")}
-                  >
-                    <div className="font-medium text-primary">Bills/Rent</div>
-                    <p className="text-sm text-secondary-foreground mt-1">Pay Group Shared Netflix Bill; Accumulate Shared Rental Payment in One Place!</p>
-                  </div>
-                  
-                  <div 
-                    className={`bg-secondary rounded-lg p-4 cursor-pointer transition-all ${selectedUseCase === "trip-planning" ? "border-2 border-primary" : "border border-primary/30"}`}
-                    onClick={() => setSelectedUseCase("trip-planning")}
-                  >
-                    <div className="font-medium text-primary">Trip Planning</div>
-                    <p className="text-sm text-secondary-foreground mt-1">Save for a Group trip Together; Manage Splitting Payments Amongst Each Other!</p>
-                  </div>
-                  
-                  <div 
-                    className={`bg-secondary rounded-lg p-4 cursor-pointer transition-all ${selectedUseCase === "gift-collaboration" ? "border-2 border-primary" : "border border-primary/30"}`}
-                    onClick={() => setSelectedUseCase("gift-collaboration")}
-                  >
-                    <div className="font-medium text-primary">Gift Collaboration</div>
-                    <p className="text-sm text-secondary-foreground mt-1">Collectively pay someone; Save Together to buy a Gift!</p>
-                  </div>
-                  
-                  <div 
-                    className={`bg-secondary rounded-lg p-4 cursor-pointer transition-all ${selectedUseCase === "event-fundraiser" ? "border-2 border-primary" : "border border-primary/30"}`}
-                    onClick={() => setSelectedUseCase("event-fundraiser")}
-                  >
-                    <div className="font-medium text-primary">Event Fundraiser</div>
-                    <p className="text-sm text-secondary-foreground mt-1">Contribute to Hosting an Event all in one place!</p>
-                  </div>
-                  
-                  <div 
-                    className={`bg-secondary rounded-lg p-4 cursor-pointer transition-all ${selectedUseCase === "team-club-dues" ? "border-2 border-primary" : "border border-primary/30"}`}
-                    onClick={() => setSelectedUseCase("team-club-dues")}
-                  >
-                    <div className="font-medium text-primary">Team/Club Dues</div>
-                    <p className="text-sm text-secondary-foreground mt-1">Collect Team Dues with Ease!</p>
-                  </div>
-                  
-                  <div 
-                    className={`bg-secondary rounded-lg p-4 cursor-pointer transition-all ${selectedUseCase === "custom-pot" ? "border-2 border-primary" : "border border-primary/30"}`}
-                    onClick={() => setSelectedUseCase("custom-pot")}
-                  >
-                    <div className="font-medium text-primary">Custom Pot</div>
-                    <p className="text-sm text-secondary-foreground mt-1">Combine Funds Together, Distribute However!</p>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Basic Pot Information */}
-              <div className={selectedUseCase ? "border rounded-lg overflow-hidden" : "opacity-50 pointer-events-none border rounded-lg overflow-hidden"}>
-                <div 
-                  className="bg-secondary p-4 cursor-pointer flex justify-between items-center"
-                  onClick={() => selectedUseCase ? setBasicInfoOpen(!basicInfoOpen) : null}
-                >
-                  <h2 className="text-xl font-bold text-primary">Basic Information</h2>
-                  <div className="text-primary">
-                    {selectedUseCase ? (basicInfoOpen ? "▲" : "▼") : "▼"}
-                  </div>
-                </div>
-                
-                {selectedUseCase && basicInfoOpen && (
-                  <div className="p-4 space-y-4 border-t">
-                    <div>
-                      <Label className="block text-secondary-foreground text-sm mb-2">Pot Name</Label>
-                      <Input 
-                        type="text" 
-                        placeholder="e.g., Weekend Trip Fund" 
-                        value={name}
-                        onChange={e => setName(e.target.value)}
-                        className="bg-secondary border border-primary text-secondary-foreground"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label className="block text-secondary-foreground text-sm mb-2">Description</Label>
-                      <Textarea 
-                        placeholder="What is this Pot for?" 
-                        rows={3}
-                        value={description}
-                        onChange={e => setDescription(e.target.value)}
-                        className="bg-secondary border border-primary text-secondary-foreground"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label className="block text-secondary-foreground text-sm mb-2">Target Goal (Dummy Coins)</Label>
-                      <div className="relative">
-                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-secondary-foreground">₡</span>
-                        <Input 
-                          type="number" 
-                          placeholder="0" 
-                          min="1"
-                          value={goalAmount}
-                          onChange={e => setGoalAmount(Number(e.target.value))}
-                          className="pl-8 bg-secondary border border-primary text-secondary-foreground"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              {/* Payout Structure */}
-              <div className={selectedUseCase ? "border rounded-lg overflow-hidden mt-4" : "opacity-50 pointer-events-none border rounded-lg overflow-hidden mt-4"}>
-                <div 
-                  className="bg-secondary p-4 cursor-pointer flex justify-between items-center"
-                  onClick={() => selectedUseCase ? setPayoutStructureOpen(!payoutStructureOpen) : null}
-                >
-                  <h2 className="text-xl font-bold text-primary">Payout Structure</h2>
-                  <div className="text-primary">
-                    {selectedUseCase ? (payoutStructureOpen ? "▲" : "▼") : "▼"}
-                  </div>
-                </div>
-                
-                {selectedUseCase && payoutStructureOpen && (
-                  <div className="p-4 border-t">
-                    <RadioGroup 
-                      value={payoutStructure} 
-                      onValueChange={(value) => setPayoutStructure(value as any)}
-                      className="space-y-4"
-                    >
-                      <div className={`bg-secondary rounded-lg p-4 ${payoutStructure === "one-to-many" ? "border-2 border-primary" : ""}`}>
-                        <div className="flex items-start">
-                          <RadioGroupItem value="one-to-many" id="one-to-many" className="mt-1" />
-                          <div className="ml-3">
-                            <Label htmlFor="one-to-many" className="font-medium text-primary">One-to-Many</Label>
-                            <p className="text-sm text-secondary-foreground">One user deposits funds that will be distributed to all members</p>
-                            <p className="text-xs text-secondary-foreground mt-1">Example: club leader distributing budgets, parent giving allowances</p>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className={`bg-secondary rounded-lg p-4 ${payoutStructure === "many-to-one" ? "border-2 border-primary" : ""}`}>
-                        <div className="flex items-start">
-                          <RadioGroupItem value="many-to-one" id="many-to-one" className="mt-1" />
-                          <div className="ml-3">
-                            <Label htmlFor="many-to-one" className="font-medium text-primary">Many-to-One</Label>
-                            <p className="text-sm text-secondary-foreground">Multiple users deposit funds for one recipient</p>
-                            <p className="text-xs text-secondary-foreground mt-1">Example: gift collection, emergency fund for a friend</p>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className={`bg-secondary rounded-lg p-4 ${payoutStructure === "many-to-selected" ? "border-2 border-primary" : ""}`}>
-                        <div className="flex items-start">
-                          <RadioGroupItem value="many-to-selected" id="many-to-selected" className="mt-1" />
-                          <div className="ml-3">
-                            <Label htmlFor="many-to-selected" className="font-medium text-primary">Many-to-Selected</Label>
-                            <p className="text-sm text-secondary-foreground">Multiple users deposit funds that will be distributed to select members</p>
-                            <p className="text-xs text-secondary-foreground mt-1">Example: group trip where only some members need financial support</p>
-                          </div>
-                        </div>
-                      </div>
-                    </RadioGroup>
-                  </div>
-                )}
-              </div>
-              
-              {/* Removed Withdrawal Approval Methods section - moved to Invite Members */}
-              
-              {/* Invite Members */}
-              <div className={selectedUseCase ? "border rounded-lg overflow-hidden mt-4" : "opacity-50 pointer-events-none border rounded-lg overflow-hidden mt-4"}>
-                <div 
-                  className="bg-secondary p-4 cursor-pointer flex justify-between items-center"
-                  onClick={() => selectedUseCase ? setInviteMembersOpen(!inviteMembersOpen) : null}
-                >
-                  <h2 className="text-xl font-bold text-primary flex items-center">
-                    Invite Members
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="ghost" size="sm" className="ml-2 h-6 w-6 rounded-full p-0">
-                            <FaInfo className="h-3 w-3 text-primary" />
-                            <span className="sr-only">Member Settings Info</span>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Configure who contributes and receives payouts from this Pot</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </h2>
-                  <div className="text-primary">
-                    {selectedUseCase ? (inviteMembersOpen ? "▲" : "▼") : "▼"}
-                  </div>
-                </div>
-                
-                {selectedUseCase && inviteMembersOpen && (
-                  <div className="p-4 border-t">
-                    <div className="space-y-4">
-                      <div className="flex flex-col md:flex-row gap-2">
-                        <div className="flex flex-1">
-                          <Input 
-                            type="text" 
-                            placeholder="Email or phone number" 
-                            value={memberInput}
-                            onChange={e => setMemberInput(e.target.value)}
-                            className="flex-grow rounded-r-none bg-secondary border border-primary text-secondary-foreground"
-                          />
-                          <Button 
-                            type="button" 
-                            onClick={handleAddMember}
-                            className="rounded-l-none btn-gradient"
-                          >
-                            <FaPlus className="mr-2" /> Add
-                          </Button>
-                        </div>
-                        
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button variant="outline" className="bg-secondary border border-primary text-secondary-foreground">
-                              <FaUserPlus className="mr-2" /> Recent Members <FaCaretDown className="ml-2" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-56 p-0">
-                            <div className="bg-secondary border border-primary rounded-md overflow-hidden">
-                              {recentMembers.map(contact => (
-                                <Button
-                                  key={contact}
-                                  variant="ghost"
-                                  className="w-full justify-start rounded-none border-b border-primary/10 text-sm p-3"
-                                  onClick={() => handleAddRecentMember(contact)}
-                                >
-                                  {contact}
-                                </Button>
-                              ))}
-                            </div>
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                      
-                      {/* Member List */}
-                      {members.length > 0 && (
-                        <div className="bg-secondary rounded-lg p-4">
-                          <div className="flex items-center justify-between mb-4">
-                            <h3 className="font-medium text-primary">Added Members</h3>
-                            <span className="text-xs text-muted-foreground">{members.length} member{members.length !== 1 ? 's' : ''}</span>
-                          </div>
-                          
-                          <div className="space-y-2">
-                            {members.map(member => (
-                              <div key={member.id} className="flex items-center justify-between bg-background/50 rounded-lg px-3 py-2">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm text-secondary-foreground">{member.contact}</span>
-                                  {member.id === "admin-user" && <span className="text-amber-400">👑</span>}
-                                </div>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleRemoveMember(member.id)}
-                                  className="text-destructive hover:bg-destructive/10 hover:text-destructive p-1.5 h-8 w-8"
-                                  disabled={member.id === "admin-user"}
-                                >
-                                  <FaTimes size={14} />
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                          
-                          <p className="text-xs text-muted-foreground mt-3">
-                            Contribution and payout settings will be configured in the confirmation step.
-                          </p>
-                        </div>
-                      )}
-                      
-                      {selectedUseCase && (
-                        <div className="mt-4 p-4 bg-primary/5 rounded-lg">
-                          <h3 className="font-medium text-primary mb-3">Withdrawal Method</h3>
-                          <RadioGroup 
-                            value={withdrawalMethod} 
-                            onValueChange={(value) => setWithdrawalMethod(value as any)}
-                            className="space-y-3"
-                          >
-                            {(payoutStructure === "one-to-many" || payoutStructure === "many-to-selected") && (
-                              <div className="flex items-start space-x-3">
-                                <RadioGroupItem value="democratic" id="democratic" className="mt-1" />
-                                <div className="flex-1">
-                                  <Label htmlFor="democratic" className="font-medium text-sm">Democratic Vote</Label>
-                                  <p className="text-xs text-secondary-foreground">Members vote; requires majority approval</p>
-                                  {withdrawalMethod === "democratic" && (
-                                    <div className="mt-2">
-                                      <Label className="block text-xs text-secondary-foreground mb-1">Required Approval %</Label>
-                                      <Select value={voteThreshold} onValueChange={setVoteThreshold}>
-                                        <SelectTrigger className="w-32 h-8 text-xs">
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="51">51%</SelectItem>
-                                          <SelectItem value="66">66%</SelectItem>
-                                          <SelectItem value="75">75%</SelectItem>
-                                          <SelectItem value="100">100%</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                            
-                            {(payoutStructure === "one-to-many" || payoutStructure === "many-to-one") && (
-                              <div className="flex items-start space-x-3">
-                                <RadioGroupItem value="timed" id="timed" className="mt-1" />
-                                <div className="flex-1">
-                                  <Label htmlFor="timed" className="font-medium text-sm">Timed Release</Label>
-                                  <p className="text-xs text-secondary-foreground">Funds locked until specific date</p>
-                                  {withdrawalMethod === "timed" && (
-                                    <div className="mt-2">
-                                      <Label className="block text-xs text-secondary-foreground mb-1">Release Date</Label>
-                                      <Input 
-                                        type="date" 
-                                        value={releaseDate}
-                                        onChange={e => setReleaseDate(e.target.value)}
-                                        className="w-40 h-8 text-xs"
-                                      />
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                            
-                            <div className="flex items-start space-x-3">
-                              <RadioGroupItem value="auto-withdraw" id="auto-withdraw" className="mt-1" />
-                              <div className="flex-1">
-                                <Label htmlFor="auto-withdraw" className="font-medium text-sm">Auto-Withdraw</Label>
-                                <p className="text-xs text-secondary-foreground">Recipients automatically receive payouts</p>
-                              </div>
-                            </div>
-                          </RadioGroup>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              {/* Error Message */}
-              {potCreationError && (
-                <div className="my-4 p-3 bg-destructive/10 border border-destructive rounded-md text-destructive text-center">
-                  {potCreationError}
-                </div>
-              )}
-              
-              {/* Submit Button */}
-              <div className="pt-4">
-                <Button 
-                  type="submit" 
-                  className="w-full btn-gradient"
-                  disabled={!selectedUseCase}
-                >
-                  {selectedUseCase ? "Confirm your Pot" : "Select a Use Case First"}
-                </Button>
-              </div>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
 
-      <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-center">Confirm Your Pot</DialogTitle>
-          </DialogHeader>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Step 1: Type Selection */}
+        <div className="bg-white dark:bg-[#0f172a] rounded-3xl border border-slate-200/90 dark:border-slate-800/90 shadow-sm p-6 sm:p-7 space-y-4 transition-colors">
+          <div>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+              1. Select Pilot Pot Type
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Choose the category that matches this team expense
+            </p>
+          </div>
 
-          <div className="space-y-4 py-2">
-            <div className="bg-secondary/30 rounded-lg p-4 space-y-3">
-              <h3 className="font-semibold text-sm text-secondary-foreground uppercase tracking-wide">Pot Details</h3>
-              <Separator />
-
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Pot Name</span>
-                <span className="font-medium">{name}</span>
-              </div>
-
-              {description && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Description</span>
-                  <span className="font-medium text-right max-w-[60%]">{description}</span>
-                </div>
-              )}
-
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Use Case</span>
-                <span className="font-medium capitalize">{selectedUseCase}</span>
-              </div>
-
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Payout Structure</span>
-                <span className="font-medium">{getPayoutStructureLabel(payoutStructure)}</span>
-              </div>
-
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Withdrawal Method</span>
-                <span className="font-medium">{getWithdrawalMethodLabel(withdrawalMethod)}</span>
-              </div>
-
-              {withdrawalMethod === "democratic" && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Vote Threshold</span>
-                  <span className="font-medium">{voteThreshold}%</span>
-                </div>
-              )}
-
-              {withdrawalMethod === "timed" && releaseDate && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Release Date</span>
-                  <span className="font-medium">{new Date(releaseDate).toLocaleDateString()}</span>
-                </div>
-              )}
-            </div>
-
-            <div className="bg-secondary/30 rounded-lg p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-sm text-secondary-foreground uppercase tracking-wide">Members &amp; Contributions</h3>
-                <div className="flex items-center gap-3 text-xs text-secondary-foreground">
-                  <div className="flex items-center">
-                    <span className="inline-block w-3 h-3 bg-gray-400 rounded-sm mr-1"></span>
-                    <span>Not selected</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="inline-block w-3 h-3 bg-amber-400 rounded-sm mr-1"></span>
-                    <span>Selected</span>
-                  </div>
-                </div>
-              </div>
-              <Separator />
-
-              {getContributingMembersCount() >= 1 && (
-                <div className="bg-primary/5 p-3 rounded-md space-y-3">
-                  {getContributingMembersCount() > 1 && (
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          <FaDollarSign size={14} className="text-primary mr-2" />
-                          <span className="font-medium text-sm">Split contributions equally?</span>
-                          {equalSplit === true && (
-                            <span className="ml-2 text-xs px-2 py-0.5 bg-green-100 text-green-800 rounded-full">
-                              ₡{Math.ceil(goalAmount / getContributingMembersCount())} per person
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex space-x-2">
-                          <button
-                            type="button"
-                            className={`px-3 py-1 rounded-full text-xs flex items-center ${
-                              equalSplit === true 
-                                ? 'bg-green-500 text-white' 
-                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                            }`}
-                            onClick={() => {
-                              setEqualSplit(true);
-                              if (Object.keys(memberContributions).length > 0) {
-                                const contributingMembers = Object.keys(memberContributions);
-                                const amountPerMember = Math.ceil(goalAmount / contributingMembers.length);
-                                const updatedContributions = { ...memberContributions };
-                                contributingMembers.forEach(member => {
-                                  updatedContributions[member] = amountPerMember;
-                                });
-                                setMemberContributions(updatedContributions);
-                              }
-                            }}
-                          >
-                            <FaCheck size={10} className="mr-1" /> Yes
-                          </button>
-                          <button
-                            type="button"
-                            className={`px-3 py-1 rounded-full text-xs flex items-center ${
-                              equalSplit === false 
-                                ? 'bg-gray-700 text-white' 
-                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                            }`}
-                            onClick={() => handleEqualSplit(false)}
-                          >
-                            <FaTimes size={10} className="mr-1" /> No
-                          </button>
-                        </div>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Divides the goal of ₡{goalAmount.toFixed(2)} equally among {getContributingMembersCount()} contributing members. The 2% platform fee is added on top.
-                      </p>
-                    </div>
-                  )}
-                  
-                  {(getContributingMembersCount() === 1 || equalSplit === false) && (
-                    <div className="space-y-2">
-                      <p className="text-xs font-medium text-primary">Choose contribution method:</p>
-                      <div className="flex flex-col space-y-2">
-                        <button
-                          type="button"
-                          className={`p-2 rounded-lg border text-left transition-all text-sm ${
-                            contributionMethod === "individual"
-                              ? 'border-primary bg-primary/10 text-primary'
-                              : 'border-gray-300 hover:border-primary/50'
-                          }`}
-                          onClick={() => setContributionMethod("individual")}
-                        >
-                          <div className="font-medium text-xs">Input Individual Contribution</div>
-                          <div className="text-xs text-muted-foreground">Enter specific amounts for each member</div>
-                        </button>
-                        <button
-                          type="button"
-                          className={`p-2 rounded-lg border text-left transition-all text-sm ${
-                            contributionMethod === "just-reach-goal"
-                              ? 'border-primary bg-primary/10 text-primary'
-                              : 'border-gray-300 hover:border-primary/50'
-                          }`}
-                          onClick={() => setContributionMethod("just-reach-goal")}
-                        >
-                          <div className="font-medium text-xs">Just Reach Goal</div>
-                          <div className="text-xs text-muted-foreground">Members deposit any amount to reach the target</div>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-sm">
-                  <thead>
-                    <tr className="text-left border-b border-primary/20">
-                      <th className="pb-2 font-medium text-primary">Member</th>
-                      <th className="pb-2 font-medium text-primary text-center">Contributing?</th>
-                      <th className="pb-2 font-medium text-primary text-center whitespace-nowrap">Contribution + Fee</th>
-                      <th className="pb-2 font-medium text-primary text-center">Receiving?</th>
-                      <th className="pb-2 font-medium text-primary text-center">Payout</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {members.map(member => {
-                      const isContributing = memberContributions[member.contact] !== undefined;
-                      const contributionBase = memberContributions[member.contact] || 0;
-                      const contributionFee = Math.round(contributionBase * platformFeeRate * 100) / 100;
-                      const contributionWithFee = contributionBase + contributionFee;
-                      const isReceiving = memberPayouts[member.contact] !== undefined;
-                      const payoutRecipientCount = Object.keys(memberPayouts).length;
-
-                      return (
-                        <tr key={member.id} className="border-b border-primary/10 hover:bg-primary/5">
-                          <td className="py-2 text-secondary-foreground">
-                            <div className="flex items-center gap-1">
-                              <span className="text-xs">{member.contact}</span>
-                              {member.id === "admin-user" && <span className="text-amber-400 text-xs">👑</span>}
-                            </div>
-                            {member.contact !== "admin@thepot.com" && (
-                              <span className="text-[10px] text-amber-500 block">
-                                Not subscribed — individual fee applies
-                              </span>
-                            )}
-                          </td>
-
-                          <td className="py-2 text-center">
-                            <button
-                              type="button"
-                              onClick={() => toggleMemberContribution(member.contact)}
-                              className="p-1 rounded-full focus:outline-none transition-transform hover:scale-110"
-                            >
-                              <FaUtensils 
-                                className={isContributing ? "text-amber-400" : "text-gray-400"} 
-                                size={16} 
-                              />
-                            </button>
-                          </td>
-
-                          <td className="py-2">
-                            <div className="flex flex-col items-center">
-                              {isContributing && (
-                                <>
-                                  {(equalSplit === true || contributionMethod === "individual") && (
-                                    <div className="flex flex-col items-center gap-0.5">
-                                      <Input
-                                        type="number"
-                                        min="0"
-                                        placeholder="Amount"
-                                        value={contributionBase || ""}
-                                        onChange={(e) => {
-                                          const val = e.target.value === "" ? 0 : Number(e.target.value);
-                                          setMemberContributionAmount(member.contact, val);
-                                        }}
-                                        className={`w-20 text-xs h-7 px-2 bg-secondary text-secondary-foreground text-center ${
-                                          pulsingInputs && contributionBase === 0
-                                            ? "border-amber-400 animate-pulse-border" 
-                                            : "border-primary"
-                                        }`}
-                                      />
-                                      {contributionBase > 0 && (
-                                        <span className="text-[10px] text-muted-foreground">
-                                          + ₡{contributionFee.toFixed(2)} fee = <span className="font-semibold text-primary">₡{contributionWithFee.toFixed(2)}</span>
-                                        </span>
-                                      )}
-                                    </div>
-                                  )}
-                                  {contributionMethod === "just-reach-goal" && (
-                                    <span className="text-xs text-muted-foreground">Any amount</span>
-                                  )}
-                                  {equalSplit === null && contributionMethod === null && (
-                                    <span className="text-xs text-muted-foreground">Select method above</span>
-                                  )}
-                                </>
-                              )}
-                              {!isContributing && (
-                                <span className="text-xs text-muted-foreground">—</span>
-                              )}
-                            </div>
-                          </td>
-
-                          <td className="py-2 text-center">
-                            <button
-                              type="button"
-                              onClick={() => toggleMemberPayout(member.contact)}
-                              className="p-1 rounded-full focus:outline-none transition-transform hover:scale-110"
-                            >
-                              <FaCoins 
-                                className={isReceiving ? "text-amber-400" : "text-gray-400"} 
-                                size={16} 
-                              />
-                            </button>
-                          </td>
-
-                          <td className="py-2">
-                            <div className="flex flex-col items-center">
-                              {isReceiving && (
-                                <>
-                                  {payoutStructure === "many-to-one" ? (
-                                    <span className="text-xs font-semibold text-primary">₡{goalAmount.toLocaleString()}</span>
-                                  ) : payoutRecipientCount === 1 ? (
-                                    <span className="text-xs font-semibold text-primary">₡{goalAmount.toLocaleString()}</span>
-                                  ) : (
-                                    <Input
-                                      type="number"
-                                      min="0"
-                                      placeholder="Amount"
-                                      value={memberPayouts[member.contact] || ""}
-                                      onChange={(e) => {
-                                        const val = e.target.value === "" ? 0 : Number(e.target.value);
-                                        setMemberPayoutAmount(member.contact, val);
-                                      }}
-                                      className="w-20 text-xs h-7 px-2 bg-secondary border border-primary text-secondary-foreground text-center"
-                                    />
-                                  )}
-                                </>
-                              )}
-                              {!isReceiving && (
-                                <span className="text-xs text-muted-foreground">—</span>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <Separator />
-
-            <div className="bg-primary/5 rounded-lg p-4 space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Goal Amount</span>
-                <span className="font-semibold">₡{goalAmount.toLocaleString()}</span>
-              </div>
-
-              <div className="flex justify-between text-sm items-center">
-                <div className="flex items-center gap-1">
-                  <span className="text-muted-foreground">Platform Fee (2%)</span>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-[250px] text-xs">
-                        Platform fee (2%) supports payment processing, security, and compliance for all users in this Pot.
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-                <span className="font-semibold">₡{platformFee.toLocaleString()}</span>
-              </div>
-
-              <Separator />
-
-              <div className="flex justify-between text-base">
-                <span className="font-bold">Total Pot Target</span>
-                <span className="font-bold text-primary">₡{totalPotTarget.toLocaleString()}</span>
-              </div>
-
-              {Object.keys(memberContributions).length > 0 && (equalSplit === true || contributionMethod === "individual") && (
-                <div className="text-xs text-muted-foreground pt-1">
-                  Total contributions: ₡{Object.values(memberContributions).reduce((sum, val) => sum + val, 0).toLocaleString()}
-                  {' '}+ ₡{(Math.round(Object.values(memberContributions).reduce((sum, val) => sum + val, 0) * platformFeeRate * 100) / 100).toFixed(2)} fee
-                  {' '}= ₡{(Object.values(memberContributions).reduce((sum, val) => sum + val, 0) * (1 + platformFeeRate)).toFixed(2)} total
-                </div>
-              )}
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => setShowConfirmation(false)}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {potTypes.map((type) => (
+              <button
+                key={type.id}
+                type="button"
+                onClick={() => setSelectedType(type.id)}
+                className={`p-3.5 rounded-2xl border text-left transition-all ${
+                  selectedType === type.id
+                    ? "border-purple-600 bg-purple-50/70 dark:bg-purple-950/40 text-purple-950 dark:text-white ring-2 ring-purple-600/30"
+                    : "border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300"
+                }`}
               >
-                Go Back to Edit
-              </Button>
-              <Button
-                className="flex-1 btn-gradient"
-                onClick={handleCreatePot}
-              >
-                Create Pot and Invite Members
-              </Button>
+                <span className="text-xl mb-1 block">{type.icon}</span>
+                <span className="font-bold text-xs sm:text-sm block">{type.label}</span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 block leading-tight mt-0.5 truncate">
+                  {type.desc}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Step 2: Pot Details & Target */}
+        <div className="bg-white dark:bg-[#0f172a] rounded-3xl border border-slate-200/90 dark:border-slate-800/90 shadow-sm p-6 sm:p-7 space-y-5 transition-colors">
+          <div>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+              2. Pot Identity & Target Amounts
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Specify the title, scope, and total collective budget
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                Pot Title
+              </Label>
+              <Input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. State Cup Tournament & Travel"
+                className="h-11 rounded-2xl border-slate-200 dark:border-slate-700 dark:bg-slate-900 text-slate-900 dark:text-white text-xs sm:text-sm"
+                required
+              />
+            </div>
+
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                Description & Scope
+              </Label>
+              <Textarea
+                rows={2}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="What expenses does this pot cover? (e.g. Referee fees, field shelter, entry badges)"
+                className="rounded-2xl border-slate-200 dark:border-slate-700 dark:bg-slate-900 text-slate-900 dark:text-white text-xs sm:text-sm"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                Total Goal Budget ($ USD)
+              </Label>
+              <div className="relative">
+                <DollarSign className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={goalAmount}
+                  onChange={(e) => setGoalAmount(e.target.value)}
+                  placeholder="2400.00"
+                  className="pl-10 h-11 rounded-2xl border-slate-200 dark:border-slate-700 dark:bg-slate-900 text-slate-900 dark:text-white text-xs sm:text-sm"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                Per-Player Target ($ USD)
+              </Label>
+              <div className="relative">
+                <DollarSign className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={perMemberAmount}
+                  onChange={(e) => setPerMemberAmount(e.target.value)}
+                  placeholder="200.00"
+                  className="pl-10 h-11 rounded-2xl border-slate-200 dark:border-slate-700 dark:bg-slate-900 text-slate-900 dark:text-white text-xs sm:text-sm"
+                  required
+                />
+              </div>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+
+        {/* Step 3: Installment Schedule */}
+        <div className="bg-white dark:bg-[#0f172a] rounded-3xl border border-slate-200/90 dark:border-slate-800/90 shadow-sm p-6 sm:p-7 space-y-4 transition-colors">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                3. Installment Milestones & Due Dates
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Break payment commitments into predictable parts for parents
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={addInstallment}
+              className="rounded-full text-xs font-semibold border-slate-300 dark:border-slate-700"
+            >
+              <Plus className="w-3.5 h-3.5 mr-1 text-purple-600 dark:text-purple-400" />
+              Add Part
+            </Button>
+          </div>
+
+          <div className="space-y-3">
+            {installments.map((inst, idx) => (
+              <div
+                key={inst.num}
+                className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-bold text-xs flex items-center justify-center">
+                    {inst.num}
+                  </span>
+                  <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200">
+                    Installment #{inst.num}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <div className="relative flex-1 sm:w-36">
+                    <DollarSign className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={inst.amount}
+                      onChange={(e) => handleInstallmentChange(idx, "amount", e.target.value)}
+                      className="pl-8 h-9 text-xs rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-slate-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div className="relative flex-1 sm:w-44">
+                    <Calendar className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Input
+                      type="date"
+                      value={inst.dueDate}
+                      onChange={(e) => handleInstallmentChange(idx, "dueDate", e.target.value)}
+                      className="pl-8 h-9 text-xs rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-800 text-slate-900 dark:text-white"
+                    />
+                  </div>
+
+                  {installments.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeInstallment(idx)}
+                      className="p-2 rounded-xl text-slate-400 hover:text-rose-500 transition-colors"
+                      title="Remove Installment"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Governance Rules Summary */}
+        <div className="bg-white dark:bg-[#0f172a] rounded-3xl border border-slate-200/90 dark:border-slate-800/90 shadow-sm p-6 sm:p-7 space-y-3 transition-colors">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+              Human-Controlled Governance Rules Active (v1)
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+            <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-xs">
+              <span className="text-[10px] text-slate-400 block uppercase font-bold">Grace Period</span>
+              <span className="font-extrabold text-slate-900 dark:text-white">2 Days</span>
+            </div>
+            <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-xs">
+              <span className="text-[10px] text-slate-400 block uppercase font-bold">Confirm Window</span>
+              <span className="font-extrabold text-slate-900 dark:text-white">48 Hours</span>
+            </div>
+            <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-xs">
+              <span className="text-[10px] text-slate-400 block uppercase font-bold">2-Approver Rule</span>
+              <span className="font-extrabold text-slate-900 dark:text-white">&gt; $250.00</span>
+            </div>
+            <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-xs">
+              <span className="text-[10px] text-slate-400 block uppercase font-bold">Group Vote Rule</span>
+              <span className="font-extrabold text-slate-900 dark:text-white">&gt; $1,000.00</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Non-Custodial Assurance Card */}
+        <div className="p-5 rounded-3xl bg-purple-50/70 dark:bg-purple-950/30 border border-purple-200/70 dark:border-purple-800/50 flex items-start gap-3.5">
+          <ShieldCheck className="w-5 h-5 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
+          <div className="text-xs text-purple-900 dark:text-purple-200 leading-relaxed">
+            <span className="font-bold block mb-0.5">Non-Custodial Governing Boundary</span>
+            ThePotLite does not touch, hold, or transmit funds. Payments will take place directly between parents and team organizers off-platform (Cash, Zelle, Venmo, Check). The platform records obligations, tracks dual confirmations, and manages authorized payout spend sign-offs.
+          </div>
+        </div>
+
+        {/* Submit Actions */}
+        <div className="flex flex-col sm:flex-row gap-3 pt-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setLocation("/")}
+            className="flex-1 rounded-full text-xs font-semibold py-3 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            disabled={loading}
+            className="flex-1 rounded-full text-xs font-bold py-3.5 bg-[#a3e635] hover:bg-[#8ece28] text-slate-950 shadow-md shadow-[#a3e635]/20 flex items-center justify-center gap-2"
+          >
+            <span>{loading ? "Initializing Pot..." : "Initialize Pot & Generate Invites"}</span>
+            <ArrowRight className="w-4 h-4" />
+          </Button>
+        </div>
+      </form>
     </div>
   );
-}
+};
+
+export default CreatePot;

@@ -17,11 +17,14 @@ import {
   Menu,
   X,
   User,
-  ExternalLink,
+  KeyRound,
+  LogIn,
+  LogOut,
+  Sparkles,
 } from "lucide-react";
 
 export const ThePotLiteAppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser, switchRole, organizationName } = useThePotLite();
+  const { currentUser, switchRole, organizationName, isAuthenticated, logout } = useThePotLite();
   const { theme, toggleTheme } = useThePotLiteTheme();
   const [location] = useLocation();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -75,6 +78,18 @@ export const ThePotLiteAppShell: React.FC<{ children: React.ReactNode }> = ({ ch
       icon: Archive,
       active: location === "/legacy",
     },
+    {
+      label: "2FA Security",
+      path: "/auth/2fa",
+      icon: KeyRound,
+      active: location === "/auth/2fa",
+    },
+    {
+      label: isAuthenticated ? "My Account" : "Sign In / Register",
+      path: "/login",
+      icon: LogIn,
+      active: location === "/login" || location === "/register",
+    },
   ];
 
   return (
@@ -96,7 +111,7 @@ export const ThePotLiteAppShell: React.FC<{ children: React.ReactNode }> = ({ ch
         }`}
       >
         {/* Top: Brand & Org Context */}
-        <div className="space-y-6">
+        <div className="space-y-5 overflow-y-auto pr-1">
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2.5 group cursor-pointer">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 to-amber-500 flex items-center justify-center font-extrabold text-white text-base shadow-md shadow-purple-900/20">
@@ -142,7 +157,7 @@ export const ThePotLiteAppShell: React.FC<{ children: React.ReactNode }> = ({ ch
                   key={item.path}
                   href={item.path}
                   onClick={() => setMobileSidebarOpen(false)}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-semibold transition-all ${
+                  className={`flex items-center gap-3 px-3.5 py-2.2 rounded-2xl text-xs font-semibold transition-all ${
                     item.active
                       ? "bg-purple-600 text-white shadow-sm shadow-purple-600/30 font-bold"
                       : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white"
@@ -157,7 +172,7 @@ export const ThePotLiteAppShell: React.FC<{ children: React.ReactNode }> = ({ ch
         </div>
 
         {/* Bottom: Theme Toggle, Role Switcher, & User Profile */}
-        <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 space-y-4">
+        <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 space-y-3.5">
           {/* Light / Dark Mode Toggle Switch */}
           <div className="bg-slate-100 dark:bg-slate-800/70 p-1 rounded-2xl flex items-center justify-between text-xs font-semibold">
             <button
@@ -184,11 +199,18 @@ export const ThePotLiteAppShell: React.FC<{ children: React.ReactNode }> = ({ ch
             </button>
           </div>
 
-          {/* Role Switcher Pills */}
+          {/* Quick Perspective Switcher */}
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
-              Perspective
-            </span>
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                Perspective
+              </span>
+              {isAuthenticated && (
+                <span className="text-[9px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.2 rounded-full">
+                  Authenticated
+                </span>
+              )}
+            </div>
             <div className="bg-slate-100 dark:bg-slate-800/70 p-1 rounded-2xl flex items-center justify-between text-xs font-semibold">
               <button
                 onClick={() => switchRole("Organizer")}
@@ -213,19 +235,40 @@ export const ThePotLiteAppShell: React.FC<{ children: React.ReactNode }> = ({ ch
             </div>
           </div>
 
-          {/* User Profile Card */}
-          <div className="flex items-center gap-3 pt-2">
-            <img
-              src={avatarUrl}
-              alt={currentUser.name}
-              className="w-10 h-10 rounded-full object-cover ring-2 ring-purple-500/20 shadow-sm"
-            />
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                {currentUser.name}
-              </p>
-              <p className="text-[10px] text-slate-400 truncate">{currentUser.title}</p>
+          {/* User Profile Card & Sign In/Out */}
+          <div className="flex items-center justify-between gap-2 pt-1">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <img
+                src={avatarUrl}
+                alt={currentUser.name}
+                className="w-9 h-9 rounded-full object-cover ring-2 ring-purple-500/20 shadow-sm shrink-0"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                  {currentUser.name}
+                </p>
+                <p className="text-[10px] text-slate-400 truncate">{currentUser.title}</p>
+              </div>
             </div>
+
+            {isAuthenticated ? (
+              <button
+                onClick={() => logout()}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                title="Log Out"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            ) : (
+              <Link href="/login">
+                <button
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-purple-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  title="Sign In"
+                >
+                  <LogIn className="w-4 h-4" />
+                </button>
+              </Link>
+            )}
           </div>
         </div>
       </aside>
@@ -295,14 +338,25 @@ export const ThePotLiteAppShell: React.FC<{ children: React.ReactNode }> = ({ ch
               </Link>
 
               <Link
-                href="/invite/101"
+                href="/feedback"
                 className={`px-4 py-1.5 rounded-full transition-all ${
-                  location.startsWith("/invite")
+                  location === "/feedback"
                     ? "bg-[#a3e635] text-slate-950 font-bold shadow-sm"
                     : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
                 }`}
               >
-                Invite
+                Feedback
+              </Link>
+
+              <Link
+                href="/login"
+                className={`px-4 py-1.5 rounded-full transition-all ${
+                  location === "/login" || location === "/register"
+                    ? "bg-[#a3e635] text-slate-950 font-bold shadow-sm"
+                    : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                }`}
+              >
+                Auth
               </Link>
             </div>
           </div>

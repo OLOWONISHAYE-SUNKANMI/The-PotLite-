@@ -183,6 +183,17 @@ thePotLiteRouter.get("/auth/me", async (req, res) => {
   }
 });
 
+thePotLiteRouter.post("/auth/logout", async (req, res) => {
+  try {
+    if ((req as any).session) {
+      (req as any).session.destroy?.();
+    }
+    return res.status(200).json({ message: "Logged out successfully" });
+  } catch (error) {
+    return handleRouteError(res, error);
+  }
+});
+
 thePotLiteRouter.post("/auth/logout", (req, res) => {
   if ((req as any).session) {
     (req as any).session.destroy(() => res.status(200).json({ message: "Logged out" }));

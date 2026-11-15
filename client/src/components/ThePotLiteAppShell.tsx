@@ -1,145 +1,168 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { useThePotLite, UserRole } from "@/context/ThePotLiteContext";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { useThePotLite } from "@/context/ThePotLiteContext";
 import {
   ShieldCheck,
+  Search,
+  Bell,
   User,
-  Activity,
-  PlusCircle,
-  FileText,
-  Home,
-  CheckCircle2,
-  Users,
+  ExternalLink,
+  ChevronDown,
+  Sparkles,
 } from "lucide-react";
 
 export const ThePotLiteAppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser, switchRole, organizationName } = useThePotLite();
   const [location] = useLocation();
+  const [activeNav, setActiveNav] = useState<"Overview" | "Pots" | "Obligations" | "Audit" | "Cheffy">("Overview");
+
+  // Avatar image URLs for Coach & Parent
+  const avatarUrl =
+    currentUser.role === "Organizer"
+      ? "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"
+      : "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80";
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-      {/* Top Banner: Governing Principle */}
-      <div className="bg-purple-950/80 border-b border-purple-800/40 text-purple-200 text-xs py-1.5 px-4 text-center tracking-wide flex items-center justify-center gap-2">
-        <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-        <span>
-          <strong>ThePotLite V1:</strong> No money handled · No disputes adjudicated · No obligations silently changed
-        </span>
+    <div className="min-h-screen bg-[#e8ebed] text-slate-800 p-2 sm:p-5 md:p-8 flex flex-col justify-center items-center font-sans">
+      {/* Top Banner Notice */}
+      <div className="w-full max-w-6xl mb-3 flex items-center justify-between text-xs text-slate-600 px-3">
+        <div className="flex items-center gap-1.5 font-medium">
+          <ShieldCheck className="w-4 h-4 text-purple-600" />
+          <span>
+            <strong>ThePotLite V1:</strong> No money handled · No disputes adjudicated · No obligations silently changed
+          </span>
+        </div>
+        <div className="hidden sm:flex items-center gap-2 text-slate-500">
+          <span>Organization: <strong className="text-slate-800">{organizationName}</strong></span>
+        </div>
       </div>
 
-      {/* Main Navigation Bar */}
-      <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur border-b border-slate-800 px-4 py-3 sm:px-6">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          {/* Brand & Organization Context */}
+      {/* Main Dashboard Window Frame (Exact layout & rounded corners from reference image) */}
+      <div className="w-full max-w-6xl bg-[#f8fafc] border border-slate-200/90 rounded-[32px] sm:rounded-[36px] p-4 sm:p-6 md:p-8 shadow-2xl shadow-slate-300/60 transition-all">
+        {/* Top Header Bar */}
+        <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-slate-200/80">
+          {/* User Profile on Left */}
           <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-2 group cursor-pointer">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-600 to-amber-500 flex items-center justify-center font-bold text-white shadow-lg shadow-purple-900/40">
-                P
-              </div>
-              <div>
-                <span className="font-extrabold text-base tracking-tight text-white group-hover:text-purple-300 transition-colors">
-                  ThePot<span className="text-amber-400">Lite</span>
-                </span>
-                <span className="hidden sm:inline-block text-xs text-slate-400 ml-2 border-l border-slate-700 pl-2">
-                  {organizationName}
-                </span>
-              </div>
-            </Link>
+            <img
+              src={avatarUrl}
+              alt={currentUser.name}
+              className="w-11 h-11 rounded-full object-cover ring-2 ring-purple-500/20 shadow-sm"
+            />
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-slate-900 leading-tight">
+                Hello, {currentUser.name.split(" ")[0]}
+              </h1>
+              <p className="text-xs text-slate-400 font-medium">
+                {currentUser.title}
+              </p>
+            </div>
           </div>
 
-          {/* Navigation Links */}
-          <nav className="hidden md:flex items-center gap-1 text-sm font-medium">
+          {/* Center Navigation Pills */}
+          <nav className="flex items-center bg-slate-200/70 p-1 rounded-full shadow-inner">
             <Link
               href="/"
-              className={`px-3 py-1.5 rounded-md transition-colors ${
-                location === "/" ? "bg-purple-900/50 text-purple-300 font-semibold" : "text-slate-300 hover:text-white"
+              onClick={() => setActiveNav("Overview")}
+              className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all ${
+                activeNav === "Overview" && location === "/"
+                  ? "bg-purple-600 text-white shadow-sm"
+                  : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              Dashboard
+              Overview
             </Link>
-            {currentUser.role === "Organizer" && (
-              <Link
-                href="/create"
-                className={`px-3 py-1.5 rounded-md transition-colors ${
-                  location === "/create" ? "bg-purple-900/50 text-purple-300 font-semibold" : "text-slate-300 hover:text-white"
-                }`}
-              >
-                Create Pot
-              </Link>
-            )}
+            <Link
+              href={currentUser.role === "Organizer" ? "/create" : "/"}
+              onClick={() => setActiveNav("Pots")}
+              className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all ${
+                activeNav === "Pots"
+                  ? "bg-purple-600 text-white shadow-sm"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              {currentUser.role === "Organizer" ? "New Pot" : "My Pots"}
+            </Link>
             <Link
               href="/audit"
-              className={`px-3 py-1.5 rounded-md transition-colors ${
-                location === "/audit" ? "bg-purple-900/50 text-purple-300 font-semibold" : "text-slate-300 hover:text-white"
+              onClick={() => setActiveNav("Audit")}
+              className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all ${
+                activeNav === "Audit" || location === "/audit"
+                  ? "bg-purple-600 text-white shadow-sm"
+                  : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              Audit Timeline
+              Audit Log
+            </Link>
+            <Link
+              href="/invite/101"
+              onClick={() => setActiveNav("Cheffy")}
+              className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all ${
+                activeNav === "Cheffy" || location.startsWith("/invite")
+                  ? "bg-purple-600 text-white shadow-sm"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Invite Demo
             </Link>
           </nav>
 
-          {/* Role Switching & User Profile Badge */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center bg-slate-800/80 rounded-full p-1 border border-slate-700">
+          {/* Right Action Icons & Role Switcher */}
+          <div className="flex items-center gap-2 self-end sm:self-auto">
+            {/* Search Circle Button */}
+            <button
+              title="Search"
+              className="w-9 h-9 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-50 shadow-sm transition-colors"
+            >
+              <Search className="w-4 h-4" />
+            </button>
+
+            {/* Notification Badge Circle Button */}
+            <button
+              title="Notifications"
+              className="relative w-9 h-9 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-50 shadow-sm transition-colors"
+            >
+              <Bell className="w-4 h-4" />
+              <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">
+                3
+              </span>
+            </button>
+
+            {/* Role Switcher Pill (Organizer vs Member) */}
+            <div className="flex items-center bg-slate-200/80 rounded-full p-0.5 border border-slate-300/80 ml-1">
               <button
                 onClick={() => switchRole("Organizer")}
-                className={`px-2.5 py-1 text-xs rounded-full font-medium transition-all ${
+                className={`px-3 py-1 text-xs rounded-full font-semibold transition-all ${
                   currentUser.role === "Organizer"
-                    ? "bg-purple-600 text-white shadow-sm"
-                    : "text-slate-400 hover:text-white"
+                    ? "bg-purple-700 text-white shadow-sm"
+                    : "text-slate-500 hover:text-slate-900"
                 }`}
               >
                 Organizer
               </button>
               <button
                 onClick={() => switchRole("Member")}
-                className={`px-2.5 py-1 text-xs rounded-full font-medium transition-all ${
+                className={`px-3 py-1 text-xs rounded-full font-semibold transition-all ${
                   currentUser.role === "Member"
                     ? "bg-amber-600 text-white shadow-sm"
-                    : "text-slate-400 hover:text-white"
+                    : "text-slate-500 hover:text-slate-900"
                 }`}
               >
-                Parent / Member
+                Parent
               </button>
             </div>
-
-            <div className="hidden sm:flex flex-col text-right">
-              <span className="text-xs font-semibold text-slate-200">{currentUser.name}</span>
-              <span className="text-[10px] text-slate-400">{currentUser.title}</span>
-            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Main Page Content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-6 sm:px-6">
-        {children}
-      </main>
-
-      {/* Mobile Bottom Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900 border-t border-slate-800 flex justify-around py-2 px-4 shadow-xl">
-        <Link href="/" className="flex flex-col items-center gap-1 text-slate-300 hover:text-purple-400">
-          <Home className="w-5 h-5" />
-          <span className="text-[10px]">Home</span>
-        </Link>
-        {currentUser.role === "Organizer" && (
-          <Link href="/create" className="flex flex-col items-center gap-1 text-slate-300 hover:text-purple-400">
-            <PlusCircle className="w-5 h-5" />
-            <span className="text-[10px]">Create</span>
-          </Link>
-        )}
-        <Link href="/audit" className="flex flex-col items-center gap-1 text-slate-300 hover:text-purple-400">
-          <FileText className="w-5 h-5" />
-          <span className="text-[10px]">Timeline</span>
-        </Link>
+        {/* Dashboard Main Canvas */}
+        <main className="pt-6">
+          {children}
+        </main>
       </div>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-800 py-6 px-4 text-center text-xs text-slate-500 mb-12 md:mb-0">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
-          <span>ThePotLite V1 Pilot · Youth Sports Governance</span>
-          <span>Payments occur off-platform (Cash, Cash App, Zelle, Venmo, Check)</span>
-        </div>
+      {/* Footer Info */}
+      <footer className="w-full max-w-6xl mt-4 text-center text-xs text-slate-400 flex flex-col sm:flex-row items-center justify-between px-3">
+        <span>ThePotLite V1 Pilot · Youth Sports Governance</span>
+        <span>Payments occur off-platform · Two-party confirmed</span>
       </footer>
     </div>
   );

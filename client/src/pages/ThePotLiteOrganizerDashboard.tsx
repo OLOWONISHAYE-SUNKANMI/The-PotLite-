@@ -1,22 +1,22 @@
 import React, { useState } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import {
-  AlertCircle,
-  CheckCircle,
-  Clock,
-  DollarSign,
-  Users,
-  ShieldAlert,
-  ArrowRight,
-  Plus,
-  HelpCircle,
-  Receipt,
+  Eye,
+  EyeOff,
+  Copy,
+  ArrowUpRight,
+  MoreHorizontal,
   Check,
   X,
+  Plus,
+  Sparkles,
+  Receipt,
+  CheckCircle2,
+  DollarSign,
+  TrendingUp,
+  CreditCard,
+  Building2,
+  ArrowDownLeft,
 } from "lucide-react";
 import {
   Dialog,
@@ -27,94 +27,58 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
 export const ThePotLiteOrganizerDashboard: React.FC = () => {
   const { toast } = useToast();
 
-  // Local state for interactive demo experience
-  const [needsYouQueue, setNeedsYouQueue] = useState([
-    {
-      id: "pay_1",
-      type: "confirmation",
-      title: "Confirm Payment: Sarah Jenkins ($100.00)",
-      detail: "Sarah marked 'Sent $100 via Zelle' on Nov 14 for Fall Tournament Pot",
-      amount: "$100.00",
-      method: "Zelle",
-      status: "pending",
-    },
-    {
-      id: "help_1",
-      type: "assistance",
-      title: "Extension Request: Dave Miller (More Time)",
-      detail: "Requested 14-day extension for Uniforms installment. Reason: Waiting on bi-weekly paycheck.",
-      visibility: "Organizers Only",
-      status: "pending",
-    },
-    {
-      id: "payout_1",
-      type: "payout_approval",
-      title: "Approve Payout: Referee Fees ($450.00)",
-      detail: "Requested by Coach Marcus for State Cup ref cash stipend. Requires 2nd organizer approval.",
-      amount: "$450.00",
-      status: "pending",
-    },
-  ]);
-
-  const [pots, setPots] = useState([
-    {
-      id: 1,
-      name: "Fall 2026 Season Dues",
-      potType: "season fee",
-      team: "Tigers U12 Boys",
-      goalAmount: 3600,
-      confirmedTotal: 2700,
-      pendingTotal: 300,
-      deadline: "2026-11-30",
-      obligations: { total: 12, confirmed: 9, pending: 1, overdue: 2 },
-    },
-    {
-      id: 2,
-      name: "State Cup Tournament & Travel",
-      potType: "tournament",
-      team: "Tigers U12 Boys",
-      goalAmount: 2400,
-      confirmedTotal: 1800,
-      pendingTotal: 200,
-      deadline: "2026-12-15",
-      obligations: { total: 12, confirmed: 8, pending: 2, overdue: 2 },
-    },
-  ]);
-
+  const [balanceVisible, setBalanceVisible] = useState(true);
+  const [activeCurrency, setActiveCurrency] = useState<"USD" | "Tigers U12" | "Fall 2026">("USD");
   const [payoutModalOpen, setPayoutModalOpen] = useState(false);
   const [payee, setPayee] = useState("");
   const [payoutAmount, setPayoutAmount] = useState("");
   const [payoutPurpose, setPayoutPurpose] = useState("");
 
-  const handleConfirmPayment = (id: string) => {
-    setNeedsYouQueue((prev) => prev.filter((item) => item.id !== id));
+  // Interactive state for the Action Queue item (matching the reference image's top transaction item)
+  const [pendingConfirmation, setPendingConfirmation] = useState<{
+    id: string;
+    payerName: string;
+    amount: string;
+    method: string;
+    detail: string;
+  } | null>({
+    id: "conf_1",
+    payerName: "Sarah Jenkins",
+    amount: "$100.00",
+    method: "Zelle",
+    detail: "Payment confirmation needed",
+  });
+
+  const handleCopyOrgId = () => {
+    navigator.clipboard?.writeText("90340222748");
     toast({
-      title: "Payment Confirmed",
-      description: "Payment confirmed. Applied to member obligation and Pot balance updated.",
+      title: "Copied to Clipboard",
+      description: "Organization / Pot ID #90340222748 copied.",
     });
   };
 
-  const handleApprovePayout = (id: string) => {
-    setNeedsYouQueue((prev) => prev.filter((item) => item.id !== id));
+  const handleConfirmAction = () => {
+    setPendingConfirmation(null);
     toast({
-      title: "Payout Approved",
-      description: "Separation of duties satisfied. Marked approved for off-platform vendor payment.",
+      title: "Payment Confirmed!",
+      description: "Applied $100.00 to Sarah Jenkins' obligation. Pot confirmed total updated.",
     });
   };
 
-  const handleGrantExtension = (id: string) => {
-    setNeedsYouQueue((prev) => prev.filter((item) => item.id !== id));
+  const handleRejectAction = () => {
+    setPendingConfirmation(null);
     toast({
-      title: "Extension Granted",
-      description: "Proposed updated due date sent to member for explicit acceptance.",
+      title: "Dispute Logged",
+      description: "Marked as disputed. ThePotLite logged statements and notified the organizers.",
     });
   };
 
-  const handleCreatePayoutRequest = (e: React.FormEvent) => {
+  const handleCreatePayout = (e: React.FormEvent) => {
     e.preventDefault();
     setPayoutModalOpen(false);
     toast({
@@ -127,213 +91,487 @@ export const ThePotLiteOrganizerDashboard: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8 pb-12">
-      {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Organizer Dashboard</h1>
-          <p className="text-sm text-slate-400">
-            Youth sports governance · No money handled · All obligations consent-gated
-          </p>
+    <div className="space-y-6">
+      {/* =========================================================================
+          TOP ROW: 2 CARDS (Hero Active Balance Card + Purple Priority / Cheffy Card)
+          ========================================================================= */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Hero Card: Active Balance (7 Cols on desktop) */}
+        <div className="lg:col-span-7 bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-sm flex flex-col justify-between">
+          <div>
+            {/* Top Row: Currency Pills & Account Number */}
+            <div className="flex items-center justify-between pb-4">
+              {/* Pills */}
+              <div className="flex items-center bg-slate-100 p-1 rounded-full text-xs font-semibold text-slate-600">
+                <button
+                  onClick={() => setActiveCurrency("USD")}
+                  className={`px-3 py-1 rounded-full transition-all flex items-center gap-1 ${
+                    activeCurrency === "USD" ? "bg-white text-slate-900 shadow-sm" : "hover:text-slate-900"
+                  }`}
+                >
+                  <span className="text-sm">🇺🇸</span> USD
+                </button>
+                <button
+                  onClick={() => setActiveCurrency("Tigers U12")}
+                  className={`px-3 py-1 rounded-full transition-all ${
+                    activeCurrency === "Tigers U12" ? "bg-white text-slate-900 shadow-sm" : "hover:text-slate-900"
+                  }`}
+                >
+                  Tigers U12
+                </button>
+                <button
+                  onClick={() => setActiveCurrency("Fall 2026")}
+                  className={`px-3 py-1 rounded-full transition-all ${
+                    activeCurrency === "Fall 2026" ? "bg-white text-slate-900 shadow-sm" : "hover:text-slate-900"
+                  }`}
+                >
+                  Fall 2026
+                </button>
+              </div>
+
+              {/* Account / Org Number */}
+              <div className="text-right">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">
+                  Pot / Org Number
+                </span>
+                <button
+                  onClick={handleCopyOrgId}
+                  className="inline-flex items-center gap-1 text-xs font-bold text-slate-800 hover:text-purple-600 transition-colors"
+                >
+                  <span>90340222748</span>
+                  <Copy className="w-3.5 h-3.5 text-slate-400" />
+                </button>
+              </div>
+            </div>
+
+            {/* Label & Amount */}
+            <div className="pt-2">
+              <span className="text-xs font-medium text-slate-400 block mb-1">
+                Active Confirmed Balance
+              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight">
+                  {balanceVisible ? "$92,142.10" : "••••••••••"}
+                </span>
+                <button
+                  onClick={() => setBalanceVisible(!balanceVisible)}
+                  className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors"
+                  title="Toggle balance visibility"
+                >
+                  {balanceVisible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                </button>
+              </div>
+              <p className="text-xs text-slate-500 mt-1.5 flex items-center gap-1.5 font-medium">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+                <span>$2,700 confirmed of $3,600 goal (Season Dues) · Off-rail verified</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Action Buttons Row */}
+          <div className="flex items-center justify-between pt-6 border-t border-slate-100 mt-6">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPayoutModalOpen(true)}
+                className="inline-flex items-center gap-2 bg-[#1b3d2f] hover:bg-[#142e23] text-emerald-300 font-semibold text-xs px-4 py-2.5 rounded-full shadow-sm transition-all"
+              >
+                <ArrowUpRight className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Record Payout Spend</span>
+              </button>
+
+              <button
+                onClick={() => toast({ title: "Needs You Queue", description: "All actions requiring organizer review are shown below." })}
+                className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 font-semibold text-xs px-4 py-2.5 rounded-full shadow-sm transition-all"
+              >
+                <Receipt className="w-3.5 h-3.5 text-purple-600" />
+                <span>Request Balance</span>
+              </button>
+
+              <button className="w-9 h-9 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 shadow-sm transition-colors">
+                <MoreHorizontal className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Circular Quick Action Button on Bottom Right */}
+            <button
+              onClick={() => setPayoutModalOpen(true)}
+              className="w-12 h-12 rounded-full bg-[#a3e635] hover:bg-[#8ece28] text-slate-900 flex items-center justify-center shadow-lg shadow-[#a3e635]/30 transition-transform hover:scale-105"
+              title="Quick Action"
+            >
+              <ArrowUpRight className="w-6 h-6 stroke-[2.5]" />
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            onClick={() => setPayoutModalOpen(true)}
-            variant="outline"
-            className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800"
-          >
-            <Receipt className="w-4 h-4 mr-2 text-amber-400" />
-            Record Payout Spend
-          </Button>
+
+        {/* Right Accent Card: Priority / Cheffy Status (5 Cols on desktop) */}
+        {/* Mirroring the lime green card from the image, but in ThePotLite's rich purple / emerald theme */}
+        <div className="lg:col-span-5 bg-gradient-to-br from-[#a3e635] via-[#8ece28] to-[#65a30d] text-slate-950 rounded-3xl p-6 sm:p-7 relative overflow-hidden shadow-sm flex flex-col justify-between">
+          {/* Subtle Ambient Star Watermark */}
+          <div className="absolute -right-8 -top-8 w-48 h-48 opacity-15 pointer-events-none select-none">
+            <svg viewBox="0 0 200 200" fill="currentColor">
+              <polygon points="100,10 120,80 190,100 120,120 100,190 80,120 10,100 80,80" />
+            </svg>
+          </div>
+
+          <div>
+            {/* Header: PRIORITY + pill & options */}
+            <div className="flex items-center justify-between pb-4">
+              <div className="inline-flex items-center gap-1.5 bg-slate-950 text-white font-bold text-xs px-3 py-1.5 rounded-full">
+                <span>PRIORITY</span>
+                <span className="w-4 h-4 rounded-full bg-slate-800 text-white flex items-center justify-center text-[11px] font-extrabold">
+                  +
+                </span>
+              </div>
+
+              <button className="w-8 h-8 rounded-full bg-black/10 flex items-center justify-center text-slate-900 hover:bg-black/20 transition-colors">
+                <MoreHorizontal className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Label & Amount */}
+            <div className="pt-1">
+              <span className="text-xs font-semibold text-slate-800/80 block mb-1">
+                Your Collections (Pending & Confirmed)
+              </span>
+              <div className="flex flex-wrap items-baseline gap-2">
+                <span className="text-3xl sm:text-4xl font-extrabold text-slate-950 tracking-tight">
+                  $12,172.07
+                </span>
+                <span className="bg-white/80 text-slate-900 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                  +40% this month
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Sub-cards Row at Bottom */}
+          <div className="grid grid-cols-2 gap-3 pt-6">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-3 flex justify-between items-center text-slate-900 shadow-sm">
+              <div>
+                <span className="text-[10px] font-semibold text-slate-500 block uppercase tracking-wider">
+                  Needs Confirm
+                </span>
+                <div className="flex items-center gap-1 font-bold text-sm text-slate-900">
+                  <span>☆ 4,780</span>
+                </div>
+              </div>
+              <Eye className="w-3.5 h-3.5 text-slate-400" />
+            </div>
+
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-3 flex justify-between items-center text-slate-900 shadow-sm">
+              <div>
+                <span className="text-[10px] font-semibold text-slate-500 block uppercase tracking-wider">
+                  Assistance
+                </span>
+                <div className="flex items-center gap-1 font-bold text-sm text-slate-900">
+                  <span>🎟 124</span>
+                </div>
+              </div>
+              <Eye className="w-3.5 h-3.5 text-slate-400" />
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* 1. "Needs You" Queue (Section 12) */}
-      <Card className="bg-slate-900/90 border-slate-800 shadow-xl overflow-hidden">
-        <CardHeader className="bg-slate-800/40 border-b border-slate-800 py-3.5 px-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
-              </span>
-              <CardTitle className="text-base font-semibold text-white">
-                "Needs You" Action Queue ({needsYouQueue.length})
-              </CardTitle>
-            </div>
-            <span className="text-xs text-slate-400">Actions requiring organizer sign-off</span>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0 divide-y divide-slate-800">
-          {needsYouQueue.length === 0 ? (
-            <div className="p-6 text-center text-sm text-slate-400">
-              🎉 All caught up! No confirmations, disputes, or payout approvals pending.
-            </div>
-          ) : (
-            needsYouQueue.map((item) => (
-              <div key={item.id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-800/30 transition-colors">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm text-white">{item.title}</span>
-                    <Badge variant="outline" className="text-[10px] text-amber-400 border-amber-500/30">
-                      {item.type === "confirmation" ? "Offline Payment" : item.type === "assistance" ? "Hardship" : "Payout Sign-off"}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-slate-300">{item.detail}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {item.type === "confirmation" && (
-                    <Button
-                      size="sm"
-                      onClick={() => handleConfirmPayment(item.id)}
-                      className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs h-8"
-                    >
-                      <Check className="w-3.5 h-3.5 mr-1" /> Confirm Received
-                    </Button>
-                  )}
-                  {item.type === "payout_approval" && (
-                    <Button
-                      size="sm"
-                      onClick={() => handleApprovePayout(item.id)}
-                      className="bg-purple-600 hover:bg-purple-500 text-white text-xs h-8"
-                    >
-                      <Check className="w-3.5 h-3.5 mr-1" /> Approve Payout
-                    </Button>
-                  )}
-                  {item.type === "assistance" && (
-                    <Button
-                      size="sm"
-                      onClick={() => handleGrantExtension(item.id)}
-                      className="bg-amber-600 hover:bg-amber-500 text-white text-xs h-8"
-                    >
-                      Accept 14d Extension
-                    </Button>
-                  )}
-                </div>
+      {/* =========================================================================
+          BOTTOM ROW: 3 CARDS (Spending Donut, Earning Bars, Transactions / Queue)
+          ========================================================================= */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
+        {/* Card 1: Spending / Progress Donut (4 Cols) */}
+        <div className="lg:col-span-4 bg-white rounded-3xl p-6 border border-slate-200/90 shadow-sm flex flex-col justify-between">
+          <div>
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-slate-900">Spending</span>
               </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
+              <span className="text-xs font-semibold bg-slate-100 text-slate-600 px-3 py-1 rounded-full">
+                April / Fall
+              </span>
+            </div>
 
-      {/* 2. Active Pots Overview (Section 03, 05, 12) */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-white">Active Pots & Obligations</h2>
-          <span className="text-xs text-slate-400">Progress bars reflect confirmed funds only</span>
+            {/* Circular Donut Ring Graphic */}
+            <div className="relative flex flex-col items-center justify-center py-5">
+              <svg className="w-36 h-36 transform -rotate-90" viewBox="0 0 120 120">
+                {/* Background Ring */}
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="48"
+                  className="stroke-slate-100"
+                  strokeWidth="10"
+                  fill="transparent"
+                />
+                {/* Confirmed Segment (Green/Purple) */}
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="48"
+                  className="stroke-[#a3e635]"
+                  strokeWidth="10"
+                  strokeDasharray="301.6"
+                  strokeDashoffset="100"
+                  strokeLinecap="round"
+                  fill="transparent"
+                />
+              </svg>
+              {/* Inner Center Text */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                <span className="text-xl font-bold text-slate-900">$916.10</span>
+                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full mt-0.5">
+                  +12%
+                </span>
+              </div>
+            </div>
+
+            {/* Insight Note */}
+            <div className="text-center pb-2">
+              <p className="text-xs font-semibold text-slate-700 inline-flex items-center gap-1">
+                <span>✦ Rent / Field spend is up</span>
+                <span className="text-rose-500 font-bold">8.4%</span>
+              </p>
+            </div>
+          </div>
+
+          {/* 4-Item Breakdown Pills */}
+          <div className="grid grid-cols-2 gap-2 pt-4 border-t border-slate-100 text-[11px]">
+            <div className="flex items-center gap-1.5 text-slate-600">
+              <span className="w-2 h-2 rounded-full bg-slate-900 inline-block"></span>
+              <span>Field / Rent <strong className="text-slate-900">$500.02</strong></span>
+            </div>
+            <div className="flex items-center gap-1.5 text-slate-400">
+              <span className="w-2 h-2 rounded-full bg-slate-300 inline-block"></span>
+              <span>Travel $217.00</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-slate-400">
+              <span className="w-2 h-2 rounded-full bg-slate-300 inline-block"></span>
+              <span>Referee $100.00</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-slate-400">
+              <span className="w-2 h-2 rounded-full bg-slate-300 inline-block"></span>
+              <span>Uniforms $100.00</span>
+            </div>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {pots.map((pot) => {
-            const percent = Math.round((pot.confirmedTotal / pot.goalAmount) * 100);
-            return (
-              <Card key={pot.id} className="bg-slate-900 border-slate-800 shadow-md">
-                <CardHeader className="pb-3">
-                  <div className="flex justify-between items-start">
+        {/* Card 2: Earning / Collections Allocation (4 Cols) */}
+        <div className="lg:col-span-4 bg-white rounded-3xl p-6 border border-slate-200/90 shadow-sm flex flex-col justify-between">
+          <div>
+            {/* Header with Target */}
+            <div className="flex items-center justify-between pb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-slate-900">Earning / Target</span>
+              </div>
+              <span className="text-xs font-bold text-[#e1683d] bg-[#fbf2ed] px-2.5 py-1 rounded-full border-b-2 border-[#e1683d]">
+                🎯 $8400
+              </span>
+            </div>
+
+            {/* Stat & Delta */}
+            <div className="py-2">
+              <span className="text-2xl font-extrabold text-slate-900 tracking-tight block">
+                $7,110.12
+              </span>
+              <span className="text-[11px] font-semibold text-emerald-600">
+                +18% vs last month
+              </span>
+            </div>
+
+            {/* Linear Progress Bars List */}
+            <div className="space-y-4 pt-3">
+              {/* Item 1 */}
+              <div>
+                <div className="flex justify-between text-xs font-medium mb-1">
+                  <span className="text-slate-400">Tournament Entry</span>
+                  <span className="text-slate-600 font-semibold">$2,000.00</span>
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                  <div className="bg-slate-300 h-2 rounded-full w-2/5"></div>
+                </div>
+              </div>
+
+              {/* Item 2 with badge */}
+              <div>
+                <div className="flex justify-between text-xs font-medium mb-1">
+                  <span className="text-slate-900 font-bold">Season Dues</span>
+                  <span className="text-slate-900 font-bold">$4,000.00</span>
+                </div>
+                <div className="relative w-full bg-slate-100 rounded-full h-3 flex items-center">
+                  <div className="bg-[#a3e635] h-3 rounded-full w-[51%]"></div>
+                  <span className="absolute left-[45%] text-[9px] font-black bg-[#1b3d2f] text-white px-1.5 py-0.2 rounded-full shadow-sm">
+                    51%
+                  </span>
+                </div>
+              </div>
+
+              {/* Item 3 */}
+              <div>
+                <div className="flex justify-between text-xs font-medium mb-1">
+                  <span className="text-slate-400">Uniforms & Gear</span>
+                  <span className="text-slate-600 font-semibold">$1,335.01</span>
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                  <div className="bg-slate-300 h-2 rounded-full w-1/4"></div>
+                </div>
+              </div>
+
+              {/* Item 4 */}
+              <div>
+                <div className="flex justify-between text-xs font-medium mb-1">
+                  <span className="text-slate-400">Travel & Misc</span>
+                  <span className="text-slate-600 font-semibold">$486.00</span>
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                  <div className="bg-slate-300 h-2 rounded-full w-1/6"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 3: Transactions / "Needs You" Queue (4 Cols) */}
+        <div className="lg:col-span-4 bg-white rounded-3xl p-6 border border-slate-200/90 shadow-sm flex flex-col justify-between">
+          <div>
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3">
+              <span className="text-sm font-bold text-slate-900">Transactions</span>
+              <button className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-800">
+                <MoreHorizontal className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* List */}
+            <div className="divide-y divide-slate-100">
+              {/* Item 1: Actionable Confirmation Item with Check/Cross */}
+              {pendingConfirmation && (
+                <div className="py-3 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
+                      <ArrowUpRight className="w-4 h-4" />
+                    </div>
                     <div>
-                      <Badge className="bg-purple-950 text-purple-300 border-purple-800 text-[10px] mb-1">
-                        {pot.potType}
-                      </Badge>
-                      <CardTitle className="text-base font-semibold text-white">{pot.name}</CardTitle>
-                      <p className="text-xs text-slate-400 mt-0.5">{pot.team}</p>
-                    </div>
-                    <Badge variant="outline" className="border-slate-700 text-xs text-slate-300">
-                      Due {pot.deadline}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Confirmed Progress Bar */}
-                  <div>
-                    <div className="flex justify-between text-xs font-medium mb-1.5">
-                      <span className="text-emerald-400 font-bold">
-                        ${pot.confirmedTotal.toLocaleString()} Confirmed
-                      </span>
-                      <span className="text-slate-400">
-                        ${pot.goalAmount.toLocaleString()} Goal ({percent}%)
-                      </span>
-                    </div>
-                    <Progress value={percent} className="h-2.5 bg-slate-800" />
-                    {pot.pendingTotal > 0 && (
-                      <p className="text-[11px] text-amber-400/80 mt-1">
-                        +${pot.pendingTotal} pending two-party confirmation
+                      <p className="text-xs font-bold text-slate-900 leading-tight">
+                        {pendingConfirmation.payerName} {pendingConfirmation.amount}
                       </p>
-                    )}
+                      <p className="text-[10px] text-amber-600 font-semibold">
+                        {pendingConfirmation.detail}
+                      </p>
+                    </div>
                   </div>
 
-                  {/* Obligations State Breakdown */}
-                  <div className="grid grid-cols-4 gap-2 text-center pt-2 border-t border-slate-800">
-                    <div className="bg-slate-800/40 rounded p-1.5">
-                      <span className="text-[10px] text-slate-400 block">Members</span>
-                      <span className="text-xs font-bold text-white">{pot.obligations.total}</span>
-                    </div>
-                    <div className="bg-emerald-950/30 rounded p-1.5 border border-emerald-900/30">
-                      <span className="text-[10px] text-emerald-400 block">Confirmed</span>
-                      <span className="text-xs font-bold text-emerald-300">{pot.obligations.confirmed}</span>
-                    </div>
-                    <div className="bg-amber-950/30 rounded p-1.5 border border-amber-900/30">
-                      <span className="text-[10px] text-amber-400 block">Pending</span>
-                      <span className="text-xs font-bold text-amber-300">{pot.obligations.pending}</span>
-                    </div>
-                    <div className="bg-rose-950/30 rounded p-1.5 border border-rose-900/30">
-                      <span className="text-[10px] text-rose-400 block">Overdue</span>
-                      <span className="text-xs font-bold text-rose-300">{pot.obligations.overdue}</span>
-                    </div>
+                  {/* Accept / Reject Buttons matching reference image */}
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={handleConfirmAction}
+                      className="w-7 h-7 rounded-full bg-[#a3e635] hover:bg-[#8ece28] text-slate-950 flex items-center justify-center shadow-sm transition-transform hover:scale-105"
+                      title="Confirm Payment"
+                    >
+                      <Check className="w-3.5 h-3.5 stroke-[3]" />
+                    </button>
+                    <button
+                      onClick={handleRejectAction}
+                      className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors"
+                      title="Dispute / Reject"
+                    >
+                      <X className="w-3.5 h-3.5 stroke-[2.5]" />
+                    </button>
                   </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                </div>
+              )}
+
+              {/* Item 2 */}
+              <div className="py-3 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-700">
+                    <Building2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-900">Salary / Referee Payment</p>
+                    <p className="text-[10px] text-slate-400">Today, 09:00 AM</p>
+                  </div>
+                </div>
+                <span className="text-xs font-bold text-emerald-600">+$5,000.00</span>
+              </div>
+
+              {/* Item 3 */}
+              <div className="py-3 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-700">
+                    <CreditCard className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-900">Buy - Uniforms Gear</p>
+                    <p className="text-[10px] text-slate-400">Yesterday, 2:30 PM</p>
+                  </div>
+                </div>
+                <span className="text-xs font-bold text-slate-800">-$4,000.00</span>
+              </div>
+
+              {/* Item 4 */}
+              <div className="py-3 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-700">
+                    <CheckCircle2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-900">Refund - Zelle Pay</p>
+                    <p className="text-[10px] text-slate-400">Apr 1, 2026</p>
+                  </div>
+                </div>
+                <span className="text-xs font-bold text-emerald-600">+$120.00</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Record Payout Spend Dialog */}
       <Dialog open={payoutModalOpen} onOpenChange={setPayoutModalOpen}>
-        <DialogContent className="bg-slate-900 border-slate-800 text-white sm:max-w-md">
+        <DialogContent className="bg-white rounded-3xl border border-slate-200 text-slate-900 sm:max-w-md p-6">
           <DialogHeader>
-            <DialogTitle>Record Payout Spend Request</DialogTitle>
-            <DialogDescription className="text-slate-400 text-xs">
+            <DialogTitle className="text-lg font-bold text-slate-900">Record Payout Spend Request</DialogTitle>
+            <DialogDescription className="text-slate-500 text-xs">
               ThePotLite governs off-platform spending. The organization pays the vendor directly.
               Separation of duties applies: requester cannot self-approve.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleCreatePayoutRequest} className="space-y-4 py-2">
+          <form onSubmit={handleCreatePayout} className="space-y-4 py-2">
             <div>
-              <Label className="text-xs text-slate-300">Vendor / Payee</Label>
+              <Label className="text-xs font-semibold text-slate-700">Vendor / Payee</Label>
               <Input
-                placeholder="e.g. State Cup Tournament Org / Referee Coordinator"
+                placeholder="State Cup Tournament Org / Referee Coordinator"
                 value={payee}
                 onChange={(e) => setPayee(e.target.value)}
                 required
-                className="bg-slate-800 border-slate-700 text-sm mt-1"
+                className="bg-slate-50 border-slate-200 rounded-xl text-sm mt-1"
               />
             </div>
             <div>
-              <Label className="text-xs text-slate-300">Amount ($)</Label>
+              <Label className="text-xs font-semibold text-slate-700">Amount ($)</Label>
               <Input
                 type="number"
                 placeholder="450.00"
                 value={payoutAmount}
                 onChange={(e) => setPayoutAmount(e.target.value)}
                 required
-                className="bg-slate-800 border-slate-700 text-sm mt-1"
+                className="bg-slate-50 border-slate-200 rounded-xl text-sm mt-1"
               />
             </div>
             <div>
-              <Label className="text-xs text-slate-300">Purpose / Spend Description</Label>
+              <Label className="text-xs font-semibold text-slate-700">Purpose / Spend Description</Label>
               <Input
                 placeholder="Referee cash stipends for 3 games"
                 value={payoutPurpose}
                 onChange={(e) => setPayoutPurpose(e.target.value)}
                 required
-                className="bg-slate-800 border-slate-700 text-sm mt-1"
+                className="bg-slate-50 border-slate-200 rounded-xl text-sm mt-1"
               />
             </div>
-            <div className="pt-2 flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setPayoutModalOpen(false)}>
+            <div className="pt-3 flex justify-end gap-2">
+              <Button type="button" variant="outline" className="rounded-full" onClick={() => setPayoutModalOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" className="bg-purple-600 hover:bg-purple-500 text-white">
+              <Button type="submit" className="bg-purple-700 hover:bg-purple-800 text-white rounded-full">
                 Submit for Approval
               </Button>
             </div>

@@ -1,20 +1,21 @@
 import React, { useState } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import {
-  AlertCircle,
-  CheckCircle,
-  Clock,
+  Eye,
+  EyeOff,
+  Copy,
+  ArrowUpRight,
+  MoreHorizontal,
+  Check,
+  X,
   Sparkles,
   Send,
   HelpCircle,
   Receipt,
-  Check,
   Calendar,
-  Eye,
+  CheckCircle2,
+  Building2,
+  CreditCard,
 } from "lucide-react";
 import {
   Dialog,
@@ -25,25 +26,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Button } from "@/components/ui/button";
 
 export const ThePotLiteMemberDashboard: React.FC = () => {
   const { toast } = useToast();
 
-  // Cheffy Prompt state
-  const [activePrompt, setActivePrompt] = useState<{
-    id: number;
-    text: string;
-    potName: string;
-    amount: string;
-    dueDate: string;
-  } | null>({
-    id: 1,
-    text: "Your $100.00 for Fall Tournament is due in 3 days. Where do you stand?",
-    potName: "State Cup Tournament & Travel",
-    amount: "$100.00",
-    dueDate: "Nov 18, 2026",
-  });
+  const [balanceVisible, setBalanceVisible] = useState(true);
+  const [activeTab, setActiveTab] = useState<"USD" | "Jordan M." | "U12 Boys">("Jordan M.");
 
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [assistanceModalOpen, setAssistanceModalOpen] = useState(false);
@@ -53,46 +42,22 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
   const [assistanceType, setAssistanceType] = useState<"more_time" | "financial_help">("more_time");
   const [assistanceVisibility, setAssistanceVisibility] = useState<"organizers_only" | "organizers_and_group">("organizers_only");
 
-  // Member's obligations
-  const [obligations, setObligations] = useState([
-    {
-      id: 101,
-      potName: "State Cup Tournament & Travel",
-      potType: "tournament",
-      playerName: "Jordan M. (U12 Boys)",
-      totalAmount: 200,
-      confirmedAmount: 100,
-      pendingAmount: 0,
-      state: "Partially paid",
-      nextDueDate: "2026-11-18",
-      installments: [
-        { num: 1, amount: 100, state: "Confirmed", dueDate: "2026-10-15" },
-        { num: 2, amount: 100, state: "Accepted", dueDate: "2026-11-18" },
-      ],
-    },
-    {
-      id: 102,
-      potName: "Fall 2026 Season Dues",
-      potType: "season fee",
-      playerName: "Jordan M. (U12 Boys)",
-      totalAmount: 300,
-      confirmedAmount: 300,
-      pendingAmount: 0,
-      state: "Confirmed",
-      nextDueDate: "Completed",
-      installments: [
-        { num: 1, amount: 150, state: "Confirmed", dueDate: "2026-09-01" },
-        { num: 2, amount: 150, state: "Confirmed", dueDate: "2026-10-01" },
-      ],
-    },
-  ]);
+  // Cheffy interactive prompt state
+  const [activePrompt, setActivePrompt] = useState<{
+    text: string;
+    amount: string;
+    dueDate: string;
+  } | null>({
+    text: "Your $100.00 installment is due in 3 days. Where do you stand?",
+    amount: "$100.00",
+    dueDate: "Nov 18, 2026",
+  });
 
-  // One-tap Cheffy prompt responses
   const handlePromptGreen = () => {
     setActivePrompt(null);
     toast({
       title: "On Track Recorded",
-      description: "Thanks! Cheffy logged your intent as On Track. Reminders will stay on schedule.",
+      description: "Cheffy logged your intent as On Track. Reminders will stay on schedule.",
     });
   };
 
@@ -105,7 +70,7 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
     setActivePrompt(null);
     toast({
       title: "Exit Request Initiated",
-      description: "Cheffy notified the organizers. You can optionally provide feedback or withdraw.",
+      description: "Cheffy notified the coach and organizers.",
     });
   };
 
@@ -114,7 +79,7 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
     setPaymentModalOpen(false);
     toast({
       title: "Payment Recorded",
-      description: `Marked as sent $${paymentAmount} via ${paymentMethod}. Pending organizer confirmation.`,
+      description: `Marked sent $${paymentAmount} via ${paymentMethod}. Pending organizer confirmation.`,
     });
   };
 
@@ -123,237 +88,360 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
     setAssistanceModalOpen(false);
     toast({
       title: "Assistance Request Submitted",
-      description: `Your request was routed with privacy setting: ${assistanceVisibility.replace("_", " ")}.`,
+      description: `Confidential request routed to organizers.`,
     });
   };
 
   return (
-    <div className="space-y-8 pb-12">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-white">Parent / Member Portal</h1>
-        <p className="text-sm text-slate-400">
-          Player: <strong className="text-amber-400">Jordan M.</strong> · Tigers Youth Soccer Club
-        </p>
-      </div>
+    <div className="space-y-6">
+      {/* =========================================================================
+          TOP ROW: 2 CARDS (Hero Obligation Balance + Purple Priority Cheffy Card)
+          ========================================================================= */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Hero Card (7 Cols) */}
+        <div className="lg:col-span-7 bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-sm flex flex-col justify-between">
+          <div>
+            {/* Top Row: Pills & Account Number */}
+            <div className="flex items-center justify-between pb-4">
+              <div className="flex items-center bg-slate-100 p-1 rounded-full text-xs font-semibold text-slate-600">
+                <button
+                  onClick={() => setActiveTab("Jordan M.")}
+                  className={`px-3 py-1 rounded-full transition-all flex items-center gap-1 ${
+                    activeTab === "Jordan M." ? "bg-white text-slate-900 shadow-sm" : "hover:text-slate-900"
+                  }`}
+                >
+                  👦 Jordan M.
+                </button>
+                <button
+                  onClick={() => setActiveTab("U12 Boys")}
+                  className={`px-3 py-1 rounded-full transition-all ${
+                    activeTab === "U12 Boys" ? "bg-white text-slate-900 shadow-sm" : "hover:text-slate-900"
+                  }`}
+                >
+                  U12 Boys
+                </button>
+                <button
+                  onClick={() => setActiveTab("USD")}
+                  className={`px-3 py-1 rounded-full transition-all ${
+                    activeTab === "USD" ? "bg-white text-slate-900 shadow-sm" : "hover:text-slate-900"
+                  }`}
+                >
+                  USD
+                </button>
+              </div>
 
-      {/* 1. "Needs Your Response" Cheffy Prompt Banner (Section 06 & 12) */}
-      {activePrompt && (
-        <div className="relative overflow-hidden rounded-xl border border-amber-500/40 bg-gradient-to-r from-amber-950/40 via-purple-950/40 to-slate-900 p-5 shadow-lg shadow-amber-950/20">
-          <div className="flex items-start gap-3">
-            <div className="p-2 rounded-lg bg-amber-500/20 text-amber-400">
-              <Sparkles className="w-5 h-5 animate-pulse" />
-            </div>
-            <div className="flex-1 space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-amber-400">
-                  Cheffy Prompt · Action Needed
+              <div className="text-right">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">
+                  Family Account
                 </span>
-                <Badge variant="outline" className="text-[10px] text-slate-400 border-slate-700">
-                  {activePrompt.potName}
-                </Badge>
+                <span className="text-xs font-bold text-slate-800">
+                  FAM-JENKINS-42
+                </span>
               </div>
-              <p className="text-sm font-medium text-white">{activePrompt.text}</p>
-              
-              {/* One-tap Response Options */}
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                <Button
-                  size="sm"
-                  onClick={handlePromptGreen}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs h-8"
+            </div>
+
+            {/* Label & Amount */}
+            <div className="pt-2">
+              <span className="text-xs font-medium text-slate-400 block mb-1">
+                Total Remaining Obligation
+              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight">
+                  {balanceVisible ? "$100.00" : "••••••••••"}
+                </span>
+                <button
+                  onClick={() => setBalanceVisible(!balanceVisible)}
+                  className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors"
                 >
-                  <span className="w-2 h-2 rounded-full bg-emerald-300 mr-1.5 inline-block"></span>
-                  Green: On Track
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={handlePromptYellow}
-                  className="bg-amber-600 hover:bg-amber-500 text-white text-xs h-8"
-                >
-                  <span className="w-2 h-2 rounded-full bg-amber-300 mr-1.5 inline-block"></span>
-                  Yellow: Need Time / Help
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={handlePromptRed}
-                  variant="outline"
-                  className="border-rose-700/60 text-rose-300 hover:bg-rose-950 text-xs h-8"
-                >
-                  <span className="w-2 h-2 rounded-full bg-rose-400 mr-1.5 inline-block"></span>
-                  Red: Want to Leave
-                </Button>
+                  {balanceVisible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                </button>
+              </div>
+              <p className="text-xs text-slate-500 mt-1.5 flex items-center gap-1.5 font-medium">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+                <span>$400.00 confirmed of $500.00 season commitments · Next due Nov 18</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Action Buttons Row */}
+          <div className="flex items-center justify-between pt-6 border-t border-slate-100 mt-6">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPaymentModalOpen(true)}
+                className="inline-flex items-center gap-2 bg-[#1b3d2f] hover:bg-[#142e23] text-emerald-300 font-semibold text-xs px-4 py-2.5 rounded-full shadow-sm transition-all"
+              >
+                <Send className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Mark Payment Sent</span>
+              </button>
+
+              <button
+                onClick={() => setAssistanceModalOpen(true)}
+                className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 font-semibold text-xs px-4 py-2.5 rounded-full shadow-sm transition-all"
+              >
+                <HelpCircle className="w-3.5 h-3.5 text-purple-600" />
+                <span>Request Help (Yellow)</span>
+              </button>
+
+              <button className="w-9 h-9 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 shadow-sm transition-colors">
+                <MoreHorizontal className="w-4 h-4" />
+              </button>
+            </div>
+
+            <button
+              onClick={() => setPaymentModalOpen(true)}
+              className="w-12 h-12 rounded-full bg-[#a3e635] hover:bg-[#8ece28] text-slate-900 flex items-center justify-center shadow-lg shadow-[#a3e635]/30 transition-transform hover:scale-105"
+            >
+              <ArrowUpRight className="w-6 h-6 stroke-[2.5]" />
+            </button>
+          </div>
+        </div>
+
+        {/* Right Accent Card: Cheffy Priority (5 Cols) */}
+        <div className="lg:col-span-5 bg-gradient-to-br from-[#a3e635] via-[#8ece28] to-[#65a30d] text-slate-950 rounded-3xl p-6 sm:p-7 relative overflow-hidden shadow-sm flex flex-col justify-between">
+          <div className="absolute -right-8 -top-8 w-48 h-48 opacity-15 pointer-events-none select-none">
+            <svg viewBox="0 0 200 200" fill="currentColor">
+              <polygon points="100,10 120,80 190,100 120,120 100,190 80,120 10,100 80,80" />
+            </svg>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between pb-4">
+              <div className="inline-flex items-center gap-1.5 bg-slate-950 text-white font-bold text-xs px-3 py-1.5 rounded-full">
+                <span>CHEFFY PROMPT</span>
+                <span className="w-4 h-4 rounded-full bg-slate-800 text-white flex items-center justify-center text-[11px] font-extrabold">
+                  !
+                </span>
+              </div>
+              <button className="w-8 h-8 rounded-full bg-black/10 flex items-center justify-center text-slate-900 hover:bg-black/20">
+                <MoreHorizontal className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="pt-1">
+              <span className="text-xs font-semibold text-slate-800/80 block mb-1">
+                Due in 3 Days (Part #2)
+              </span>
+              <div className="flex flex-wrap items-baseline gap-2">
+                <span className="text-3xl sm:text-4xl font-extrabold text-slate-950 tracking-tight">
+                  $100.00
+                </span>
+                <span className="bg-white/80 text-slate-900 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                  Due Nov 18
+                </span>
               </div>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* 2. My Active Pots & Obligations (Section 03, 04, 12) */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-bold text-white">My Obligations</h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {obligations.map((ob) => {
-            const percent = Math.round((ob.confirmedAmount / ob.totalAmount) * 100);
-            return (
-              <Card key={ob.id} className="bg-slate-900 border-slate-800 shadow-md">
-                <CardHeader className="pb-3">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <Badge className="bg-purple-950 text-purple-300 border-purple-800 text-[10px] mb-1">
-                        {ob.potType}
-                      </Badge>
-                      <CardTitle className="text-base font-semibold text-white">{ob.potName}</CardTitle>
-                      <p className="text-xs text-slate-400 mt-0.5">{ob.playerName}</p>
-                    </div>
-                    <Badge
-                      className={
-                        ob.state === "Confirmed"
-                          ? "bg-emerald-950 text-emerald-300 border-emerald-800"
-                          : "bg-amber-950 text-amber-300 border-amber-800"
-                      }
-                    >
-                      {ob.state}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Progress */}
-                  <div>
-                    <div className="flex justify-between text-xs font-medium mb-1.5">
-                      <span className="text-emerald-400 font-bold">
-                        ${ob.confirmedAmount.toFixed(2)} Confirmed
-                      </span>
-                      <span className="text-slate-400">
-                        Total: ${ob.totalAmount.toFixed(2)} ({percent}%)
-                      </span>
-                    </div>
-                    <Progress value={percent} className="h-2 bg-slate-800" />
-                  </div>
-
-                  {/* Installments Breakdown */}
-                  <div className="space-y-1.5 pt-1">
-                    <span className="text-xs font-semibold text-slate-300">Schedule Parts:</span>
-                    {ob.installments.map((inst) => (
-                      <div
-                        key={inst.num}
-                        className="flex justify-between items-center text-xs p-2 rounded bg-slate-800/40 border border-slate-800"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                          <span className="text-slate-200">
-                            Part #{inst.num}: ${inst.amount.toFixed(2)}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] text-slate-400">Due {inst.dueDate}</span>
-                          <Badge
-                            variant="outline"
-                            className={`text-[10px] ${
-                              inst.state === "Confirmed"
-                                ? "text-emerald-400 border-emerald-800/40"
-                                : "text-amber-400 border-amber-800/40"
-                            }`}
-                          >
-                            {inst.state}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Action Buttons */}
-                  {ob.state !== "Confirmed" && (
-                    <div className="flex gap-2 pt-2">
-                      <Button
-                        size="sm"
-                        onClick={() => setPaymentModalOpen(true)}
-                        className="flex-1 bg-purple-600 hover:bg-purple-500 text-white text-xs h-9"
-                      >
-                        <Send className="w-3.5 h-3.5 mr-1.5" />
-                        Mark Payment Sent
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => setAssistanceModalOpen(true)}
-                        variant="outline"
-                        className="border-slate-700 text-slate-300 hover:bg-slate-800 text-xs h-9"
-                      >
-                        <HelpCircle className="w-3.5 h-3.5 mr-1.5 text-amber-400" />
-                        Assistance
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
+          {/* Interactive One-Tap Buttons */}
+          <div className="grid grid-cols-3 gap-2 pt-6">
+            <button
+              onClick={handlePromptGreen}
+              className="bg-slate-950 hover:bg-slate-900 text-emerald-400 font-bold text-xs py-2.5 px-2 rounded-2xl shadow-sm text-center transition-transform hover:scale-102 flex flex-col items-center"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-400 mb-1"></span>
+              On Track
+            </button>
+            <button
+              onClick={handlePromptYellow}
+              className="bg-white hover:bg-slate-50 text-amber-700 font-bold text-xs py-2.5 px-2 rounded-2xl shadow-sm text-center transition-transform hover:scale-102 flex flex-col items-center"
+            >
+              <span className="w-2 h-2 rounded-full bg-amber-500 mb-1"></span>
+              Need Help
+            </button>
+            <button
+              onClick={handlePromptRed}
+              className="bg-white/80 hover:bg-white text-rose-700 font-bold text-xs py-2.5 px-2 rounded-2xl shadow-sm text-center transition-transform hover:scale-102 flex flex-col items-center"
+            >
+              <span className="w-2 h-2 rounded-full bg-rose-500 mb-1"></span>
+              Leave
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* 3. Payout Transparency Card (Section 10 & 12) */}
-      <Card className="bg-slate-900 border-slate-800 shadow-md">
-        <CardHeader className="py-4 border-b border-slate-800">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Receipt className="w-4 h-4 text-purple-400" />
-              <CardTitle className="text-sm font-semibold text-white">
-                Team Payout Transparency (Where Collected Money Goes)
-              </CardTitle>
+      {/* =========================================================================
+          BOTTOM ROW: 3 CARDS (Progress Donut, Milestone Bars, Payments History)
+          ========================================================================= */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
+        {/* Card 1: Obligation Donut (4 Cols) */}
+        <div className="lg:col-span-4 bg-white rounded-3xl p-6 border border-slate-200/90 shadow-sm flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between pb-3">
+              <span className="text-sm font-bold text-slate-900">Obligation Progress</span>
+              <span className="text-xs font-semibold bg-slate-100 text-slate-600 px-3 py-1 rounded-full">
+                Season 2026
+              </span>
             </div>
-            <span className="text-xs text-slate-400">Off-platform disbursements with receipts</span>
+
+            <div className="relative flex flex-col items-center justify-center py-5">
+              <svg className="w-36 h-36 transform -rotate-90" viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="48" className="stroke-slate-100" strokeWidth="10" fill="transparent" />
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="48"
+                  className="stroke-[#a3e635]"
+                  strokeWidth="10"
+                  strokeDasharray="301.6"
+                  strokeDashoffset="60"
+                  strokeLinecap="round"
+                  fill="transparent"
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                <span className="text-xl font-bold text-slate-900">$400.00</span>
+                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full mt-0.5">
+                  80% Paid
+                </span>
+              </div>
+            </div>
+
+            <div className="text-center pb-2">
+              <p className="text-xs font-semibold text-slate-700 inline-flex items-center gap-1">
+                <span>✦ Next installment:</span>
+                <span className="text-purple-600 font-bold">$100.00 (Due Nov 18)</span>
+              </p>
+            </div>
           </div>
-        </CardHeader>
-        <CardContent className="p-4 divide-y divide-slate-800 text-xs">
-          <div className="py-2.5 flex justify-between items-center">
-            <div>
-              <p className="font-semibold text-slate-200">State Cup Tournament Entry Fee</p>
-              <p className="text-slate-400 text-[11px]">Payee: State Youth Soccer Assoc · Paid via Check #1042</p>
+
+          <div className="grid grid-cols-2 gap-2 pt-4 border-t border-slate-100 text-[11px]">
+            <div className="flex items-center gap-1.5 text-slate-600">
+              <span className="w-2 h-2 rounded-full bg-slate-900 inline-block"></span>
+              <span>Paid: <strong className="text-slate-900">$400.00</strong></span>
             </div>
-            <div className="text-right">
-              <span className="font-bold text-white">$1,200.00</span>
-              <p className="text-[10px] text-emerald-400">Approved by 2 Organizers</p>
-            </div>
-          </div>
-          <div className="py-2.5 flex justify-between items-center">
-            <div>
-              <p className="font-semibold text-slate-200">Team Uniforms & Numbers</p>
-              <p className="text-slate-400 text-[11px]">Payee: SoccerGear Depot · Paid via Organization Card</p>
-            </div>
-            <div className="text-right">
-              <span className="font-bold text-white">$850.00</span>
-              <p className="text-[10px] text-emerald-400">Receipt Attached</p>
+            <div className="flex items-center gap-1.5 text-slate-400">
+              <span className="w-2 h-2 rounded-full bg-slate-300 inline-block"></span>
+              <span>Remaining: $100.00</span>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* Card 2: Installment Milestones (4 Cols) */}
+        <div className="lg:col-span-4 bg-white rounded-3xl p-6 border border-slate-200/90 shadow-sm flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between pb-2">
+              <span className="text-sm font-bold text-slate-900">Installment Schedule</span>
+              <span className="text-xs font-bold text-[#e1683d] bg-[#fbf2ed] px-2.5 py-1 rounded-full border-b-2 border-[#e1683d]">
+                2 Parts
+              </span>
+            </div>
+
+            <div className="py-2">
+              <span className="text-2xl font-extrabold text-slate-900 tracking-tight block">
+                State Cup Travel
+              </span>
+              <span className="text-[11px] font-semibold text-slate-500">
+                Terms Version 1 · Consent Confirmed
+              </span>
+            </div>
+
+            <div className="space-y-4 pt-3">
+              <div>
+                <div className="flex justify-between text-xs font-medium mb-1">
+                  <span className="text-slate-900 font-bold">Part #1 (Paid)</span>
+                  <span className="text-slate-900 font-bold">$100.00</span>
+                </div>
+                <div className="relative w-full bg-slate-100 rounded-full h-3 flex items-center">
+                  <div className="bg-[#a3e635] h-3 rounded-full w-full"></div>
+                  <span className="absolute right-2 text-[9px] font-black text-slate-950">
+                    Confirmed
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between text-xs font-medium mb-1">
+                  <span className="text-slate-600 font-semibold">Part #2 (Due Nov 18)</span>
+                  <span className="text-slate-600 font-semibold">$100.00</span>
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                  <div className="bg-amber-400 h-2 rounded-full w-1/4"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 3: Recent Activity & Receipts (4 Cols) */}
+        <div className="lg:col-span-4 bg-white rounded-3xl p-6 border border-slate-200/90 shadow-sm flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between pb-3">
+              <span className="text-sm font-bold text-slate-900">Recent Statements</span>
+              <button className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-800">
+                <MoreHorizontal className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="divide-y divide-slate-100">
+              <div className="py-3 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
+                    <Check className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-900">Part #1 Confirmed via Zelle</p>
+                    <p className="text-[10px] text-slate-400">Oct 15, 2026 · Confirmed by Coach</p>
+                  </div>
+                </div>
+                <span className="text-xs font-bold text-emerald-600">+$100.00</span>
+              </div>
+
+              <div className="py-3 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-700">
+                    <CreditCard className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-900">Season Dues Part #2</p>
+                    <p className="text-[10px] text-slate-400">Sep 28, 2026 · Paid via Venmo</p>
+                  </div>
+                </div>
+                <span className="text-xs font-bold text-emerald-600">+$150.00</span>
+              </div>
+
+              <div className="py-3 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-purple-700">
+                    <Receipt className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-900">State Cup Entry Paid Out</p>
+                    <p className="text-[10px] text-slate-400">Team Disbursement · Verified</p>
+                  </div>
+                </div>
+                <span className="text-xs font-bold text-slate-500">Verified</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Mark Payment Sent Modal */}
       <Dialog open={paymentModalOpen} onOpenChange={setPaymentModalOpen}>
-        <DialogContent className="bg-slate-900 border-slate-800 text-white sm:max-w-md">
+        <DialogContent className="bg-white rounded-3xl border border-slate-200 text-slate-900 sm:max-w-md p-6">
           <DialogHeader>
-            <DialogTitle>Mark Payment Sent</DialogTitle>
-            <DialogDescription className="text-slate-400 text-xs">
+            <DialogTitle className="text-lg font-bold text-slate-900">Mark Payment Sent</DialogTitle>
+            <DialogDescription className="text-slate-500 text-xs">
               ThePotLite does not process funds. Send your payment directly using Cash App, Zelle, Venmo, Cash, or Check, then record it here. The organizer will confirm receipt.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmitPayment} className="space-y-4 py-2">
             <div>
-              <Label className="text-xs text-slate-300">Amount Sent ($)</Label>
+              <Label className="text-xs font-semibold text-slate-700">Amount Sent ($)</Label>
               <Input
                 type="number"
                 value={paymentAmount}
                 onChange={(e) => setPaymentAmount(e.target.value)}
                 required
-                className="bg-slate-800 border-slate-700 text-sm mt-1"
+                className="bg-slate-50 border-slate-200 rounded-xl text-sm mt-1"
               />
             </div>
             <div>
-              <Label className="text-xs text-slate-300">Payment Method</Label>
+              <Label className="text-xs font-semibold text-slate-700">Payment Method</Label>
               <select
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-md p-2 mt-1"
+                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl p-2.5 mt-1"
               >
                 <option value="Zelle">Zelle</option>
                 <option value="Venmo">Venmo</option>
@@ -364,19 +452,19 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
               </select>
             </div>
             <div>
-              <Label className="text-xs text-slate-300">Optional Reference / Note</Label>
+              <Label className="text-xs font-semibold text-slate-700">Optional Reference / Note</Label>
               <Input
                 placeholder="Confirmation # or note"
                 value={paymentNote}
                 onChange={(e) => setPaymentNote(e.target.value)}
-                className="bg-slate-800 border-slate-700 text-sm mt-1"
+                className="bg-slate-50 border-slate-200 rounded-xl text-sm mt-1"
               />
             </div>
-            <div className="pt-2 flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setPaymentModalOpen(false)}>
+            <div className="pt-3 flex justify-end gap-2">
+              <Button type="button" variant="outline" className="rounded-full" onClick={() => setPaymentModalOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" className="bg-purple-600 hover:bg-purple-500 text-white">
+              <Button type="submit" className="bg-[#1b3d2f] hover:bg-[#142e23] text-emerald-300 font-semibold rounded-full">
                 Submit Statement
               </Button>
             </div>
@@ -384,20 +472,20 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Assistance (Yellow Path) Modal */}
+      {/* Assistance Modal */}
       <Dialog open={assistanceModalOpen} onOpenChange={setAssistanceModalOpen}>
-        <DialogContent className="bg-slate-900 border-slate-800 text-white sm:max-w-md">
+        <DialogContent className="bg-white rounded-3xl border border-slate-200 text-slate-900 sm:max-w-md p-6">
           <DialogHeader>
-            <DialogTitle>Request Assistance (Yellow Path)</DialogTitle>
-            <DialogDescription className="text-slate-400 text-xs">
+            <DialogTitle className="text-lg font-bold text-slate-900">Request Assistance (Yellow Path)</DialogTitle>
+            <DialogDescription className="text-slate-500 text-xs">
               No shaming. You control who learns about your situation. All requests are confidential by default.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmitAssistance} className="space-y-4 py-2">
             <div>
-              <Label className="text-xs text-slate-300">What do you need?</Label>
+              <Label className="text-xs font-semibold text-slate-700">What do you need?</Label>
               <div className="flex gap-4 mt-2">
-                <label className="flex items-center gap-2 text-xs text-slate-200 cursor-pointer">
+                <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
                   <input
                     type="radio"
                     name="needType"
@@ -406,47 +494,47 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
                   />
                   More Time (Extension)
                 </label>
-                <label className="flex items-center gap-2 text-xs text-slate-200 cursor-pointer">
+                <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
                   <input
                     type="radio"
                     name="needType"
                     checked={assistanceType === "financial_help"}
                     onChange={() => setAssistanceType("financial_help")}
                   />
-                  Financial Help (Scholarship/Sponsor)
+                  Financial Help
                 </label>
               </div>
             </div>
 
             <div>
-              <Label className="text-xs text-slate-300">Who may see this request?</Label>
+              <Label className="text-xs font-semibold text-slate-700">Who may see this request?</Label>
               <div className="space-y-1.5 mt-2">
-                <label className="flex items-center gap-2 text-xs text-slate-200 cursor-pointer">
+                <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
                   <input
                     type="radio"
                     name="visibility"
                     checked={assistanceVisibility === "organizers_only"}
                     onChange={() => setAssistanceVisibility("organizers_only")}
                   />
-                  Organizers Only (Recommended · Fully Confidential)
+                  Organizers Only (Recommended · Confidential)
                 </label>
-                <label className="flex items-center gap-2 text-xs text-slate-200 cursor-pointer">
+                <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
                   <input
                     type="radio"
                     name="visibility"
                     checked={assistanceVisibility === "organizers_and_group"}
                     onChange={() => setAssistanceVisibility("organizers_and_group")}
                   />
-                  Organizers + Team Group (Allows community booster support)
+                  Organizers + Team Group
                 </label>
               </div>
             </div>
 
-            <div className="pt-2 flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setAssistanceModalOpen(false)}>
+            <div className="pt-3 flex justify-end gap-2">
+              <Button type="button" variant="outline" className="rounded-full" onClick={() => setAssistanceModalOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" className="bg-amber-600 hover:bg-amber-500 text-white">
+              <Button type="submit" className="bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-full">
                 Send Request
               </Button>
             </div>

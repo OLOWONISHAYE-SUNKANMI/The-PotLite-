@@ -1,4 +1,4 @@
-import { Switch, Route, useLocation } from "wouter";
+import { Switch, Route } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
@@ -31,22 +31,31 @@ function ThePotLiteHome() {
 function AppRouter() {
   return (
     <Switch>
-      {/* ThePotLite V1 Pilot Routes */}
-      <Route path="/" component={ThePotLiteHome} />
-      <Route path="/organizer" component={ThePotLiteOrganizerDashboard} />
-      <Route path="/member" component={ThePotLiteMemberDashboard} />
-      <Route path="/invite/:id" component={ThePotLiteInviteLanding} />
-      <Route path="/audit" component={ThePotLiteAuditLog} />
-      <Route path="/create" component={CreatePot} />
-      <Route path="/feedback" component={FeedbackForm} />
-      <Route path="/legacy" component={ThePotLiteLegacyArchive} />
-
-      {/* Authentication Pages */}
+      {/* =========================================================================
+          STANDALONE AUTHENTICATION GATEWAY PAGES (OUTSIDE DASHBOARD SHELL)
+          ========================================================================= */}
       <Route path="/login" component={ThePotLiteLogin} />
       <Route path="/register" component={ThePotLiteRegister} />
       <Route path="/auth/2fa" component={ThePotLiteTwoFactor} />
 
-      <Route component={NotFound} />
+      {/* =========================================================================
+          THEPOTLITE V1 PILOT DASHBOARD PAGES (WRAPPED IN APP SHELL WITH SIDEBAR)
+          ========================================================================= */}
+      <Route>
+        <ThePotLiteAppShell>
+          <Switch>
+            <Route path="/" component={ThePotLiteHome} />
+            <Route path="/organizer" component={ThePotLiteOrganizerDashboard} />
+            <Route path="/member" component={ThePotLiteMemberDashboard} />
+            <Route path="/invite/:id" component={ThePotLiteInviteLanding} />
+            <Route path="/audit" component={ThePotLiteAuditLog} />
+            <Route path="/create" component={CreatePot} />
+            <Route path="/feedback" component={FeedbackForm} />
+            <Route path="/legacy" component={ThePotLiteLegacyArchive} />
+            <Route component={NotFound} />
+          </Switch>
+        </ThePotLiteAppShell>
+      </Route>
     </Switch>
   );
 }
@@ -58,10 +67,8 @@ function App() {
         <ThemeProvider>
           <PotProvider>
             <ThePotLiteProvider>
-              <ThePotLiteAppShell>
-                <AppRouter />
-                <Toaster />
-              </ThePotLiteAppShell>
+              <AppRouter />
+              <Toaster />
             </ThePotLiteProvider>
           </PotProvider>
         </ThemeProvider>

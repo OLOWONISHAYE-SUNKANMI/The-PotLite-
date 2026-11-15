@@ -17,16 +17,15 @@ import {
   Menu,
   X,
   User,
-  KeyRound,
   LogIn,
   LogOut,
-  Sparkles,
+  Building2,
 } from "lucide-react";
 
 export const ThePotLiteAppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser, switchRole, organizationName, isAuthenticated, logout } = useThePotLite();
   const { theme, toggleTheme } = useThePotLiteTheme();
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Avatar image URLs for Coach & Parent
@@ -78,24 +77,12 @@ export const ThePotLiteAppShell: React.FC<{ children: React.ReactNode }> = ({ ch
       icon: Archive,
       active: location === "/legacy",
     },
-    {
-      label: "2FA Security",
-      path: "/auth/2fa",
-      icon: KeyRound,
-      active: location === "/auth/2fa",
-    },
-    {
-      label: isAuthenticated ? "My Account" : "Sign In / Register",
-      path: "/login",
-      icon: LogIn,
-      active: location === "/login" || location === "/register",
-    },
   ];
 
   return (
     <div className="w-full min-h-screen flex bg-[#f1f4f6] dark:bg-[#090d16] text-slate-800 dark:text-slate-100 transition-colors duration-300 font-sans">
       {/* =========================================================================
-          LEFT SIDEBAR (100% Height, Fixed on Desktop, Drawer on Mobile)
+          LEFT SIDEBAR (Fixed Height, Elegant Spacing, Independent Scrolling)
           ========================================================================= */}
       {/* Mobile Backdrop */}
       {mobileSidebarOpen && (
@@ -106,12 +93,12 @@ export const ThePotLiteAppShell: React.FC<{ children: React.ReactNode }> = ({ ch
       )}
 
       <aside
-        className={`fixed lg:sticky top-0 left-0 z-50 h-screen w-64 bg-white dark:bg-[#0f172a] border-r border-slate-200/90 dark:border-slate-800/90 flex flex-col justify-between p-5 transition-transform duration-300 shadow-sm shrink-0 ${
+        className={`fixed lg:sticky top-0 left-0 z-50 h-screen w-64 lg:w-72 bg-white dark:bg-[#0f172a] border-r border-slate-200/90 dark:border-slate-800/90 flex flex-col justify-between p-5 transition-transform duration-300 shadow-sm shrink-0 ${
           mobileSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
-        {/* Top: Brand & Org Context */}
-        <div className="space-y-5 overflow-y-auto pr-1">
+        {/* Brand & Organization Block */}
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2.5 group cursor-pointer">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 to-amber-500 flex items-center justify-center font-extrabold text-white text-base shadow-md shadow-purple-900/20">
@@ -129,51 +116,56 @@ export const ThePotLiteAppShell: React.FC<{ children: React.ReactNode }> = ({ ch
 
             <button
               onClick={() => setMobileSidebarOpen(false)}
-              className="lg:hidden p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Org Badge */}
-          <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-              Active Organization
-            </span>
-            <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate mt-0.5">
-              {organizationName}
-            </p>
+          {/* Active Club / Org Badge */}
+          <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-purple-100 dark:bg-purple-950/80 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+              <Building2 className="w-3.5 h-3.5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block leading-tight">
+                Organization
+              </span>
+              <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate mt-0.5">
+                {organizationName}
+              </p>
+            </div>
           </div>
-
-          {/* Navigation Links */}
-          <nav className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3 block mb-2">
-              Menu Navigation
-            </span>
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.path}
-                  href={item.path}
-                  onClick={() => setMobileSidebarOpen(false)}
-                  className={`flex items-center gap-3 px-3.5 py-2.2 rounded-2xl text-xs font-semibold transition-all ${
-                    item.active
-                      ? "bg-purple-600 text-white shadow-sm shadow-purple-600/30 font-bold"
-                      : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white"
-                  }`}
-                >
-                  <Icon className="w-4 h-4 shrink-0" />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-          </nav>
         </div>
 
-        {/* Bottom: Theme Toggle, Role Switcher, & User Profile */}
-        <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 space-y-3.5">
-          {/* Light / Dark Mode Toggle Switch */}
+        {/* Navigation Menu (Scrolls cleanly if height is constrained) */}
+        <div className="flex-1 py-4 overflow-y-auto space-y-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3 block mb-2">
+            Navigation
+          </span>
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.path}
+                href={item.path}
+                onClick={() => setMobileSidebarOpen(false)}
+                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-semibold transition-all ${
+                  item.active
+                    ? "bg-purple-600 text-white shadow-sm shadow-purple-600/30 font-bold"
+                    : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                <Icon className="w-4 h-4 shrink-0" />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Bottom Section: Perspective Switcher, Light/Dark Switch, User Card */}
+        <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 space-y-3 shrink-0">
+          {/* Light / Dark Mode Segmented Switch */}
           <div className="bg-slate-100 dark:bg-slate-800/70 p-1 rounded-2xl flex items-center justify-between text-xs font-semibold">
             <button
               onClick={() => toggleTheme()}
@@ -199,24 +191,17 @@ export const ThePotLiteAppShell: React.FC<{ children: React.ReactNode }> = ({ ch
             </button>
           </div>
 
-          {/* Quick Perspective Switcher */}
+          {/* Perspective Switcher */}
           <div>
-            <div className="flex justify-between items-center mb-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                Perspective
-              </span>
-              {isAuthenticated && (
-                <span className="text-[9px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.2 rounded-full">
-                  Authenticated
-                </span>
-              )}
-            </div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+              Perspective
+            </span>
             <div className="bg-slate-100 dark:bg-slate-800/70 p-1 rounded-2xl flex items-center justify-between text-xs font-semibold">
               <button
                 onClick={() => switchRole("Organizer")}
                 className={`flex-1 py-1.5 rounded-xl transition-all text-center ${
                   currentUser.role === "Organizer"
-                    ? "bg-purple-700 text-white shadow-sm"
+                    ? "bg-purple-700 text-white shadow-sm font-bold"
                     : "text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                 }`}
               >
@@ -226,7 +211,7 @@ export const ThePotLiteAppShell: React.FC<{ children: React.ReactNode }> = ({ ch
                 onClick={() => switchRole("Member")}
                 className={`flex-1 py-1.5 rounded-xl transition-all text-center ${
                   currentUser.role === "Member"
-                    ? "bg-amber-600 text-white shadow-sm"
+                    ? "bg-amber-600 text-white shadow-sm font-bold"
                     : "text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                 }`}
               >
@@ -235,13 +220,13 @@ export const ThePotLiteAppShell: React.FC<{ children: React.ReactNode }> = ({ ch
             </div>
           </div>
 
-          {/* User Profile Card & Sign In/Out */}
-          <div className="flex items-center justify-between gap-2 pt-1">
+          {/* User Profile Card with Sign Out / Gateway Link */}
+          <div className="flex items-center justify-between gap-2 p-2 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800/80">
             <div className="flex items-center gap-2.5 min-w-0">
               <img
                 src={avatarUrl}
                 alt={currentUser.name}
-                className="w-9 h-9 rounded-full object-cover ring-2 ring-purple-500/20 shadow-sm shrink-0"
+                className="w-8 h-8 rounded-full object-cover ring-2 ring-purple-500/20 shadow-sm shrink-0"
               />
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
@@ -253,17 +238,20 @@ export const ThePotLiteAppShell: React.FC<{ children: React.ReactNode }> = ({ ch
 
             {isAuthenticated ? (
               <button
-                onClick={() => logout()}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                title="Log Out"
+                onClick={async () => {
+                  await logout();
+                  setLocation("/login");
+                }}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                title="Log Out to Auth Gateway"
               >
                 <LogOut className="w-4 h-4" />
               </button>
             ) : (
               <Link href="/login">
                 <button
-                  className="p-1.5 rounded-xl text-slate-400 hover:text-purple-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                  title="Sign In"
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-purple-600 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                  title="Sign In Gateway"
                 >
                   <LogIn className="w-4 h-4" />
                 </button>
@@ -300,7 +288,7 @@ export const ThePotLiteAppShell: React.FC<{ children: React.ReactNode }> = ({ ch
               </span>
             </div>
 
-            {/* Top Navigation Pills (Exact match to [Overview] [Wealth] [Cards] [Tools]) */}
+            {/* Top Navigation Pills (Exact match to [Overview] [Create Pot] [Audit] [Feedback]) */}
             <div className="hidden md:flex items-center gap-1.5 ml-2 text-xs font-semibold">
               <Link
                 href="/"
@@ -347,21 +335,10 @@ export const ThePotLiteAppShell: React.FC<{ children: React.ReactNode }> = ({ ch
               >
                 Feedback
               </Link>
-
-              <Link
-                href="/login"
-                className={`px-4 py-1.5 rounded-full transition-all ${
-                  location === "/login" || location === "/register"
-                    ? "bg-[#a3e635] text-slate-950 font-bold shadow-sm"
-                    : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-                }`}
-              >
-                Auth
-              </Link>
             </div>
           </div>
 
-          {/* Right Header Controls: Search, Bell (24), Theme Toggle, Role Badge */}
+          {/* Right Header Controls: Principle Badge, Search, Bell (24), Theme Toggle, Role Badge */}
           <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
             {/* Top Principle Pill */}
             <div className="hidden xl:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-50 dark:bg-purple-950/40 border border-purple-200/70 dark:border-purple-800/40 text-purple-700 dark:text-purple-300 text-[11px] font-medium">

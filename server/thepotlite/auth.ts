@@ -306,3 +306,4 @@ export async function enableTwoFactorForUser(userId: number, verificationCode: s
 
   return { success: true, backupCodes };
 }
+

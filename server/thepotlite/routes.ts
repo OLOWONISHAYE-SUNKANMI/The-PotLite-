@@ -7,19 +7,40 @@ import {
   enableTwoFactorForUser,
   verifyTOTPCode,
 } from "./auth";
-import { getUserOrgMembership } from "./permissions";
+import {
+  createPotInvitation,
+  getInvitationDetails,
+  withdrawMemberFromPot,
+  recordOfflinePayment,
+  confirmOfflinePayment,
+  disputeOfflinePayment,
+  requestAssistance,
+  recordSponsorCoverage,
+  requestPayoutSpend,
+  approvePayoutSpend,
+  markPayoutDisbursed,
+  getOrganizerDashboardSummary,
+  getMemberDashboardSummary,
+} from "./engine";
+import {
+  createOrganizationWithDefaultRules,
+  createTeam,
+  registerPlayer,
+  createPilotPot,
+  acceptObligation,
+} from "./core";
 import { db } from "@db";
 import * as schema from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 
 export const thePotLiteRouter = Router();
 
 // Validation Schemas
 const registerSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
-  name: z.string().min(1, "Name is required"),
-  email: z.string().email("Valid email required"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  username: z.string().min(3),
+  name: z.string().min(1),
+  email: z.string().email(),
+  password: z.string().min(8),
   phone: z.string().optional(),
   organizationId: z.number().optional(),
   role: z.enum(["Organizer", "Member"]).optional(),
@@ -27,13 +48,13 @@ const registerSchema = z.object({
 });
 
 const loginSchema = z.object({
-  usernameOrEmail: z.string().min(1, "Username or email is required"),
-  password: z.string().min(1, "Password is required"),
+  usernameOrEmail: z.string().min(1),
+  password: z.string().min(1),
 });
 
 const verifyTwoFactorSchema = z.object({
   userId: z.number(),
-  code: z.string().length(6, "Code must be 6 digits"),
+  code: z.string().length(6),
 });
 
 // Helper for error handling
@@ -45,38 +66,25 @@ const handleRouteError = (res: any, error: any) => {
   return res.status(status).json({ error: error.message || "An unexpected error occurred" });
 };
 
-/**
- * POST /api/v1/auth/register
- * Register adult account (Organizer or Member)
- */
+// ---------------------------------------------------------------------------
+// Auth Routes
+// ---------------------------------------------------------------------------
+
 thePotLiteRouter.post("/auth/register", async (req, res) => {
   try {
     const data = registerSchema.parse(req.body);
     const user = await registerAdultUser(data);
-
-    // Save in session if available
-    if ((req as any).session) {
-      (req as any).session.userId = user.id;
-    }
-
-    return res.status(201).json({
-      message: "Adult account registered successfully",
-      user,
-    });
+    if ((req as any).session) (req as any).session.userId = user.id;
+    return res.status(201).json({ message: "Registered successfully", user });
   } catch (error) {
     return handleRouteError(res, error);
   }
 });
 
-/**
- * POST /api/v1/auth/login
- * Authenticate with username/email and password
- */
 thePotLiteRouter.post("/auth/login", async (req, res) => {
   try {
     const data = loginSchema.parse(req.body);
     const result = await authenticateAdultUser(data);
-
     if (result.requiresTwoFactor) {
       return res.status(200).json({
         requiresTwoFactor: true,
@@ -85,11 +93,7 @@ thePotLiteRouter.post("/auth/login", async (req, res) => {
         message: "Please enter your 6-digit two-factor authentication code.",
       });
     }
-
-    if ((req as any).session && result.user) {
-      (req as any).session.userId = result.user.id;
-    }
-
+    if ((req as any).session && result.user) (req as any).session.userId = result.user.id;
     return res.status(200).json({
       requiresTwoFactor: false,
       user: result.user,
@@ -100,17 +104,10 @@ thePotLiteRouter.post("/auth/login", async (req, res) => {
   }
 });
 
-/**
- * POST /api/v1/auth/2fa/setup
- * Generates TOTP secret and QR code URI for Organizers
- */
 thePotLiteRouter.post("/auth/2fa/setup", async (req, res) => {
   try {
     const userId = req.body.userId ?? (req as any).session?.userId;
-    if (!userId) {
-      return res.status(401).json({ error: "Authentication required" });
-    }
-
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
     const setupData = await setupTwoFactorForUser(Number(userId));
     return res.status(200).json(setupData);
   } catch (error) {
@@ -118,10 +115,6 @@ thePotLiteRouter.post("/auth/2fa/setup", async (req, res) => {
   }
 });
 
-/**
- * POST /api/v1/auth/2fa/enable
- * Verifies code and locks in 2FA for the user
- */
 thePotLiteRouter.post("/auth/2fa/enable", async (req, res) => {
   try {
     const { userId, code } = verifyTwoFactorSchema.parse(req.body);
@@ -135,30 +128,14 @@ thePotLiteRouter.post("/auth/2fa/enable", async (req, res) => {
   }
 });
 
-/**
- * POST /api/v1/auth/2fa/verify
- * Validates 2FA code during login challenge
- */
 thePotLiteRouter.post("/auth/2fa/verify", async (req, res) => {
   try {
     const { userId, code } = verifyTwoFactorSchema.parse(req.body);
-    const user = await db.query.users.findFirst({
-      where: eq(schema.users.id, userId),
-    });
-
-    if (!user || !user.twoFactorSecret) {
-      return res.status(400).json({ error: "2FA is not configured for this user" });
-    }
-
+    const user = await db.query.users.findFirst({ where: eq(schema.users.id, userId) });
+    if (!user || !user.twoFactorSecret) return res.status(400).json({ error: "2FA not configured" });
     const isValid = verifyTOTPCode(user.twoFactorSecret, code);
-    if (!isValid) {
-      return res.status(401).json({ error: "Invalid two-factor authentication code" });
-    }
-
-    if ((req as any).session) {
-      (req as any).session.userId = user.id;
-    }
-
+    if (!isValid) return res.status(401).json({ error: "Invalid two-factor authentication code" });
+    if ((req as any).session) (req as any).session.userId = user.id;
     return res.status(200).json({
       message: "Two-factor verification successful",
       user: {
@@ -175,32 +152,16 @@ thePotLiteRouter.post("/auth/2fa/verify", async (req, res) => {
   }
 });
 
-/**
- * GET /api/v1/auth/me
- * Retrieves active session and user's organization memberships
- */
 thePotLiteRouter.get("/auth/me", async (req, res) => {
   try {
     const userId = (req as any).session?.userId ?? Number(req.query.userId);
-    if (!userId) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
-
-    const user = await db.query.users.findFirst({
-      where: eq(schema.users.id, userId),
-    });
-
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
+    if (!userId) return res.status(401).json({ error: "Not authenticated" });
+    const user = await db.query.users.findFirst({ where: eq(schema.users.id, userId) });
+    if (!user) return res.status(404).json({ error: "User not found" });
     const memberships = await db.query.organizationMembers.findMany({
       where: eq(schema.organizationMembers.userId, user.id),
-      with: {
-        organization: true,
-      },
+      with: { organization: true },
     });
-
     return res.status(200).json({
       user: {
         id: user.id,
@@ -222,15 +183,350 @@ thePotLiteRouter.get("/auth/me", async (req, res) => {
   }
 });
 
-/**
- * POST /api/v1/auth/logout
- */
 thePotLiteRouter.post("/auth/logout", (req, res) => {
   if ((req as any).session) {
-    (req as any).session.destroy(() => {
-      res.status(200).json({ message: "Logged out successfully" });
-    });
+    (req as any).session.destroy(() => res.status(200).json({ message: "Logged out" }));
   } else {
-    res.status(200).json({ message: "Logged out successfully" });
+    res.status(200).json({ message: "Logged out" });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Organization & Pot Management
+// ---------------------------------------------------------------------------
+
+thePotLiteRouter.post("/organizations", async (req, res) => {
+  try {
+    const { name, description, sport, createdById } = req.body;
+    const result = await createOrganizationWithDefaultRules({
+      name,
+      description,
+      sport,
+      createdById: Number(createdById),
+    });
+    return res.status(201).json(result);
+  } catch (error) {
+    return handleRouteError(res, error);
+  }
+});
+
+thePotLiteRouter.post("/pots", async (req, res) => {
+  try {
+    const { organizationId, teamId, name, purpose, potType, goalAmountCents, deadline, createdById } = req.body;
+    const pot = await createPilotPot({
+      organizationId: Number(organizationId),
+      teamId: teamId ? Number(teamId) : undefined,
+      name,
+      purpose,
+      potType,
+      goalAmountCents: Number(goalAmountCents),
+      deadline: new Date(deadline),
+      createdById: Number(createdById),
+    });
+    return res.status(201).json(pot);
+  } catch (error) {
+    return handleRouteError(res, error);
+  }
+});
+
+thePotLiteRouter.get("/pots/:id", async (req, res) => {
+  try {
+    const potId = Number(req.params.id);
+    const pot = await db.query.pilotPots.findFirst({
+      where: eq(schema.pilotPots.id, potId),
+      with: {
+        organization: true,
+        team: true,
+        ruleVersion: true,
+        obligations: {
+          with: { member: true, player: true, installments: true },
+        },
+      },
+    });
+    if (!pot) return res.status(404).json({ error: "Pot not found" });
+    return res.status(200).json(pot);
+  } catch (error) {
+    return handleRouteError(res, error);
+  }
+});
+
+thePotLiteRouter.get("/pots/:id/timeline", async (req, res) => {
+  try {
+    const potId = Number(req.params.id);
+    const events = await db.query.auditEvents.findMany({
+      where: eq(schema.auditEvents.potId, potId),
+      orderBy: [desc(schema.auditEvents.timestamp)],
+      limit: 50,
+    });
+    return res.status(200).json(events);
+  } catch (error) {
+    return handleRouteError(res, error);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Invitations & Acceptance
+// ---------------------------------------------------------------------------
+
+thePotLiteRouter.post("/invitations", async (req, res) => {
+  try {
+    const { potId, memberUserId, playerId, totalAmountCents, schedule, createdById, termsText } = req.body;
+    const parsedSchedule = (schedule as Array<{ dueDate: string; amountCents: number }>).map((s) => ({
+      dueDate: new Date(s.dueDate),
+      amountCents: Number(s.amountCents),
+    }));
+
+    const result = await createPotInvitation({
+      potId: Number(potId),
+      memberUserId: Number(memberUserId),
+      playerId: playerId ? Number(playerId) : undefined,
+      totalAmountCents: Number(totalAmountCents),
+      schedule: parsedSchedule,
+      createdById: Number(createdById),
+      termsText,
+    });
+    return res.status(201).json(result);
+  } catch (error) {
+    return handleRouteError(res, error);
+  }
+});
+
+thePotLiteRouter.get("/invitations/:id", async (req, res) => {
+  try {
+    const obligationId = Number(req.params.id);
+    const details = await getInvitationDetails(obligationId);
+    return res.status(200).json(details);
+  } catch (error) {
+    return handleRouteError(res, error);
+  }
+});
+
+thePotLiteRouter.post("/invitations/:id/accept", async (req, res) => {
+  try {
+    const obligationId = Number(req.params.id);
+    const memberUserId = Number(req.body.memberUserId);
+    const updated = await acceptObligation({ obligationId, memberUserId });
+    return res.status(200).json({ message: "Obligation accepted successfully", obligation: updated });
+  } catch (error) {
+    return handleRouteError(res, error);
+  }
+});
+
+thePotLiteRouter.post("/invitations/:id/withdraw", async (req, res) => {
+  try {
+    const obligationId = Number(req.params.id);
+    const { memberUserId, reason } = req.body;
+    const result = await withdrawMemberFromPot({
+      obligationId,
+      memberUserId: Number(memberUserId),
+      reason,
+    });
+    return res.status(200).json({ message: "Withdrawn from Pot", result });
+  } catch (error) {
+    return handleRouteError(res, error);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Offline Payments & Two-Party Confirmation
+// ---------------------------------------------------------------------------
+
+thePotLiteRouter.post("/obligations/:id/payments", async (req, res) => {
+  try {
+    const obligationId = Number(req.params.id);
+    const { potId, installmentId, initiatedByUserId, initiatedByRole, payerUserId, amountCents, method, dateSent, referenceNote, statement } = req.body;
+    const payment = await recordOfflinePayment({
+      potId: Number(potId),
+      obligationId,
+      installmentId: installmentId ? Number(installmentId) : undefined,
+      initiatedByUserId: Number(initiatedByUserId),
+      initiatedByRole,
+      payerUserId: Number(payerUserId),
+      amountCents: Number(amountCents),
+      method,
+      dateSent: new Date(dateSent || Date.now()),
+      referenceNote,
+      statement,
+    });
+    return res.status(201).json(payment);
+  } catch (error) {
+    return handleRouteError(res, error);
+  }
+});
+
+thePotLiteRouter.post("/payments/:id/confirm", async (req, res) => {
+  try {
+    const paymentId = Number(req.params.id);
+    const { confirmingUserId, organizationId } = req.body;
+    const confirmed = await confirmOfflinePayment({
+      paymentId,
+      confirmingUserId: Number(confirmingUserId),
+      organizationId: Number(organizationId),
+    });
+    return res.status(200).json({ message: "Payment confirmed", payment: confirmed });
+  } catch (error) {
+    return handleRouteError(res, error);
+  }
+});
+
+thePotLiteRouter.post("/payments/:id/dispute", async (req, res) => {
+  try {
+    const paymentId = Number(req.params.id);
+    const { disputingUserId, disputeType, counterStatement } = req.body;
+    const disputed = await disputeOfflinePayment({
+      paymentId,
+      disputingUserId: Number(disputingUserId),
+      disputeType,
+      counterStatement,
+    });
+    return res.status(200).json({ message: "Payment moved to Disputed", payment: disputed });
+  } catch (error) {
+    return handleRouteError(res, error);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Assistance & Sponsorship (Yellow Path)
+// ---------------------------------------------------------------------------
+
+thePotLiteRouter.post("/obligations/:id/assistance", async (req, res) => {
+  try {
+    const obligationId = Number(req.params.id);
+    const { memberUserId, needType, visibility, proposedNewDate, requestedAmountCents, notes } = req.body;
+    const reqRecord = await requestAssistance({
+      obligationId,
+      memberUserId: Number(memberUserId),
+      needType,
+      visibility,
+      proposedNewDate: proposedNewDate ? new Date(proposedNewDate) : undefined,
+      requestedAmountCents: requestedAmountCents ? Number(requestedAmountCents) : undefined,
+      notes,
+    });
+    return res.status(201).json(reqRecord);
+  } catch (error) {
+    return handleRouteError(res, error);
+  }
+});
+
+thePotLiteRouter.post("/obligations/:id/sponsorship", async (req, res) => {
+  try {
+    const obligationId = Number(req.params.id);
+    const { sponsorUserId, coveredMemberUserId, amountCents, isGift, repaymentAmountCents, repaymentDueDate } = req.body;
+    const record = await recordSponsorCoverage({
+      obligationId,
+      sponsorUserId: Number(sponsorUserId),
+      coveredMemberUserId: Number(coveredMemberUserId),
+      amountCents: Number(amountCents),
+      isGift: Boolean(isGift),
+      repaymentAmountCents: repaymentAmountCents ? Number(repaymentAmountCents) : undefined,
+      repaymentDueDate: repaymentDueDate ? new Date(repaymentDueDate) : undefined,
+    });
+    return res.status(201).json(record);
+  } catch (error) {
+    return handleRouteError(res, error);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Off-Rail Payout Governance
+// ---------------------------------------------------------------------------
+
+thePotLiteRouter.post("/payouts", async (req, res) => {
+  try {
+    const { potId, requestedByUserId, organizationId, payee, amountCents, purpose, dateNeeded } = req.body;
+    const payout = await requestPayoutSpend({
+      potId: Number(potId),
+      requestedByUserId: Number(requestedByUserId),
+      organizationId: Number(organizationId),
+      payee,
+      amountCents: Number(amountCents),
+      purpose,
+      dateNeeded: new Date(dateNeeded),
+    });
+    return res.status(201).json(payout);
+  } catch (error) {
+    return handleRouteError(res, error);
+  }
+});
+
+thePotLiteRouter.post("/payouts/:id/approve", async (req, res) => {
+  try {
+    const payoutRecordId = Number(req.params.id);
+    const { approverUserId, organizationId, decision, reason } = req.body;
+    const result = await approvePayoutSpend({
+      payoutRecordId,
+      approverUserId: Number(approverUserId),
+      organizationId: Number(organizationId),
+      decision,
+      reason,
+    });
+    return res.status(200).json(result);
+  } catch (error) {
+    return handleRouteError(res, error);
+  }
+});
+
+thePotLiteRouter.post("/payouts/:id/disburse", async (req, res) => {
+  try {
+    const payoutRecordId = Number(req.params.id);
+    const { recorderUserId, organizationId, disbursementMethod, receiptInvoiceUrl } = req.body;
+    const result = await markPayoutDisbursed({
+      payoutRecordId,
+      recorderUserId: Number(recorderUserId),
+      organizationId: Number(organizationId),
+      disbursementMethod,
+      receiptInvoiceUrl,
+    });
+    return res.status(200).json(result);
+  } catch (error) {
+    return handleRouteError(res, error);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Cheffy Prompts
+// ---------------------------------------------------------------------------
+
+thePotLiteRouter.post("/cheffy/respond", async (req, res) => {
+  try {
+    const { promptId, selectedOption, responseNote } = req.body;
+    const [updated] = await db.update(schema.cheffyPrompts)
+      .set({
+        status: "responded",
+        selectedOption,
+        responseNote,
+        respondedAt: new Date(),
+      })
+      .where(eq(schema.cheffyPrompts.id, Number(promptId)))
+      .returning();
+    return res.status(200).json({ message: "Response recorded", prompt: updated });
+  } catch (error) {
+    return handleRouteError(res, error);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Dashboards
+// ---------------------------------------------------------------------------
+
+thePotLiteRouter.get("/dashboard/organizer", async (req, res) => {
+  try {
+    const organizationId = Number(req.query.organizationId);
+    if (!organizationId) return res.status(400).json({ error: "organizationId required" });
+    const summary = await getOrganizerDashboardSummary(organizationId);
+    return res.status(200).json(summary);
+  } catch (error) {
+    return handleRouteError(res, error);
+  }
+});
+
+thePotLiteRouter.get("/dashboard/member", async (req, res) => {
+  try {
+    const memberUserId = Number(req.query.memberUserId);
+    if (!memberUserId) return res.status(400).json({ error: "memberUserId required" });
+    const summary = await getMemberDashboardSummary(memberUserId);
+    return res.status(200).json(summary);
+  } catch (error) {
+    return handleRouteError(res, error);
   }
 });

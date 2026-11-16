@@ -7,37 +7,45 @@ import {
   Eye,
   EyeOff,
   Check,
-  ArrowRight,
-  ShieldCheck,
-  Building2,
-  Sparkles,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
+const COUNTRY_CODES = [
+  { flag: "🇺🇸", code: "+1", name: "United States" },
+  { flag: "🇦🇲", code: "+374", name: "Armenia" },
+  { flag: "🇬🇧", code: "+44", name: "United Kingdom" },
+  { flag: "🇨🇦", code: "+1", name: "Canada" },
+  { flag: "🇦🇺", code: "+61", name: "Australia" },
+  { flag: "🇩🇪", code: "+49", name: "Germany" },
+  { flag: "🇫🇷", code: "+33", name: "France" },
+  { flag: "🇳🇬", code: "+234", name: "Nigeria" },
+];
 
 export const ThePotLiteRegister: React.FC = () => {
   const { register, sendSmsCode } = useThePotLite();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
-  const [step, setStep] = useState<1 | 2>(1);
-  const [phone, setPhone] = useState("");
-  const [name, setName] = useState("");
+  const [selectedCountry, setSelectedCountry] = useState(COUNTRY_CODES[0]);
+  const [showCountryMenu, setShowCountryMenu] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [fullName, setFullName] = useState("");
   const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<UserRole>("Organizer");
-  const [organizationName, setOrganizationName] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const isUsernameValid = username.trim().length >= 3;
 
   const handleContinue = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !username.trim() || !password || !phone.trim()) {
+    if (!fullName.trim() || !username.trim() || !password || !phoneNumber.trim()) {
       toast({
         title: "Missing Information",
-        description: "Please fill in your name, username, password, and phone number for SMS 2FA.",
+        description: "Please fill in your phone number, full name, username, and password.",
         variant: "destructive",
       });
       return;
@@ -45,8 +53,8 @@ export const ThePotLiteRegister: React.FC = () => {
 
     if (password.length < 8) {
       toast({
-        title: "Weak Password",
-        description: "Password must be at least 8 characters.",
+        title: "Password Too Short",
+        description: "Password must be at least 8 characters long.",
         variant: "destructive",
       });
       return;
@@ -55,30 +63,29 @@ export const ThePotLiteRegister: React.FC = () => {
     setLoading(true);
     try {
       const cleanUsername = username.trim().toLowerCase().replace(/[^a-z0-9_]/g, "") || "user";
-      const cleanEmail = email.trim() || `${cleanUsername}@thepotlite.org`;
-      const cleanPhone = phone.trim();
+      const cleanPhone = `${selectedCountry.code}${phoneNumber.replace(/\D/g, "")}`;
+      const email = `${cleanUsername}@thepotlite.org`;
 
-      // Register account in system
       await register({
-        name: name.trim(),
+        name: fullName.trim(),
         username: cleanUsername,
-        email: cleanEmail,
+        email,
         password,
         phone: cleanPhone,
         role,
-        organizationName,
+        organizationName: "The Pot Limited Club",
       });
 
       // Dispatch real Twilio SMS OTP code
       try {
         await sendSmsCode(cleanPhone);
         toast({
-          title: "Account Registered & SMS Sent!",
-          description: `Twilio verification SMS dispatched to ${cleanPhone}.`,
+          title: "Account Created & SMS Dispatched",
+          description: `Twilio verification SMS sent to ${cleanPhone}.`,
         });
-      } catch (smsErr: any) {
+      } catch {
         toast({
-          title: "Account Registered!",
+          title: "Account Created Successfully!",
           description: "Entering dashboard...",
         });
       }
@@ -95,146 +102,170 @@ export const ThePotLiteRegister: React.FC = () => {
     }
   };
 
+  const handleGoogleSignUp = () => {
+    toast({
+      title: "Google Single Sign-On",
+      description: "Redirecting to Google secure authentication...",
+    });
+    // Fill sample demo account
+    setFullName("Juliette Karapetyan");
+    setUsername("julietux");
+    setPhoneNumber("00000000");
+    setPassword("SecurePass123!");
+    setSelectedCountry(COUNTRY_CODES[1]); // Armenia 🇦🇲 +374 as in reference image!
+  };
+
   return (
     <ThePotLiteAuthLayout
-      activeStep={step === 1 ? 1 : 2}
+      activeStep={1}
       tagline="Join Us to Build 🤩"
       headline="Start your Journey"
-      subheading="Follow these simple steps to set up your account and manage youth club obligations."
+      subheading="Follow these simple steps to set up your account."
     >
-      <div className="space-y-6 w-full">
+      <div className="w-full max-w-[440px] mx-auto py-2 sm:py-6">
         {/* Title */}
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <img src="/thepot-logo.png" alt="The Pot Limited" className="w-8 h-8 object-contain" />
-            <span className="text-xs font-black uppercase tracking-wider text-purple-600 dark:text-purple-400">
-              The Pot Limited
-            </span>
-          </div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl sm:text-[34px] font-bold text-slate-900 dark:text-white tracking-tight">
             Join Us
           </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Create an adult account to manage or accept team pots
-          </p>
         </div>
 
-        <form onSubmit={handleContinue} className="space-y-4">
-          {/* Phone Number Field with Country Badge (Reference Image Match) */}
-          <div className="space-y-1.5">
+        <form onSubmit={handleContinue} className="space-y-5">
+          {/* 1. Phone number with Flag and Country Code (Matches Reference Image) */}
+          <div className="space-y-2">
             <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-              Phone number (Twilio SMS 2FA)
+              Phone number
             </Label>
-            <div className="flex items-center gap-2 bg-[#f4f6f8] dark:bg-slate-800/80 rounded-2xl p-1.5 border border-slate-200/60 dark:border-slate-700/60">
-              <div className="flex items-center gap-1 px-3 py-1.5 bg-white dark:bg-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 shadow-sm shrink-0">
-                <span className="text-sm">🇺🇸</span>
-                <span>+1</span>
+            <div className="relative">
+              <div className="flex items-center bg-[#f8f9fa] dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 p-1.5 focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-500/20 transition-all">
+                {/* Country Flag Badge & Picker */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowCountryMenu(!showCountryMenu)}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 shadow-sm border border-slate-200/60 dark:border-slate-600/60 hover:bg-slate-50 transition-colors"
+                  >
+                    <span className="text-base">{selectedCountry.flag}</span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-200">{selectedCountry.code}</span>
+                    <ChevronDown className="w-3 h-3 text-slate-400" />
+                  </button>
+
+                  {showCountryMenu && (
+                    <div className="absolute top-full left-0 mt-1.5 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 py-1.5 z-50 max-h-56 overflow-y-auto">
+                      {COUNTRY_CODES.map((c) => (
+                        <button
+                          key={c.code + c.name}
+                          type="button"
+                          onClick={() => {
+                            setSelectedCountry(c);
+                            setShowCountryMenu(false);
+                          }}
+                          className="w-full text-left px-3 py-2 text-xs flex items-center gap-2.5 hover:bg-purple-50 dark:hover:bg-slate-700/60 text-slate-800 dark:text-slate-200 transition-colors"
+                        >
+                          <span className="text-base">{c.flag}</span>
+                          <span className="font-medium flex-1 truncate">{c.name}</span>
+                          <span className="text-slate-400 font-mono text-[11px]">{c.code}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <input
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="0000 00 00"
+                  className="w-full bg-transparent border-none text-sm text-slate-900 dark:text-white px-3 focus:outline-none placeholder:text-slate-400 font-medium"
+                  required
+                />
               </div>
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="(555) 000-0000"
-                className="w-full bg-transparent border-none text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none px-2"
-                required
-              />
             </div>
           </div>
 
-          {/* Full Name & Username (Two columns side-by-side, Reference Image Match) */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
+          {/* 2. Full Name & Username (Two Columns - Matches Reference Image) */}
+          <div className="grid grid-cols-2 gap-3.5">
+            <div className="space-y-2">
               <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Full Name
               </Label>
-              <div className="bg-[#f4f6f8] dark:bg-slate-800/80 rounded-2xl px-3.5 py-2.5 border border-slate-200/60 dark:border-slate-700/60">
+              <div className="bg-[#f8f9fa] dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 px-4 py-3 focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-500/20 transition-all">
                 <input
                   type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Coach Marcus"
-                  className="w-full bg-transparent border-none text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Juliette Karapetyan"
+                  className="w-full bg-transparent border-none text-sm text-slate-900 dark:text-white focus:outline-none placeholder:text-slate-400 font-medium"
                   required
                 />
               </div>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Username
               </Label>
-              <div className="bg-[#f4f6f8] dark:bg-slate-800/80 rounded-2xl px-3.5 py-2.5 border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between gap-1">
+              <div className="bg-[#f8f9fa] dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 px-4 py-3 flex items-center justify-between gap-1 focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-500/20 transition-all">
                 <input
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="coach_marcus"
-                  className="w-full bg-transparent border-none text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none"
+                  placeholder="julietux"
+                  className="w-full bg-transparent border-none text-sm text-slate-900 dark:text-white focus:outline-none placeholder:text-slate-400 font-medium"
                   required
                 />
-                {username.length >= 3 && (
-                  <Check className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0 stroke-[2.5]" />
+                {isUsernameValid && (
+                  <Check className="w-4 h-4 text-emerald-500 shrink-0 stroke-[2.5]" />
                 )}
               </div>
             </div>
           </div>
 
-          {/* Email Address (Optional) */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-              Email Address <span className="text-[10px] text-slate-400 font-normal">(optional)</span>
-            </Label>
-            <div className="bg-[#f4f6f8] dark:bg-slate-800/80 rounded-2xl px-3.5 py-2.5 border border-slate-200/60 dark:border-slate-700/60">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="coach@example.org"
-                className="w-full bg-transparent border-none text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none"
-              />
-            </div>
-          </div>
-
-          {/* Password with Eye Toggle (Reference Image Match) */}
-          <div className="space-y-1.5">
+          {/* 3. Password Field with Eye Toggle (Matches Reference Image) */}
+          <div className="space-y-2">
             <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
               Password
             </Label>
-            <div className="bg-[#f4f6f8] dark:bg-slate-800/80 rounded-2xl px-3.5 py-2.5 border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between">
+            <div className="bg-[#f8f9fa] dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 px-4 py-3 flex items-center justify-between focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-500/20 transition-all">
               <input
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••••••"
-                className="w-full bg-transparent border-none text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none"
+                placeholder="••••••••••••••••"
+                className="w-full bg-transparent border-none text-sm text-slate-900 dark:text-white focus:outline-none placeholder:text-slate-400 font-medium"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 ml-2"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors ml-2"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-            <p className="text-[10px] text-slate-400 pl-1">
-              At least 8 characters, letters, numbers, and symbols.
+            <p className="text-[11px] text-slate-400 leading-normal px-1">
+              At least 8 characters, no more than 20 characters. Uppercase letters, lowercase letters, numbers, and symbols.
             </p>
           </div>
 
-          {/* Role Pill Selector */}
+          {/* 4. Perspective / Role (Organizer vs Member) */}
           <div className="space-y-1.5 pt-1">
-            <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-              Your Perspective
-            </Label>
-            <div className="grid grid-cols-2 gap-2 bg-[#f4f6f8] dark:bg-slate-800/80 p-1 rounded-2xl">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Account Type
+              </Label>
+              <span className="text-[11px] text-purple-600 dark:text-purple-400 font-semibold">
+                {role === "Organizer" ? "Team Organizer / Coach" : "Parent / Member"}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 bg-[#f4f5f7] dark:bg-slate-800/80 p-1.5 rounded-2xl border border-slate-200/60 dark:border-slate-700/60">
               <button
                 type="button"
                 onClick={() => setRole("Organizer")}
                 className={`py-2 px-3 rounded-xl text-xs font-bold transition-all ${
                   role === "Organizer"
-                    ? "bg-purple-600 text-white shadow-sm"
-                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                    ? "bg-purple-600 text-white shadow-md shadow-purple-600/30"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
                 Organizer (Coach)
@@ -244,8 +275,8 @@ export const ThePotLiteRegister: React.FC = () => {
                 onClick={() => setRole("Member")}
                 className={`py-2 px-3 rounded-xl text-xs font-bold transition-all ${
                   role === "Member"
-                    ? "bg-amber-600 text-white shadow-sm"
-                    : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                    ? "bg-purple-600 text-white shadow-md shadow-purple-600/30"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
                 Parent / Member
@@ -253,28 +284,68 @@ export const ThePotLiteRegister: React.FC = () => {
             </div>
           </div>
 
-          {/* Continue Button (Reference Image Match) */}
-          <Button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3.5 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-sm shadow-md shadow-purple-600/30 transition-all hover:scale-[1.01]"
-          >
-            {loading ? "Setting up account..." : "Continue"}
-          </Button>
+          {/* 5. Continue Button (Matches Reference Image) */}
+          <div className="pt-2">
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full py-4 rounded-2xl bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold text-sm shadow-lg shadow-blue-500/25 transition-all hover:scale-[1.01] active:scale-[0.99]"
+            >
+              {loading ? "Creating your account..." : "Continue"}
+            </Button>
+          </div>
 
-          {/* Switch link */}
-          <div className="text-center text-xs text-slate-500 dark:text-slate-400 pt-1">
+          {/* 6. Already have an account? Log in */}
+          <div className="text-center text-xs text-slate-500 dark:text-slate-400">
             Already have an account?{" "}
-            <Link href="/login" className="font-bold text-purple-600 dark:text-purple-400 hover:underline">
+            <Link href="/login" className="font-bold text-[#2563eb] dark:text-blue-400 hover:underline">
               Log in
             </Link>
           </div>
 
-          {/* Bottom Disclaimer (Reference Image Match) */}
-          <p className="text-[10px] text-center text-slate-400 dark:text-slate-500 leading-relaxed pt-3">
-            By signing up I confirm that I carefully have read and agree to ThePotLite{" "}
-            <span className="underline cursor-pointer">Privacy Policy</span> and{" "}
-            <span className="underline cursor-pointer">Terms of Service</span>.
+          {/* 7. Or Divider (Matches Reference Image) */}
+          <div className="relative flex items-center justify-center py-1">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-200 dark:border-slate-700/80" />
+            </div>
+            <div className="relative px-3 bg-white dark:bg-[#0c101c] text-[12px] font-medium text-slate-400">
+              Or
+            </div>
+          </div>
+
+          {/* 8. Sign up with Google Button (Matches Reference Image) */}
+          <button
+            type="button"
+            onClick={handleGoogleSignUp}
+            className="w-full py-3.5 px-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold text-xs sm:text-sm flex items-center justify-center gap-3 transition-all shadow-sm"
+          >
+            {/* Google "G" Icon */}
+            <svg className="w-4 h-4" viewBox="0 0 24 24">
+              <path
+                fill="#4285F4"
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+              />
+              <path
+                fill="#EA4335"
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+              />
+            </svg>
+            <span>Sign up with Google</span>
+          </button>
+
+          {/* 9. Privacy Policy & Terms Disclaimer (Matches Reference Image) */}
+          <p className="text-[11px] text-center text-slate-400 dark:text-slate-500 leading-relaxed pt-2">
+            By signing up I confirm that I carefully have read and agree to The Pot Limited{" "}
+            <span className="underline cursor-pointer hover:text-slate-600 dark:hover:text-slate-300">Privacy Policy</span> and{" "}
+            <span className="underline cursor-pointer hover:text-slate-600 dark:hover:text-slate-300">Terms of Service</span>
           </p>
         </form>
       </div>

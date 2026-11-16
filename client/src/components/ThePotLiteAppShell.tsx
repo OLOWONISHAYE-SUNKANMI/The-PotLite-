@@ -101,9 +101,11 @@ export const ThePotLiteAppShell: React.FC<{ children: React.ReactNode }> = ({ ch
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2.5 group cursor-pointer">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 to-amber-500 flex items-center justify-center font-extrabold text-white text-base shadow-md shadow-purple-900/20">
-                P
-              </div>
+              <img
+                src="/thepot-logo.png"
+                alt="The Pot Limited"
+                className="w-10 h-10 object-contain drop-shadow-sm group-hover:scale-105 transition-transform"
+              />
               <div>
                 <span className="font-extrabold text-lg tracking-tight text-slate-900 dark:text-white group-hover:text-purple-600 transition-colors">
                   ThePot<span className="text-amber-500">Lite</span>

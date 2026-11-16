@@ -101,6 +101,12 @@ export const ThePotLiteRegister: React.FC = () => {
       <div className="space-y-6 w-full">
         {/* Title */}
         <div>
+          <div className="flex items-center gap-2 mb-2">
+            <img src="/thepot-logo.png" alt="The Pot Limited" className="w-8 h-8 object-contain" />
+            <span className="text-xs font-black uppercase tracking-wider text-purple-600 dark:text-purple-400">
+              The Pot Limited
+            </span>
+          </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             Join Us
           </h2>

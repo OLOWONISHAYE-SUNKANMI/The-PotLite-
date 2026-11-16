@@ -34,9 +34,11 @@ export const ThePotLiteAuthLayout: React.FC<ThePotLiteAuthLayoutProps> = ({
         {/* Top Header: Logo + Theme Switcher */}
         <div className="flex items-center justify-between z-10">
           <Link href="/" className="inline-flex items-center gap-3 cursor-pointer group">
-            <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center font-black text-white text-base shadow-inner group-hover:scale-105 transition-transform">
-              P
-            </div>
+            <img
+              src="/thepot-logo.png"
+              alt="The Pot Limited"
+              className="w-12 h-12 object-contain drop-shadow-md group-hover:scale-105 transition-transform"
+            />
             <div>
               <div className="font-extrabold text-xl tracking-tight text-white flex items-center gap-1.5">
                 <span>ThePot</span>
@@ -44,7 +46,7 @@ export const ThePotLiteAuthLayout: React.FC<ThePotLiteAuthLayoutProps> = ({
                   Lite
                 </span>
               </div>
-              <p className="text-[11px] text-purple-200/80 font-medium">Youth Sports Accountability</p>
+              <p className="text-[11px] text-purple-200/80 font-medium">The Pot Limited · Youth Sports</p>
             </div>
           </Link>
 

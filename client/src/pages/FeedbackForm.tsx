@@ -90,10 +90,15 @@ export default function FeedbackForm() {
   return (
     <div className="w-full max-w-3xl mx-auto py-4 space-y-6">
       {/* Header */}
-      <div className="text-center space-y-2">
+      <div className="text-center space-y-3">
+        <img
+          src="/thepot-logo.png"
+          alt="The Pot Limited"
+          className="w-14 h-14 object-contain mx-auto drop-shadow-sm"
+        />
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 dark:bg-purple-950/70 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 text-xs font-semibold">
           <MessageSquare className="w-3.5 h-3.5 text-amber-500" />
-          <span>ThePotLite Pilot · User Experience Survey</span>
+          <span>The Pot Limited · Pilot Feedback Survey</span>
         </div>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
           Pilot Feedback & Product Insights

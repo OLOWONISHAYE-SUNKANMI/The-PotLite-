@@ -80,8 +80,6 @@ interface ThePotLiteContextType {
   organizationName: string;
 }
 
-const ThePotLiteContext = createContext<ThePotLiteContextType | undefined>(undefined);
-
 const EMPTY_USER: ThePotLiteUser = {
   id: 0,
   name: "",
@@ -93,6 +91,26 @@ const EMPTY_USER: ThePotLiteUser = {
   organizationName: "",
   twoFactorEnabled: false,
 };
+
+const defaultContextValue: ThePotLiteContextType = {
+  currentUser: EMPTY_USER,
+  setCurrentUser: () => {},
+  isAuthenticated: false,
+  twoFactorChallenge: null,
+  setTwoFactorChallenge: () => {},
+  switchRole: () => {},
+  login: async () => ({}),
+  register: async () => EMPTY_USER,
+  verifyTwoFactor: async () => EMPTY_USER,
+  sendSmsCode: async () => ({ success: false, message: "" }),
+  verifySmsCode: async () => ({ success: false }),
+  setupTwoFactor: async () => ({ secret: "", otpAuthUrl: "" }),
+  enableTwoFactor: async () => ({ backupCodes: [] }),
+  logout: async () => {},
+  organizationName: "",
+};
+
+const ThePotLiteContext = createContext<ThePotLiteContextType>(defaultContextValue);
 
 export const ThePotLiteProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<ThePotLiteUser>(() => {
@@ -364,8 +382,5 @@ export const ThePotLiteProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
 export const useThePotLite = () => {
   const context = useContext(ThePotLiteContext);
-  if (!context) {
-    throw new Error("useThePotLite must be used within ThePotLiteProvider");
-  }
-  return context;
+  return context || defaultContextValue;
 };

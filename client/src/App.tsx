@@ -75,14 +75,14 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThePotLiteThemeProvider>
-        <ThemeProvider>
-          <PotProvider>
-            <ThePotLiteProvider>
+        <ThePotLiteProvider>
+          <ThemeProvider>
+            <PotProvider>
               <AppRouter />
               <Toaster />
-            </ThePotLiteProvider>
-          </PotProvider>
-        </ThemeProvider>
+            </PotProvider>
+          </ThemeProvider>
+        </ThePotLiteProvider>
       </ThePotLiteThemeProvider>
     </QueryClientProvider>
   );

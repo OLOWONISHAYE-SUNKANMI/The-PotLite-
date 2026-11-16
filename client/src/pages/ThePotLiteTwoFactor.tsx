@@ -104,7 +104,7 @@ export const ThePotLiteTwoFactor: React.FC = () => {
       headline="Verify Identity"
       subheading="Enforce two-factor authentication to secure organizer approvals and disbursements."
     >
-      <div className="space-y-6 max-w-md mx-auto w-full">
+      <div className="space-y-6 w-full">
         <div>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             Security Check

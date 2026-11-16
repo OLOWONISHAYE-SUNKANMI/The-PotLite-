@@ -170,7 +170,7 @@ export const ThePotLiteLogin: React.FC = () => {
       headline="Welcome Back"
       subheading="Sign in to access your club pots, track obligations, and review verified transactions."
     >
-      <div className="space-y-6 max-w-md mx-auto w-full">
+      <div className="space-y-6 w-full">
         {/* Title */}
         <div>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">

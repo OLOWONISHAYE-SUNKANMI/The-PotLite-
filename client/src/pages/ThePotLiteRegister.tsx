@@ -98,7 +98,7 @@ export const ThePotLiteRegister: React.FC = () => {
       headline="Start your Journey"
       subheading="Follow these simple steps to set up your account and manage youth club obligations."
     >
-      <div className="space-y-6 max-w-md mx-auto w-full">
+      <div className="space-y-6 w-full">
         {/* Title */}
         <div>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">

@@ -27,13 +27,21 @@ export const ThePotLiteTwoFactor: React.FC = () => {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
-  const [phone, setPhone] = useState(currentUser.phone || "+1 (555) 019-2834");
+  const [phone, setPhone] = useState(currentUser.phone || "");
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<"sms" | "totp">("sms");
   const [totpSetup, setTotpSetup] = useState<{ secret: string; otpAuthUrl: string } | null>(null);
 
   const handleSendSMS = async () => {
+    if (!phone) {
+      toast({
+        title: "Phone Required",
+        description: "Please enter your phone number to receive an SMS verification code.",
+        variant: "destructive",
+      });
+      return;
+    }
     setLoading(true);
     try {
       const res = await sendSmsCode(phone);
@@ -41,10 +49,11 @@ export const ThePotLiteTwoFactor: React.FC = () => {
         title: "SMS Code Dispatched",
         description: `Twilio verification SMS sent to ${phone}. ${res.testCode ? `(Dev Code: ${res.testCode})` : ""}`,
       });
-    } catch {
+    } catch (err: any) {
       toast({
-        title: "SMS Code Simulated",
-        description: "Use demo code 123456 to verify.",
+        title: "SMS Dispatch Failed",
+        description: err.message || "Unable to send SMS.",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -79,19 +88,11 @@ export const ThePotLiteTwoFactor: React.FC = () => {
       }
       setLocation("/");
     } catch (err: any) {
-      if (code === "123456" || code === "000000") {
-        toast({
-          title: "2FA Verified (Demo Mode)",
-          description: "Entering dashboard...",
-        });
-        setLocation("/");
-      } else {
-        toast({
-          title: "Verification Failed",
-          description: err.message || "Invalid code. Use demo code 123456.",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Verification Failed",
+        description: err.message || "Invalid verification code. Please check and try again.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -199,9 +200,6 @@ export const ThePotLiteTwoFactor: React.FC = () => {
                     autoFocus
                   />
                 </div>
-                <p className="text-[10px] text-slate-400 text-center">
-                  Demo code: <strong className="text-purple-600 dark:text-purple-400">123456</strong>
-                </p>
               </div>
             </div>
           ) : (
@@ -253,12 +251,6 @@ export const ThePotLiteTwoFactor: React.FC = () => {
           >
             {loading ? "Verifying..." : "Verify & Enter Dashboard"}
           </Button>
-
-          <div className="text-center pt-2">
-            <Link href="/" className="text-xs text-purple-600 dark:text-purple-400 hover:underline">
-              Skip for Demo & Go to Dashboard →
-            </Link>
-          </div>
         </form>
       </div>
     </ThePotLiteAuthLayout>

@@ -82,6 +82,18 @@ interface ThePotLiteContextType {
 
 const ThePotLiteContext = createContext<ThePotLiteContextType | undefined>(undefined);
 
+const EMPTY_USER: ThePotLiteUser = {
+  id: 0,
+  name: "",
+  email: "",
+  username: "",
+  role: "Organizer",
+  title: "Guest",
+  organizationId: 1,
+  organizationName: "",
+  twoFactorEnabled: false,
+};
+
 export const ThePotLiteProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<ThePotLiteUser>(() => {
     try {
@@ -89,9 +101,9 @@ export const ThePotLiteProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (savedUser) {
         return JSON.parse(savedUser);
       }
-      return DEMO_USERS.organizer;
+      return EMPTY_USER;
     } catch {
-      return DEMO_USERS.organizer;
+      return EMPTY_USER;
     }
   });
 
@@ -103,82 +115,61 @@ export const ThePotLiteProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [twoFactorChallenge, setTwoFactorChallenge] = useState<TwoFactorChallenge | null>(null);
 
   useEffect(() => {
-    if (isAuthenticated && currentUser) {
+    if (isAuthenticated && currentUser && currentUser.id > 0) {
       localStorage.setItem("thepotlite_authenticated_user", JSON.stringify(currentUser));
     }
   }, [currentUser, isAuthenticated]);
 
   const switchRole = (role: UserRole) => {
-    const target = role === "Organizer" ? DEMO_USERS.organizer : DEMO_USERS.member;
-    setCurrentUser(target);
-    localStorage.setItem("thepotlite_active_role", role);
+    if (currentUser.id > 0) {
+      const updated = { ...currentUser, role };
+      setCurrentUser(updated);
+      localStorage.setItem("thepotlite_authenticated_user", JSON.stringify(updated));
+    }
   };
 
   const login = async (credentials: { usernameOrEmail: string; password: string; phone?: string }) => {
-    try {
-      const res = await fetch("/api/v1/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(credentials),
-      });
+    const res = await fetch("/api/v1/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(credentials),
+    });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Login failed");
-      }
-
-      if (data.requiresTwoFactor) {
-        const challenge: TwoFactorChallenge = {
-          userId: data.userId,
-          username: data.username,
-          phone: credentials.phone || (data.userId === 10 ? "+1 (555) 019-2834" : undefined),
-          method: "sms",
-          message: data.message,
-        };
-        setTwoFactorChallenge(challenge);
-        return { requiresTwoFactor: true, challenge };
-      }
-
-      const user: ThePotLiteUser = {
-        id: data.user.id,
-        name: data.user.name,
-        email: data.user.email,
-        username: data.user.username,
-        role: "Organizer",
-        title: "Active Pilot User",
-        phone: data.user.phone || credentials.phone,
-        organizationId: 1,
-        organizationName: "Tigers Youth Soccer Club",
-        twoFactorEnabled: data.user.twoFactorEnabled,
-      };
-
-      setCurrentUser(user);
-      setIsAuthenticated(true);
-      setTwoFactorChallenge(null);
-      localStorage.setItem("thepotlite_authenticated_user", JSON.stringify(user));
-      return { requiresTwoFactor: false, user };
-    } catch (err: any) {
-      // Demo accounts fallback
-      if (
-        credentials.usernameOrEmail === "coach_marcus" ||
-        credentials.usernameOrEmail === "coach.marcus@tigersfc.org"
-      ) {
-        setCurrentUser(DEMO_USERS.organizer);
-        setIsAuthenticated(true);
-        localStorage.setItem("thepotlite_authenticated_user", JSON.stringify(DEMO_USERS.organizer));
-        return { requiresTwoFactor: false, user: DEMO_USERS.organizer };
-      }
-      if (
-        credentials.usernameOrEmail === "sarah_j" ||
-        credentials.usernameOrEmail === "sarah.jenkins@example.com"
-      ) {
-        setCurrentUser(DEMO_USERS.member);
-        setIsAuthenticated(true);
-        localStorage.setItem("thepotlite_authenticated_user", JSON.stringify(DEMO_USERS.member));
-        return { requiresTwoFactor: false, user: DEMO_USERS.member };
-      }
-      throw err;
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Login failed");
     }
+
+    if (data.requiresTwoFactor) {
+      const challenge: TwoFactorChallenge = {
+        userId: data.userId,
+        username: data.username,
+        phone: credentials.phone,
+        method: "sms",
+        message: data.message,
+      };
+      setTwoFactorChallenge(challenge);
+      return { requiresTwoFactor: true, challenge };
+    }
+
+    const user: ThePotLiteUser = {
+      id: data.user.id,
+      name: data.user.name,
+      email: data.user.email,
+      username: data.user.username,
+      role: (data.user.role as UserRole) || "Organizer",
+      title: data.user.role === "Member" ? "Parent / Guardian" : "Team Organizer",
+      phone: data.user.phone || credentials.phone,
+      organizationId: data.user.organizationId || 1,
+      organizationName: data.user.organizationName || "The Pot Limited Club",
+      twoFactorEnabled: !!data.user.twoFactorEnabled,
+    };
+
+    setCurrentUser(user);
+    setIsAuthenticated(true);
+    setTwoFactorChallenge(null);
+    localStorage.setItem("thepotlite_authenticated_user", JSON.stringify(user));
+    return { requiresTwoFactor: false, user };
   };
 
   const register = async (data: {
@@ -190,63 +181,43 @@ export const ThePotLiteProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     role: UserRole;
     organizationName?: string;
   }) => {
-    try {
-      const res = await fetch("/api/v1/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: data.name,
-          username: data.username,
-          email: data.email,
-          password: data.password,
-          phone: data.phone,
-          role: data.role,
-          title: data.role === "Organizer" ? "Team Director & Coach" : "Parent / Guardian",
-          organizationId: 1,
-        }),
-      });
-
-      const resData = await res.json();
-      if (!res.ok) {
-        throw new Error(resData.error || "Registration failed");
-      }
-
-      const newUser: ThePotLiteUser = {
-        id: resData.user.id,
-        name: resData.user.name,
-        email: resData.user.email,
-        username: resData.user.username,
-        role: data.role,
-        title: data.role === "Organizer" ? "Team Director & Coach" : "Parent / Guardian",
-        phone: resData.user.phone,
-        organizationId: 1,
-        organizationName: data.organizationName || "Tigers Youth Soccer Club",
-        twoFactorEnabled: false,
-      };
-
-      setCurrentUser(newUser);
-      setIsAuthenticated(true);
-      localStorage.setItem("thepotlite_authenticated_user", JSON.stringify(newUser));
-      return newUser;
-    } catch {
-      // Local fallback for offline / mock runs
-      const mockUser: ThePotLiteUser = {
-        id: Math.floor(Math.random() * 1000) + 100,
+    const res = await fetch("/api/v1/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
         name: data.name,
         username: data.username,
         email: data.email,
+        password: data.password,
+        phone: data.phone,
         role: data.role,
         title: data.role === "Organizer" ? "Team Director & Coach" : "Parent / Guardian",
-        phone: data.phone,
         organizationId: 1,
-        organizationName: data.organizationName || "Tigers Youth Soccer Club",
-        twoFactorEnabled: false,
-      };
-      setCurrentUser(mockUser);
-      setIsAuthenticated(true);
-      localStorage.setItem("thepotlite_authenticated_user", JSON.stringify(mockUser));
-      return mockUser;
+      }),
+    });
+
+    const resData = await res.json();
+    if (!res.ok) {
+      throw new Error(resData.error || "Registration failed");
     }
+
+    const newUser: ThePotLiteUser = {
+      id: resData.user.id,
+      name: resData.user.name,
+      email: resData.user.email,
+      username: resData.user.username,
+      role: data.role,
+      title: data.role === "Organizer" ? "Team Director & Coach" : "Parent / Guardian",
+      phone: resData.user.phone || data.phone,
+      organizationId: 1,
+      organizationName: data.organizationName || "The Pot Limited Club",
+      twoFactorEnabled: false,
+    };
+
+    setCurrentUser(newUser);
+    setIsAuthenticated(true);
+    localStorage.setItem("thepotlite_authenticated_user", JSON.stringify(newUser));
+    return newUser;
   };
 
   const sendSmsCode = async (phone: string) => {
@@ -327,17 +298,6 @@ export const ThePotLiteProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       localStorage.setItem("thepotlite_authenticated_user", JSON.stringify(user));
       return user;
     } catch (err: any) {
-      if (code === "123456" || code === "000000") {
-        const verifiedUser: ThePotLiteUser = {
-          ...DEMO_USERS.organizer,
-          twoFactorEnabled: true,
-        };
-        setCurrentUser(verifiedUser);
-        setIsAuthenticated(true);
-        setTwoFactorChallenge(null);
-        localStorage.setItem("thepotlite_authenticated_user", JSON.stringify(verifiedUser));
-        return verifiedUser;
-      }
       throw err;
     }
   };
@@ -372,6 +332,7 @@ export const ThePotLiteProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       // ignore network errors
     }
     setIsAuthenticated(false);
+    setCurrentUser(EMPTY_USER);
     setTwoFactorChallenge(null);
     localStorage.removeItem("thepotlite_authenticated_user");
   };

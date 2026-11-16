@@ -57,17 +57,33 @@ export function getTwilioClient(): {
 } {
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
   const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const apiKeySid = process.env.TWILIO_API_KEY_SID || (accountSid?.startsWith("SK") ? accountSid : undefined);
+  const apiSecret = process.env.TWILIO_API_KEY_SECRET || authToken;
   const fromNumber = process.env.TWILIO_PHONE_NUMBER || null;
 
-  if (accountSid && authToken && accountSid.startsWith("AC")) {
-    try {
+  try {
+    // If standard Account SID (AC...) and Auth Token
+    if (accountSid && authToken && accountSid.startsWith("AC") && !authToken.startsWith("SK")) {
       const client = twilio(accountSid, authToken);
       return { client, fromNumber };
-    } catch (err) {
-      console.error("[Twilio] Failed to initialize client:", err);
-      return { client: null, fromNumber: null };
     }
+
+    // If API Key (SK...) with Account SID (AC...)
+    if (apiKeySid && apiSecret && accountSid && accountSid.startsWith("AC")) {
+      const client = twilio(apiKeySid, apiSecret, { accountSid });
+      return { client, fromNumber };
+    }
+
+    // If only SK provided without AC Account SID
+    if (apiKeySid && apiKeySid.startsWith("SK")) {
+      console.log(
+        "[Twilio] API Key SID (SK...) detected. Twilio carrier dispatch requires Account SID (starting with AC...) and TWILIO_PHONE_NUMBER."
+      );
+    }
+  } catch (err) {
+    console.error("[Twilio] Failed to initialize client:", err);
   }
+
   return { client: null, fromNumber: null };
 }
 
@@ -138,12 +154,6 @@ export function verifyTwilioSMSCode(
 ): { success: boolean; error?: string } {
   const phone = normalizePhoneNumber(rawPhone);
   const record = smsVerificationStore.get(phone);
-
-  // Allow standard demo code for testing
-  if (inputCode === "123456" || inputCode === "000000") {
-    smsVerificationStore.delete(phone);
-    return { success: true };
-  }
 
   if (!record) {
     return {

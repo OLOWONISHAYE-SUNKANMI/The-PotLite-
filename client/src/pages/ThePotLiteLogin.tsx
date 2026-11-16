@@ -29,9 +29,9 @@ export const ThePotLiteLogin: React.FC = () => {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
-  const [usernameOrEmail, setUsernameOrEmail] = useState("coach_marcus");
-  const [password, setPassword] = useState("CoachSecure2026!");
-  const [phone, setPhone] = useState("+1 (555) 019-2834");
+  const [usernameOrEmail, setUsernameOrEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [smsCode, setSmsCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -138,28 +138,10 @@ export const ThePotLiteLogin: React.FC = () => {
     } catch (err: any) {
       toast({
         title: "Resend Notice",
-        description: "SMS code simulated. Use 123456 for instant testing.",
+        description: "SMS verification code resent.",
       });
     } finally {
       setResending(false);
-    }
-  };
-
-  const handleFastLogin = async (role: "organizer" | "member") => {
-    setLoading(true);
-    try {
-      if (role === "organizer") {
-        await login({ usernameOrEmail: "coach_marcus", password: "CoachSecure2026!", phone: "+1 (555) 019-2834" });
-      } else {
-        await login({ usernameOrEmail: "sarah_j", password: "ParentSecure2026!", phone: "+1 (555) 014-9821" });
-      }
-      toast({
-        title: "Signed In Successfully",
-        description: `Entering ${role === "organizer" ? "Organizer" : "Parent"} dashboard...`,
-      });
-      setLocation("/");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -216,7 +198,7 @@ export const ThePotLiteLogin: React.FC = () => {
                 />
               </div>
               <p className="text-[11px] text-slate-400 text-center">
-                Demo testing code: <strong className="text-purple-600 dark:text-purple-400">123456</strong>
+                Enter the 6-digit code received on your mobile device.
               </p>
             </div>
 
@@ -313,35 +295,8 @@ export const ThePotLiteLogin: React.FC = () => {
               </Link>
             </div>
 
-            {/* Divider */}
-            <div className="flex items-center gap-3 pt-2">
-              <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
-              <span className="text-[11px] uppercase font-bold text-slate-400">Or</span>
-              <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
-            </div>
-
-            {/* One-Tap Fast Demo Sign-In Buttons */}
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={() => handleFastLogin("organizer")}
-                disabled={loading}
-                className="w-full py-2.5 px-4 rounded-2xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-center gap-2 transition-colors"
-              >
-                <span>⚡ One-Tap Sign In: Coach Marcus (Organizer)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleFastLogin("member")}
-                disabled={loading}
-                className="w-full py-2.5 px-4 rounded-2xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-center gap-2 transition-colors"
-              >
-                <span>⚡ One-Tap Sign In: Sarah Jenkins (Parent)</span>
-              </button>
-            </div>
-
             {/* Bottom Disclaimer */}
-            <p className="text-[10px] text-center text-slate-400 dark:text-slate-500 leading-relaxed pt-2">
+            <p className="text-[10px] text-center text-slate-400 dark:text-slate-500 leading-relaxed pt-3">
               By signing in you agree to ThePotLite Non-Custodial Governance & Terms of Service.
             </p>
           </form>

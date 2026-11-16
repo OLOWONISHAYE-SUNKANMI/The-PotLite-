@@ -151,47 +151,8 @@ interface MemoryUser {
   createdAt: Date;
 }
 
+// In-memory user store for dynamic registrations and session persistence
 const memoryUsers: Map<string, MemoryUser> = new Map();
-
-// Seed initial memory users for seamless local offline login
-(async () => {
-  try {
-    const coachHash = await hashPassword("CoachSecure2026!");
-    const parentHash = await hashPassword("ParentSecure2026!");
-
-    const coach: MemoryUser = {
-      id: 1,
-      username: "coach_marcus",
-      name: "Coach Marcus Lewis",
-      email: "coach.marcus@tigersfc.org",
-      passwordHash: coachHash,
-      phone: "+1 (555) 019-2834",
-      role: "Organizer",
-      twoFactorEnabled: true,
-      twoFactorSecret: "JBSWY3DPEHPK3PXP",
-      createdAt: new Date(),
-    };
-
-    const parent: MemoryUser = {
-      id: 2,
-      username: "sarah_j",
-      name: "Sarah Jenkins",
-      email: "sarah.jenkins@example.com",
-      passwordHash: parentHash,
-      phone: "+1 (555) 014-9821",
-      role: "Member",
-      twoFactorEnabled: false,
-      createdAt: new Date(),
-    };
-
-    memoryUsers.set(coach.username.toLowerCase(), coach);
-    memoryUsers.set(coach.email.toLowerCase(), coach);
-    memoryUsers.set(parent.username.toLowerCase(), parent);
-    memoryUsers.set(parent.email.toLowerCase(), parent);
-  } catch (err) {
-    console.warn("Failed to seed in-memory users:", err);
-  }
-})();
 
 export interface RegisterUserParams {
   username: string;
@@ -353,7 +314,7 @@ export async function authenticateAdultUser(params: {
   const memUser = memoryUsers.get(searchKey);
   if (memUser) {
     const validPassword = await comparePassword(params.password, memUser.passwordHash);
-    if (!validPassword && params.password !== "CoachSecure2026!" && params.password !== "ParentSecure2026!") {
+    if (!validPassword) {
       throw new Error("Invalid username/email or password");
     }
 

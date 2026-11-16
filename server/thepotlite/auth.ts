@@ -228,8 +228,10 @@ export async function registerAdultUser(params: RegisterUserParams) {
     };
   } catch (dbError: any) {
     // Graceful fallback to memory store if database is offline in local sandbox
-    const keyUser = params.username.toLowerCase();
-    const keyEmail = params.email.toLowerCase();
+    const keyUser = params.username.toLowerCase().trim();
+    const keyEmail = params.email.toLowerCase().trim();
+    const keyPhone = params.phone ? params.phone.replace(/[^\d+]/g, "") : "";
+
     if (memoryUsers.has(keyUser) || memoryUsers.has(keyEmail)) {
       throw new Error("Username or email already registered");
     }
@@ -250,6 +252,7 @@ export async function registerAdultUser(params: RegisterUserParams) {
 
     memoryUsers.set(keyUser, memUser);
     memoryUsers.set(keyEmail, memUser);
+    if (keyPhone) memoryUsers.set(keyPhone, memUser);
 
     return {
       id: memUser.id,
@@ -273,7 +276,8 @@ export async function authenticateAdultUser(params: {
     const user = await db.query.users.findFirst({
       where: or(
         eq(schema.users.username, params.usernameOrEmail),
-        eq(schema.users.email, params.usernameOrEmail)
+        eq(schema.users.email, params.usernameOrEmail),
+        eq(schema.users.phone, params.usernameOrEmail)
       ),
     });
 
@@ -311,7 +315,20 @@ export async function authenticateAdultUser(params: {
   }
 
   // Fallback to memoryUsers store
-  const memUser = memoryUsers.get(searchKey);
+  let memUser = memoryUsers.get(searchKey);
+  if (!memUser) {
+    const cleanSearch = searchKey.replace(/[^\d]/g, "");
+    memoryUsers.forEach((u) => {
+      if (
+        u.username.toLowerCase() === searchKey ||
+        u.email.toLowerCase() === searchKey ||
+        (cleanSearch.length >= 7 && u.phone && u.phone.replace(/[^\d]/g, "").includes(cleanSearch))
+      ) {
+        memUser = u;
+      }
+    });
+  }
+
   if (memUser) {
     const validPassword = await comparePassword(params.password, memUser.passwordHash);
     if (!validPassword) {

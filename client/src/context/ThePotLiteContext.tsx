@@ -242,14 +242,14 @@ export const ThePotLiteProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     const verifiedUser: ThePotLiteUser = {
       id: userId || currentUser.id || 10,
-      name: currentUser.name || "Coach Marcus Lewis",
-      email: currentUser.email || "coach.marcus@tigersfc.org",
-      username: currentUser.username || "coach_marcus",
+      name: currentUser.name || "Pilot User",
+      email: currentUser.email || "user@thepotlite.org",
+      username: currentUser.username || "user",
       role: currentUser.role || "Organizer",
-      title: "Verified Pilot User (SMS 2FA Active)",
+      title: currentUser.title || "Verified Pilot User (SMS 2FA Active)",
       phone,
-      organizationId: 1,
-      organizationName: "Tigers Youth Soccer Club",
+      organizationId: currentUser.organizationId || 1,
+      organizationName: currentUser.organizationName || "The Pot Limited Club",
       twoFactorEnabled: true,
     };
 

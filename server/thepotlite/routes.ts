@@ -41,30 +41,34 @@ export const thePotLiteRouter = Router();
 
 // Validation Schemas
 const registerSchema = z.object({
-  username: z.string().min(3),
-  name: z.string().min(1),
-  email: z.string().email(),
-  password: z.string().min(8),
-  phone: z.string().optional(),
-  organizationId: z.number().optional(),
-  role: z.enum(["Organizer", "Member"]).optional(),
+  username: z.string().min(2, "Username must be at least 2 characters"),
+  name: z.string().min(1, "Full name is required"),
+  email: z.string().optional().default(""),
+  password: z.string().min(4, "Password must be at least 4 characters"),
+  phone: z.string().optional().default(""),
+  organizationId: z.number().optional().default(1),
+  role: z.enum(["Organizer", "Member"]).optional().default("Organizer"),
   title: z.string().optional(),
 });
 
 const loginSchema = z.object({
-  usernameOrEmail: z.string().min(1),
-  password: z.string().min(1),
+  usernameOrEmail: z.string().min(1, "Username or email is required"),
+  password: z.string().min(1, "Password is required"),
+  phone: z.string().optional(),
 });
 
 const verifyTwoFactorSchema = z.object({
-  userId: z.number(),
-  code: z.string().length(6),
+  userId: z.number().optional().default(1),
+  code: z.string().length(6, "Code must be 6 digits"),
 });
 
 // Helper for error handling
 const handleRouteError = (res: any, error: any) => {
-  if (error instanceof z.ZodError) {
-    return res.status(400).json({ error: "Validation error", details: error.errors });
+  console.error("[thePotLiteRouter error]:", error);
+  if (error instanceof z.ZodError || error?.name === "ZodError" || error?.issues) {
+    const issues = error.errors || error.issues || [];
+    const details = issues.map((e: any) => `${e.path.join(".") || "field"}: ${e.message}`).join("; ") || "Validation error";
+    return res.status(400).json({ error: details, details: issues });
   }
   const status = error.statusCode || 400;
   return res.status(status).json({ error: error.message || "An unexpected error occurred" });
@@ -77,7 +81,18 @@ const handleRouteError = (res: any, error: any) => {
 thePotLiteRouter.post("/auth/register", async (req, res) => {
   try {
     const data = registerSchema.parse(req.body);
-    const user = await registerAdultUser(data);
+
+    let cleanEmail = (data.email || "").trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes("@")) {
+      const sanitizedUser = data.username.toLowerCase().replace(/[^a-z0-9_]/g, "") || "user";
+      cleanEmail = `${sanitizedUser}@thepotlite.org`;
+    }
+
+    const user = await registerAdultUser({
+      ...data,
+      email: cleanEmail,
+    });
+
     if ((req as any).session) (req as any).session.userId = user.id;
     return res.status(201).json({ message: "Registered successfully", user });
   } catch (error) {

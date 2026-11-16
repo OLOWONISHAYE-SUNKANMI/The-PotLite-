@@ -54,25 +54,29 @@ export const ThePotLiteRegister: React.FC = () => {
 
     setLoading(true);
     try {
+      const cleanUsername = username.trim().toLowerCase().replace(/[^a-z0-9_]/g, "") || "user";
+      const cleanEmail = email.trim() || `${cleanUsername}@thepotlite.org`;
+      const cleanPhone = phone.trim();
+
       // Register account in system
-      const user = await register({
-        name,
-        username,
-        email: email || `${username}@thepotlite.org`,
+      await register({
+        name: name.trim(),
+        username: cleanUsername,
+        email: cleanEmail,
         password,
-        phone,
+        phone: cleanPhone,
         role,
         organizationName,
       });
 
       // Dispatch real Twilio SMS OTP code
       try {
-        await sendSmsCode(phone);
+        await sendSmsCode(cleanPhone);
         toast({
           title: "Account Registered & SMS Sent!",
-          description: `Twilio verification SMS dispatched to ${phone}.`,
+          description: `Twilio verification SMS dispatched to ${cleanPhone}.`,
         });
-      } catch {
+      } catch (smsErr: any) {
         toast({
           title: "Account Registered!",
           description: "Entering dashboard...",
@@ -82,10 +86,10 @@ export const ThePotLiteRegister: React.FC = () => {
       setLocation("/");
     } catch (err: any) {
       toast({
-        title: "Registration Note",
-        description: err.message || "Entering dashboard in demo mode.",
+        title: "Registration Failed",
+        description: err.message || "Failed to create account. Please check your inputs.",
+        variant: "destructive",
       });
-      setLocation("/");
     } finally {
       setLoading(false);
     }
@@ -172,6 +176,22 @@ export const ThePotLiteRegister: React.FC = () => {
                   <Check className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0 stroke-[2.5]" />
                 )}
               </div>
+            </div>
+          </div>
+
+          {/* Email Address (Optional) */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+              Email Address <span className="text-[10px] text-slate-400 font-normal">(optional)</span>
+            </Label>
+            <div className="bg-[#f4f6f8] dark:bg-slate-800/80 rounded-2xl px-3.5 py-2.5 border border-slate-200/60 dark:border-slate-700/60">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="coach@example.org"
+                className="w-full bg-transparent border-none text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none"
+              />
             </div>
           </div>
 

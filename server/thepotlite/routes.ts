@@ -8,6 +8,10 @@ import {
   verifyTOTPCode,
 } from "./auth";
 import {
+  sendTwilioSMSVerification,
+  verifyTwilioSMSCode,
+} from "./twilio";
+import {
   createPotInvitation,
   getInvitationDetails,
   withdrawMemberFromPot,
@@ -146,6 +150,58 @@ thePotLiteRouter.post("/auth/2fa/verify", async (req, res) => {
         phone: user.phone,
         twoFactorEnabled: user.twoFactorEnabled,
       },
+    });
+  } catch (error) {
+    return handleRouteError(res, error);
+  }
+});
+
+// Twilio SMS 2FA Endpoints
+thePotLiteRouter.post("/auth/sms/send", async (req, res) => {
+  try {
+    const { phone } = z.object({ phone: z.string().min(5) }).parse(req.body);
+    const result = await sendTwilioSMSVerification(phone);
+    return res.status(200).json(result);
+  } catch (error) {
+    return handleRouteError(res, error);
+  }
+});
+
+thePotLiteRouter.post("/auth/sms/verify", async (req, res) => {
+  try {
+    const { phone, code, userId } = z.object({
+      phone: z.string().min(5),
+      code: z.string().length(6),
+      userId: z.number().optional(),
+    }).parse(req.body);
+
+    const verification = verifyTwilioSMSCode(phone, code);
+    if (!verification.success) {
+      return res.status(400).json({ error: verification.error || "Invalid verification code" });
+    }
+
+    let user: any = null;
+    if (userId) {
+      user = await db.query.users.findFirst({ where: eq(schema.users.id, userId) });
+      if (user && (req as any).session) {
+        (req as any).session.userId = user.id;
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      verified: true,
+      message: "SMS 2FA verification successful",
+      user: user
+        ? {
+            id: user.id,
+            username: user.username,
+            name: user.name,
+            email: user.email,
+            phone: user.phone,
+            twoFactorEnabled: user.twoFactorEnabled,
+          }
+        : undefined,
     });
   } catch (error) {
     return handleRouteError(res, error);

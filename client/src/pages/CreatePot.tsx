@@ -407,7 +407,7 @@ export const CreatePot: React.FC = () => {
           <Button
             type="submit"
             disabled={loading}
-            className="flex-1 rounded-full text-xs font-bold py-3.5 bg-[#a3e635] hover:bg-[#8ece28] text-slate-950 shadow-md shadow-[#a3e635]/20 flex items-center justify-center gap-2"
+            className="flex-1 rounded-full text-xs font-bold py-3.5 bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-600/30 flex items-center justify-center gap-2"
           >
             <span>{loading ? "Initializing Pot..." : "Initialize Pot & Generate Invites"}</span>
             <ArrowRight className="w-4 h-4" />

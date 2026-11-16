@@ -294,7 +294,7 @@ export const ThePotLiteAppShell: React.FC<{ children: React.ReactNode }> = ({ ch
                 href="/"
                 className={`px-4 py-1.5 rounded-full transition-all ${
                   location === "/" || location === "/organizer" || location === "/member"
-                    ? "bg-[#a3e635] text-slate-950 font-bold shadow-sm"
+                    ? "bg-purple-600 text-white font-bold shadow-sm shadow-purple-600/30"
                     : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
                 }`}
               >
@@ -306,7 +306,7 @@ export const ThePotLiteAppShell: React.FC<{ children: React.ReactNode }> = ({ ch
                   href="/create"
                   className={`px-4 py-1.5 rounded-full transition-all ${
                     location === "/create"
-                      ? "bg-[#a3e635] text-slate-950 font-bold shadow-sm"
+                      ? "bg-purple-600 text-white font-bold shadow-sm shadow-purple-600/30"
                       : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
                   }`}
                 >
@@ -318,7 +318,7 @@ export const ThePotLiteAppShell: React.FC<{ children: React.ReactNode }> = ({ ch
                 href="/audit"
                 className={`px-4 py-1.5 rounded-full transition-all ${
                   location === "/audit"
-                    ? "bg-[#a3e635] text-slate-950 font-bold shadow-sm"
+                    ? "bg-purple-600 text-white font-bold shadow-sm shadow-purple-600/30"
                     : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
                 }`}
               >
@@ -329,7 +329,7 @@ export const ThePotLiteAppShell: React.FC<{ children: React.ReactNode }> = ({ ch
                 href="/feedback"
                 className={`px-4 py-1.5 rounded-full transition-all ${
                   location === "/feedback"
-                    ? "bg-[#a3e635] text-slate-950 font-bold shadow-sm"
+                    ? "bg-purple-600 text-white font-bold shadow-sm shadow-purple-600/30"
                     : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
                 }`}
               >

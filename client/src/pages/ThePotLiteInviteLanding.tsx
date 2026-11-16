@@ -93,7 +93,7 @@ export const ThePotLiteInviteLanding: React.FC = () => {
             </p>
           </div>
           <Link href="/">
-            <Button className="w-full sm:w-auto bg-[#1b3d2f] hover:bg-[#142e23] text-emerald-300 font-bold px-8 py-3 rounded-full text-xs shadow-sm">
+            <Button className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 text-white font-bold px-8 py-3 rounded-full text-xs shadow-sm shadow-purple-600/30">
               Open Parent Dashboard <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </Link>
@@ -172,7 +172,7 @@ export const ThePotLiteInviteLanding: React.FC = () => {
               <div className="space-y-2">
                 {invite.rules.map((rule, idx) => (
                   <div key={idx} className="flex items-start gap-2.5 text-xs text-slate-600 dark:text-slate-300">
-                    <CheckCircle2 className="w-4 h-4 text-[#a3e635] shrink-0 mt-0.5" />
+                    <CheckCircle2 className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
                     <span>{rule}</span>
                   </div>
                 ))}
@@ -191,7 +191,7 @@ export const ThePotLiteInviteLanding: React.FC = () => {
             </Button>
             <Button
               onClick={handleAccept}
-              className="flex-1 rounded-full text-xs font-bold py-2.5 bg-[#a3e635] hover:bg-[#8ece28] text-slate-950 shadow-md shadow-[#a3e635]/20"
+              className="flex-1 rounded-full text-xs font-bold py-2.5 bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-600/30"
             >
               Accept Terms (Version {invite.termsVersion})
             </Button>

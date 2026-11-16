@@ -167,7 +167,7 @@ export const ThePotLiteOrganizerDashboard: React.FC = () => {
                 </button>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 flex items-center gap-1.5 font-medium">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+                <span className="w-2 h-2 rounded-full bg-purple-600 inline-block"></span>
                 <span>$2,700 confirmed of $3,600 goal (Season Dues) · Off-rail verified</span>
               </p>
             </div>
@@ -178,9 +178,9 @@ export const ThePotLiteOrganizerDashboard: React.FC = () => {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setPayoutModalOpen(true)}
-                className="inline-flex items-center gap-2 bg-[#1b3d2f] hover:bg-[#142e23] text-emerald-300 font-semibold text-xs px-4 py-2.5 rounded-full shadow-sm transition-all"
+                className="inline-flex items-center gap-2 bg-purple-900/90 hover:bg-purple-950 text-purple-200 border border-purple-800 font-semibold text-xs px-4 py-2.5 rounded-full shadow-sm transition-all"
               >
-                <ArrowUpRight className="w-3.5 h-3.5 text-emerald-400" />
+                <ArrowUpRight className="w-3.5 h-3.5 text-purple-300" />
                 <span>Record Payout Spend</span>
               </button>
 
@@ -200,7 +200,7 @@ export const ThePotLiteOrganizerDashboard: React.FC = () => {
             {/* Circular Quick Action Button on Bottom Right */}
             <button
               onClick={() => setPayoutModalOpen(true)}
-              className="w-12 h-12 rounded-full bg-[#a3e635] hover:bg-[#8ece28] text-slate-900 flex items-center justify-center shadow-lg shadow-[#a3e635]/30 transition-transform hover:scale-105"
+              className="w-12 h-12 rounded-full bg-purple-600 hover:bg-purple-700 text-white flex items-center justify-center shadow-lg shadow-purple-600/30 transition-transform hover:scale-105"
               title="Quick Action"
             >
               <ArrowUpRight className="w-6 h-6 stroke-[2.5]" />
@@ -209,7 +209,7 @@ export const ThePotLiteOrganizerDashboard: React.FC = () => {
         </div>
 
         {/* Right Accent Card: Priority / Cheffy Status (5 Cols on desktop) */}
-        <div className="lg:col-span-5 bg-gradient-to-br from-[#a3e635] via-[#8ece28] to-[#65a30d] text-slate-950 rounded-3xl p-6 sm:p-7 relative overflow-hidden shadow-sm flex flex-col justify-between">
+        <div className="lg:col-span-5 bg-gradient-to-br from-purple-700 via-indigo-800 to-purple-950 text-white rounded-3xl p-6 sm:p-7 relative overflow-hidden shadow-sm flex flex-col justify-between">
           <div className="absolute -right-8 -top-8 w-48 h-48 opacity-15 pointer-events-none select-none">
             <svg viewBox="0 0 200 200" fill="currentColor">
               <polygon points="100,10 120,80 190,100 120,120 100,190 80,120 10,100 80,80" />
@@ -218,27 +218,27 @@ export const ThePotLiteOrganizerDashboard: React.FC = () => {
 
           <div>
             <div className="flex items-center justify-between pb-4">
-              <div className="inline-flex items-center gap-1.5 bg-slate-950 text-white font-bold text-xs px-3 py-1.5 rounded-full">
+              <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-md text-white font-bold text-xs px-3 py-1.5 rounded-full border border-white/20">
                 <span>PRIORITY</span>
-                <span className="w-4 h-4 rounded-full bg-slate-800 text-white flex items-center justify-center text-[11px] font-extrabold">
+                <span className="w-4 h-4 rounded-full bg-white/25 text-white flex items-center justify-center text-[11px] font-extrabold">
                   +
                 </span>
               </div>
 
-              <button className="w-8 h-8 rounded-full bg-black/10 flex items-center justify-center text-slate-900 hover:bg-black/20 transition-colors">
+              <button className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors">
                 <MoreHorizontal className="w-4 h-4" />
               </button>
             </div>
 
             <div className="pt-1">
-              <span className="text-xs font-semibold text-slate-800/80 block mb-1">
+              <span className="text-xs font-semibold text-purple-200/90 block mb-1">
                 Your Collections (Pending & Confirmed)
               </span>
               <div className="flex flex-wrap items-baseline gap-2">
-                <span className="text-3xl sm:text-4xl font-extrabold text-slate-950 tracking-tight">
+                <span className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
                   $12,172.07
                 </span>
-                <span className="bg-white/80 text-slate-900 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                <span className="bg-white/20 text-white text-[11px] font-bold px-2 py-0.5 rounded-full border border-white/20">
                   +40% this month
                 </span>
               </div>
@@ -247,28 +247,28 @@ export const ThePotLiteOrganizerDashboard: React.FC = () => {
 
           {/* Sub-cards Row at Bottom */}
           <div className="grid grid-cols-2 gap-3 pt-6">
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-3 flex justify-between items-center text-slate-900 shadow-sm">
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 flex justify-between items-center text-white border border-white/15 shadow-sm">
               <div>
-                <span className="text-[10px] font-semibold text-slate-500 block uppercase tracking-wider">
+                <span className="text-[10px] font-semibold text-purple-200/80 block uppercase tracking-wider">
                   Needs Confirm
                 </span>
-                <div className="flex items-center gap-1 font-bold text-sm text-slate-900">
+                <div className="flex items-center gap-1 font-bold text-sm text-white">
                   <span>☆ 4,780</span>
                 </div>
               </div>
-              <Eye className="w-3.5 h-3.5 text-slate-400" />
+              <Eye className="w-3.5 h-3.5 text-purple-200" />
             </div>
 
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-3 flex justify-between items-center text-slate-900 shadow-sm">
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 flex justify-between items-center text-white border border-white/15 shadow-sm">
               <div>
-                <span className="text-[10px] font-semibold text-slate-500 block uppercase tracking-wider">
+                <span className="text-[10px] font-semibold text-purple-200/80 block uppercase tracking-wider">
                   Assistance
                 </span>
-                <div className="flex items-center gap-1 font-bold text-sm text-slate-900">
+                <div className="flex items-center gap-1 font-bold text-sm text-white">
                   <span>🎟 124</span>
                 </div>
               </div>
-              <Eye className="w-3.5 h-3.5 text-slate-400" />
+              <Eye className="w-3.5 h-3.5 text-purple-200" />
             </div>
           </div>
         </div>
@@ -303,7 +303,7 @@ export const ThePotLiteOrganizerDashboard: React.FC = () => {
                   cx="60"
                   cy="60"
                   r="48"
-                  className="stroke-[#a3e635]"
+                  className="stroke-purple-600 dark:stroke-purple-500"
                   strokeWidth="10"
                   strokeDasharray="301.6"
                   strokeDashoffset="100"
@@ -313,7 +313,7 @@ export const ThePotLiteOrganizerDashboard: React.FC = () => {
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
                 <span className="text-xl font-bold text-slate-900 dark:text-white">$916.10</span>
-                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-full mt-0.5">
+                <span className="text-[10px] font-bold text-purple-700 bg-purple-100 dark:bg-purple-950/80 dark:text-purple-300 px-2 py-0.5 rounded-full mt-0.5">
                   +12%
                 </span>
               </div>
@@ -361,7 +361,7 @@ export const ThePotLiteOrganizerDashboard: React.FC = () => {
               <span className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight block">
                 $7,110.12
               </span>
-              <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+              <span className="text-[11px] font-bold text-purple-600 dark:text-purple-400">
                 +18% vs last month
               </span>
             </div>
@@ -383,8 +383,8 @@ export const ThePotLiteOrganizerDashboard: React.FC = () => {
                   <span className="text-slate-900 dark:text-white font-bold">$4,000.00</span>
                 </div>
                 <div className="relative w-full bg-slate-100 dark:bg-slate-800 rounded-full h-3 flex items-center">
-                  <div className="bg-[#a3e635] h-3 rounded-full w-[51%]"></div>
-                  <span className="absolute left-[45%] text-[9px] font-black bg-[#1b3d2f] text-white px-1.5 py-0.2 rounded-full shadow-sm">
+                  <div className="bg-purple-600 h-3 rounded-full w-[51%]"></div>
+                  <span className="absolute left-[45%] text-[9px] font-black bg-purple-950 text-white px-1.5 py-0.2 rounded-full shadow-sm">
                     51%
                   </span>
                 </div>
@@ -443,7 +443,7 @@ export const ThePotLiteOrganizerDashboard: React.FC = () => {
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={handleConfirmAction}
-                      className="w-7 h-7 rounded-full bg-[#a3e635] hover:bg-[#8ece28] text-slate-950 flex items-center justify-center shadow-sm transition-transform hover:scale-105"
+                      className="w-7 h-7 rounded-full bg-purple-600 hover:bg-purple-700 text-white flex items-center justify-center shadow-sm transition-transform hover:scale-105"
                       title="Confirm Payment"
                     >
                       <Check className="w-3.5 h-3.5 stroke-[3]" />
@@ -469,7 +469,7 @@ export const ThePotLiteOrganizerDashboard: React.FC = () => {
                     <p className="text-[10px] text-slate-400">Today, 09:00 AM</p>
                   </div>
                 </div>
-                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">+$5,000.00</span>
+                <span className="text-xs font-bold text-purple-600 dark:text-purple-400">+$5,000.00</span>
               </div>
 
               <div className="py-3 flex items-center justify-between">
@@ -495,7 +495,7 @@ export const ThePotLiteOrganizerDashboard: React.FC = () => {
                     <p className="text-[10px] text-slate-400">Apr 1, 2026</p>
                   </div>
                 </div>
-                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">+$120.00</span>
+                <span className="text-xs font-bold text-purple-600 dark:text-purple-400">+$120.00</span>
               </div>
             </div>
           </div>

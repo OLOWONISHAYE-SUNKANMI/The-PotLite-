@@ -163,7 +163,7 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
                 </button>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 flex items-center gap-1.5 font-medium">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+                <span className="w-2 h-2 rounded-full bg-purple-600 inline-block"></span>
                 <span>$400.00 confirmed of $500.00 season commitments · Next due Nov 18</span>
               </p>
             </div>
@@ -174,9 +174,9 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setPaymentModalOpen(true)}
-                className="inline-flex items-center gap-2 bg-[#1b3d2f] hover:bg-[#142e23] text-emerald-300 font-semibold text-xs px-4 py-2.5 rounded-full shadow-sm transition-all"
+                className="inline-flex items-center gap-2 bg-purple-900/90 hover:bg-purple-950 text-purple-200 border border-purple-800 font-semibold text-xs px-4 py-2.5 rounded-full shadow-sm transition-all"
               >
-                <Send className="w-3.5 h-3.5 text-emerald-400" />
+                <Send className="w-3.5 h-3.5 text-purple-300" />
                 <span>Mark Payment Sent</span>
               </button>
 
@@ -195,7 +195,7 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
 
             <button
               onClick={() => setPaymentModalOpen(true)}
-              className="w-12 h-12 rounded-full bg-[#a3e635] hover:bg-[#8ece28] text-slate-900 flex items-center justify-center shadow-lg shadow-[#a3e635]/30 transition-transform hover:scale-105"
+              className="w-12 h-12 rounded-full bg-purple-600 hover:bg-purple-700 text-white flex items-center justify-center shadow-lg shadow-purple-600/30 transition-transform hover:scale-105"
             >
               <ArrowUpRight className="w-6 h-6 stroke-[2.5]" />
             </button>
@@ -203,7 +203,7 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
         </div>
 
         {/* Right Accent Card: Cheffy Priority (5 Cols) */}
-        <div className="lg:col-span-5 bg-gradient-to-br from-[#a3e635] via-[#8ece28] to-[#65a30d] text-slate-950 rounded-3xl p-6 sm:p-7 relative overflow-hidden shadow-sm flex flex-col justify-between">
+        <div className="lg:col-span-5 bg-gradient-to-br from-purple-700 via-indigo-800 to-purple-950 text-white rounded-3xl p-6 sm:p-7 relative overflow-hidden shadow-sm flex flex-col justify-between">
           <div className="absolute -right-8 -top-8 w-48 h-48 opacity-15 pointer-events-none select-none">
             <svg viewBox="0 0 200 200" fill="currentColor">
               <polygon points="100,10 120,80 190,100 120,120 100,190 80,120 10,100 80,80" />
@@ -212,26 +212,26 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
 
           <div>
             <div className="flex items-center justify-between pb-4">
-              <div className="inline-flex items-center gap-1.5 bg-slate-950 text-white font-bold text-xs px-3 py-1.5 rounded-full">
+              <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-md text-white font-bold text-xs px-3 py-1.5 rounded-full border border-white/20">
                 <span>CHEFFY PROMPT</span>
-                <span className="w-4 h-4 rounded-full bg-slate-800 text-white flex items-center justify-center text-[11px] font-extrabold">
+                <span className="w-4 h-4 rounded-full bg-white/25 text-white flex items-center justify-center text-[11px] font-extrabold">
                   !
                 </span>
               </div>
-              <button className="w-8 h-8 rounded-full bg-black/10 flex items-center justify-center text-slate-900 hover:bg-black/20">
+              <button className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20">
                 <MoreHorizontal className="w-4 h-4" />
               </button>
             </div>
 
             <div className="pt-1">
-              <span className="text-xs font-semibold text-slate-800/80 block mb-1">
+              <span className="text-xs font-semibold text-purple-200/90 block mb-1">
                 Due in 3 Days (Part #2)
               </span>
               <div className="flex flex-wrap items-baseline gap-2">
-                <span className="text-3xl sm:text-4xl font-extrabold text-slate-950 tracking-tight">
+                <span className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
                   $100.00
                 </span>
-                <span className="bg-white/80 text-slate-900 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                <span className="bg-white/20 text-white text-[11px] font-bold px-2 py-0.5 rounded-full border border-white/20">
                   Due Nov 18
                 </span>
               </div>
@@ -242,9 +242,9 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
           <div className="grid grid-cols-3 gap-2 pt-6">
             <button
               onClick={handlePromptGreen}
-              className="bg-slate-950 hover:bg-slate-900 text-emerald-400 font-bold text-xs py-2.5 px-2 rounded-2xl shadow-sm text-center transition-transform hover:scale-102 flex flex-col items-center"
+              className="bg-white/15 hover:bg-white/25 text-white font-bold text-xs py-2.5 px-2 rounded-2xl shadow-sm text-center transition-transform hover:scale-102 flex flex-col items-center border border-white/20"
             >
-              <span className="w-2 h-2 rounded-full bg-emerald-400 mb-1"></span>
+              <span className="w-2 h-2 rounded-full bg-purple-300 mb-1"></span>
               On Track
             </button>
             <button
@@ -286,7 +286,7 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
                   cx="60"
                   cy="60"
                   r="48"
-                  className="stroke-[#a3e635]"
+                  className="stroke-purple-600 dark:stroke-purple-500"
                   strokeWidth="10"
                   strokeDasharray="301.6"
                   strokeDashoffset="60"
@@ -296,7 +296,7 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
                 <span className="text-xl font-bold text-slate-900 dark:text-white">$400.00</span>
-                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-full mt-0.5">
+                <span className="text-[10px] font-bold text-purple-700 bg-purple-100 dark:bg-purple-950/80 dark:text-purple-300 px-2 py-0.5 rounded-full mt-0.5">
                   80% Paid
                 </span>
               </div>
@@ -348,8 +348,8 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
                   <span className="text-slate-900 dark:text-white font-bold">$100.00</span>
                 </div>
                 <div className="relative w-full bg-slate-100 dark:bg-slate-800 rounded-full h-3 flex items-center">
-                  <div className="bg-[#a3e635] h-3 rounded-full w-full"></div>
-                  <span className="absolute right-2 text-[9px] font-black text-slate-950">
+                  <div className="bg-purple-600 h-3 rounded-full w-full"></div>
+                  <span className="absolute right-2 text-[9px] font-black text-white">
                     Confirmed
                   </span>
                 </div>
@@ -470,7 +470,7 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
               <Button type="button" variant="outline" className="rounded-full" onClick={() => setPaymentModalOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" className="bg-[#1b3d2f] hover:bg-[#142e23] text-emerald-300 font-semibold rounded-full">
+              <Button type="submit" className="bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-full shadow-sm shadow-purple-600/30">
                 Submit Statement
               </Button>
             </div>

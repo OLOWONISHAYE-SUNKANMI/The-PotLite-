@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
@@ -29,18 +29,29 @@ function ThePotLiteHome() {
 }
 
 function AppRouter() {
+  const { isAuthenticated } = useThePotLite();
+
+  // If unauthenticated: Re-route root and dashboard routes to Login & Register first
+  if (!isAuthenticated) {
+    return (
+      <Switch>
+        <Route path="/register" component={ThePotLiteRegister} />
+        <Route path="/auth/2fa" component={ThePotLiteTwoFactor} />
+        <Route path="/login" component={ThePotLiteLogin} />
+        <Route component={ThePotLiteLogin} />
+      </Switch>
+    );
+  }
+
+  // If authenticated: Full access to Dashboard & Pages wrapped in ThePotLiteAppShell
   return (
     <Switch>
-      {/* =========================================================================
-          STANDALONE AUTHENTICATION GATEWAY PAGES (OUTSIDE DASHBOARD SHELL)
-          ========================================================================= */}
+      {/* Standalone Auth Routes (Accessible if user wants to switch accounts) */}
       <Route path="/login" component={ThePotLiteLogin} />
       <Route path="/register" component={ThePotLiteRegister} />
       <Route path="/auth/2fa" component={ThePotLiteTwoFactor} />
 
-      {/* =========================================================================
-          THEPOTLITE V1 PILOT DASHBOARD PAGES (WRAPPED IN APP SHELL WITH SIDEBAR)
-          ========================================================================= */}
+      {/* ThePotLite V1 Pilot Dashboard Pages */}
       <Route>
         <ThePotLiteAppShell>
           <Switch>

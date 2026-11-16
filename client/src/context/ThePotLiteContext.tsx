@@ -23,6 +23,7 @@ export const DEMO_USERS: Record<string, ThePotLiteUser> = {
     username: "coach_marcus",
     role: "Organizer",
     title: "Head Coach & Director",
+    phone: "+1 (555) 019-2834",
     organizationId: 1,
     organizationName: "Tigers Youth Soccer Club",
     twoFactorEnabled: true,
@@ -34,6 +35,7 @@ export const DEMO_USERS: Record<string, ThePotLiteUser> = {
     username: "sarah_j",
     role: "Member",
     title: "Parent of Jordan M. (U12)",
+    phone: "+1 (555) 014-9821",
     organizationId: 1,
     organizationName: "Tigers Youth Soccer Club",
     twoFactorEnabled: false,
@@ -43,6 +45,8 @@ export const DEMO_USERS: Record<string, ThePotLiteUser> = {
 export interface TwoFactorChallenge {
   userId: number;
   username: string;
+  phone?: string;
+  method?: "totp" | "sms";
   message?: string;
 }
 
@@ -53,7 +57,7 @@ interface ThePotLiteContextType {
   twoFactorChallenge: TwoFactorChallenge | null;
   setTwoFactorChallenge: (challenge: TwoFactorChallenge | null) => void;
   switchRole: (role: UserRole) => void;
-  login: (credentials: { usernameOrEmail: string; password: string }) => Promise<{
+  login: (credentials: { usernameOrEmail: string; password: string; phone?: string }) => Promise<{
     requiresTwoFactor?: boolean;
     challenge?: TwoFactorChallenge;
     user?: ThePotLiteUser;
@@ -68,6 +72,8 @@ interface ThePotLiteContextType {
     organizationName?: string;
   }) => Promise<ThePotLiteUser>;
   verifyTwoFactor: (code: string) => Promise<ThePotLiteUser>;
+  sendSmsCode: (phone: string) => Promise<{ success: boolean; message: string; testCode?: string }>;
+  verifySmsCode: (phone: string, code: string, userId?: number) => Promise<{ success: boolean; user?: any }>;
   setupTwoFactor: () => Promise<{ secret: string; otpAuthUrl: string }>;
   enableTwoFactor: (code: string) => Promise<{ backupCodes: string[] }>;
   logout: () => Promise<void>;
@@ -83,13 +89,13 @@ export const ThePotLiteProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (savedUser) {
         return JSON.parse(savedUser);
       }
-      const savedRole = localStorage.getItem("thepotlite_active_role");
-      return savedRole === "Member" ? DEMO_USERS.member : DEMO_USERS.organizer;
+      return DEMO_USERS.organizer;
     } catch {
       return DEMO_USERS.organizer;
     }
   });
 
+  // User must log in or register before accessing dashboard; strictly checks saved authentication
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     return !!localStorage.getItem("thepotlite_authenticated_user");
   });
@@ -97,7 +103,6 @@ export const ThePotLiteProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [twoFactorChallenge, setTwoFactorChallenge] = useState<TwoFactorChallenge | null>(null);
 
   useEffect(() => {
-    // If authenticated user is in storage, persist
     if (isAuthenticated && currentUser) {
       localStorage.setItem("thepotlite_authenticated_user", JSON.stringify(currentUser));
     }
@@ -106,12 +111,10 @@ export const ThePotLiteProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const switchRole = (role: UserRole) => {
     const target = role === "Organizer" ? DEMO_USERS.organizer : DEMO_USERS.member;
     setCurrentUser(target);
-    setIsAuthenticated(false);
-    localStorage.removeItem("thepotlite_authenticated_user");
     localStorage.setItem("thepotlite_active_role", role);
   };
 
-  const login = async (credentials: { usernameOrEmail: string; password: string }) => {
+  const login = async (credentials: { usernameOrEmail: string; password: string; phone?: string }) => {
     try {
       const res = await fetch("/api/v1/auth/login", {
         method: "POST",
@@ -128,6 +131,8 @@ export const ThePotLiteProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         const challenge: TwoFactorChallenge = {
           userId: data.userId,
           username: data.username,
+          phone: credentials.phone || (data.userId === 10 ? "+1 (555) 019-2834" : undefined),
+          method: "sms",
           message: data.message,
         };
         setTwoFactorChallenge(challenge);
@@ -139,9 +144,9 @@ export const ThePotLiteProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         name: data.user.name,
         email: data.user.email,
         username: data.user.username,
-        role: "Organizer", // Default or determine from membership
+        role: "Organizer",
         title: "Active Pilot User",
-        phone: data.user.phone,
+        phone: data.user.phone || credentials.phone,
         organizationId: 1,
         organizationName: "Tigers Youth Soccer Club",
         twoFactorEnabled: data.user.twoFactorEnabled,
@@ -153,14 +158,20 @@ export const ThePotLiteProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       localStorage.setItem("thepotlite_authenticated_user", JSON.stringify(user));
       return { requiresTwoFactor: false, user };
     } catch (err: any) {
-      // Fallback for demo when backend is offline or mock login is desired
-      if (credentials.usernameOrEmail === "coach_marcus" || credentials.usernameOrEmail === "coach.marcus@tigersfc.org") {
+      // Demo accounts fallback
+      if (
+        credentials.usernameOrEmail === "coach_marcus" ||
+        credentials.usernameOrEmail === "coach.marcus@tigersfc.org"
+      ) {
         setCurrentUser(DEMO_USERS.organizer);
         setIsAuthenticated(true);
         localStorage.setItem("thepotlite_authenticated_user", JSON.stringify(DEMO_USERS.organizer));
         return { requiresTwoFactor: false, user: DEMO_USERS.organizer };
       }
-      if (credentials.usernameOrEmail === "sarah_j" || credentials.usernameOrEmail === "sarah.jenkins@example.com") {
+      if (
+        credentials.usernameOrEmail === "sarah_j" ||
+        credentials.usernameOrEmail === "sarah.jenkins@example.com"
+      ) {
         setCurrentUser(DEMO_USERS.member);
         setIsAuthenticated(true);
         localStorage.setItem("thepotlite_authenticated_user", JSON.stringify(DEMO_USERS.member));
@@ -217,8 +228,8 @@ export const ThePotLiteProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setIsAuthenticated(true);
       localStorage.setItem("thepotlite_authenticated_user", JSON.stringify(newUser));
       return newUser;
-    } catch (err: any) {
-      // Local fallback in demo environment
+    } catch {
+      // Local fallback for offline / mock runs
       const mockUser: ThePotLiteUser = {
         id: Math.floor(Math.random() * 1000) + 100,
         name: data.name,
@@ -236,6 +247,46 @@ export const ThePotLiteProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       localStorage.setItem("thepotlite_authenticated_user", JSON.stringify(mockUser));
       return mockUser;
     }
+  };
+
+  const sendSmsCode = async (phone: string) => {
+    const res = await fetch("/api/v1/auth/sms/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to send SMS code");
+    return data;
+  };
+
+  const verifySmsCode = async (phone: string, code: string, userId?: number) => {
+    const res = await fetch("/api/v1/auth/sms/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone, code, userId }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to verify SMS code");
+
+    const verifiedUser: ThePotLiteUser = {
+      id: userId || currentUser.id || 10,
+      name: currentUser.name || "Coach Marcus Lewis",
+      email: currentUser.email || "coach.marcus@tigersfc.org",
+      username: currentUser.username || "coach_marcus",
+      role: currentUser.role || "Organizer",
+      title: "Verified Pilot User (SMS 2FA Active)",
+      phone,
+      organizationId: 1,
+      organizationName: "Tigers Youth Soccer Club",
+      twoFactorEnabled: true,
+    };
+
+    setCurrentUser(verifiedUser);
+    setIsAuthenticated(true);
+    setTwoFactorChallenge(null);
+    localStorage.setItem("thepotlite_authenticated_user", JSON.stringify(verifiedUser));
+    return data;
   };
 
   const verifyTwoFactor = async (code: string) => {
@@ -276,7 +327,6 @@ export const ThePotLiteProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       localStorage.setItem("thepotlite_authenticated_user", JSON.stringify(user));
       return user;
     } catch (err: any) {
-      // Allow demo bypass with code 123456
       if (code === "123456" || code === "000000") {
         const verifiedUser: ThePotLiteUser = {
           ...DEMO_USERS.organizer,
@@ -319,12 +369,11 @@ export const ThePotLiteProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     try {
       await fetch("/api/v1/auth/logout", { method: "POST" });
     } catch {
-      // ignore network errors on logout
+      // ignore network errors
     }
     setIsAuthenticated(false);
     setTwoFactorChallenge(null);
     localStorage.removeItem("thepotlite_authenticated_user");
-    setCurrentUser(DEMO_USERS.organizer);
   };
 
   return (
@@ -339,6 +388,8 @@ export const ThePotLiteProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         login,
         register,
         verifyTwoFactor,
+        sendSmsCode,
+        verifySmsCode,
         setupTwoFactor,
         enableTwoFactor,
         logout,

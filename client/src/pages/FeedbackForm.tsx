@@ -181,7 +181,7 @@ export default function FeedbackForm() {
                   onClick={() => setSatisfaction(opt.id as any)}
                   className={`p-3 rounded-2xl border text-center transition-all ${
                     satisfaction === opt.id
-                      ? "border-[#a3e635] bg-[#a3e635]/10 text-slate-900 dark:text-white font-bold ring-2 ring-[#a3e635]/30"
+                      ? "border-purple-600 bg-purple-50 dark:bg-purple-950/40 text-purple-900 dark:text-white font-bold ring-2 ring-purple-600/30"
                       : "border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
                   }`}
                 >
@@ -245,7 +245,7 @@ export default function FeedbackForm() {
             <Button
               type="submit"
               disabled={loading}
-              className="flex-1 rounded-full text-xs font-bold py-3.5 bg-[#a3e635] hover:bg-[#8ece28] text-slate-950 shadow-md shadow-[#a3e635]/20 flex items-center justify-center gap-2"
+              className="flex-1 rounded-full text-xs font-bold py-3.5 bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-600/30 flex items-center justify-center gap-2"
             >
               <Send className="w-4 h-4" />
               <span>{loading ? "Submitting..." : "Submit Pilot Feedback"}</span>

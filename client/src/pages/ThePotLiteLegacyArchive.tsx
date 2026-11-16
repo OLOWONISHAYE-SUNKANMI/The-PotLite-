@@ -80,7 +80,7 @@ export const ThePotLiteLegacyArchive: React.FC = () => {
             onClick={() => setActiveTab("migration_matrix")}
             className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
               activeTab === "migration_matrix"
-                ? "bg-[#a3e635] text-slate-950 shadow-sm"
+                ? "bg-purple-600 text-white shadow-sm shadow-purple-600/30"
                 : "bg-white/10 text-white hover:bg-white/20"
             }`}
           >
@@ -90,7 +90,7 @@ export const ThePotLiteLegacyArchive: React.FC = () => {
             onClick={() => setActiveTab("sandbox")}
             className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
               activeTab === "sandbox"
-                ? "bg-[#a3e635] text-slate-950 shadow-sm"
+                ? "bg-purple-600 text-white shadow-sm shadow-purple-600/30"
                 : "bg-white/10 text-white hover:bg-white/20"
             }`}
           >

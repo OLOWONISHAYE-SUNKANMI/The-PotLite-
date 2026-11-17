@@ -25,3 +25,4 @@ else
 fi
 
 echo "✅ Build and seed completed successfully!"
+

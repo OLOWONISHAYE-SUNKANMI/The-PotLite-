@@ -74,41 +74,56 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'thepot.wsgi.application'
 
-# Database Configuration (PostgreSQL with SQLite local dev fallback)
-DATABASE_URL = os.getenv('DATABASE_URL', '')
-
-DATABASES = {
-    'default': {
+# Database Configuration (PostgreSQL with SQLite fallback)
+def configure_database():
+    sqlite_config = {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
-}
 
-if DATABASE_URL:
+    raw_url = os.getenv('DATABASE_URL', '').strip()
+    if not raw_url:
+        print("[Django DB] No DATABASE_URL provided. Using SQLite database.")
+        return sqlite_config
+
+    # If running in cloud (Render) and DATABASE_URL points to localhost, ignore it
+    is_render = bool(os.getenv('RENDER') or os.getenv('RENDER_SERVICE_ID'))
+    if is_render and ('localhost' in raw_url or '127.0.0.1' in raw_url):
+        print("[Django DB] Cloud environment detected with localhost DATABASE_URL. Falling back to SQLite.")
+        return sqlite_config
+
+    if 'postgres' in raw_url:
+        try:
+            import dj_database_url
+            import psycopg2
+            parsed = dj_database_url.parse(raw_url)
+            # Verify connectivity before locking Django into PostgreSQL
+            conn = psycopg2.connect(
+                dbname=parsed.get('NAME') or 'thepot',
+                user=parsed.get('USER') or 'postgres',
+                password=parsed.get('PASSWORD') or '',
+                host=parsed.get('HOST') or 'localhost',
+                port=parsed.get('PORT') or 5432,
+                connect_timeout=2
+            )
+            conn.close()
+            print("[Django DB] Connected to PostgreSQL successfully.")
+            parsed['CONN_MAX_AGE'] = 600
+            return parsed
+        except Exception as e:
+            print(f"[Django DB] PostgreSQL connection failed ({e}). Falling back to SQLite database.")
+            return sqlite_config
+
     try:
         import dj_database_url
-        DATABASES['default'] = dj_database_url.parse(DATABASE_URL, conn_max_age=600)
-        print("[Django DB] Configured database from DATABASE_URL via dj_database_url.")
+        return dj_database_url.parse(raw_url, conn_max_age=600)
     except Exception as e:
-        print(f"[Django DB] dj_database_url fallback to manual parsing: {e}")
-        if 'postgres' in DATABASE_URL:
-            try:
-                import psycopg2
-                import urllib.parse as urlparse
-                url = urlparse.urlparse(DATABASE_URL)
-                DATABASES['default'] = {
-                    'ENGINE': 'django.db.backends.postgresql',
-                    'NAME': url.path[1:] or 'thepot',
-                    'USER': url.username or 'postgres',
-                    'PASSWORD': url.password or 'postgres',
-                    'HOST': url.hostname or 'localhost',
-                    'PORT': url.port or 5432,
-                }
-                print("[Django DB] Connected to PostgreSQL successfully.")
-            except Exception as e2:
-                print(f"[Django DB] PostgreSQL offline or unreachable ({e2}). Using local SQLite database.")
-else:
-    print("[Django DB] No DATABASE_URL provided. Using local SQLite database.")
+        print(f"[Django DB] Error parsing DATABASE_URL: {e}. Using SQLite.")
+        return sqlite_config
+
+DATABASES = {
+    'default': configure_database()
+}
 
 
 # Custom User Model

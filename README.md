@@ -1,6 +1,6 @@
-# pot_fintech_backend
+# The-PotLite-
 
-ThePotLite V1 Pilot Backend — Youth sports tracking, governance, and accountability.
+ThePotLite V1 Pilot — Youth sports tracking, governance, and accountability.
 
 > *"No money handled. No disputes adjudicated. No obligations silently changed."*
 

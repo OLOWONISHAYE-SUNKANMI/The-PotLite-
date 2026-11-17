@@ -14,3 +14,4 @@ export function apiUrl(path: string): string {
   if (!API_BASE_URL) return cleanPath;
   return `${API_BASE_URL.replace(/\/$/, "")}${cleanPath}`;
 }
+

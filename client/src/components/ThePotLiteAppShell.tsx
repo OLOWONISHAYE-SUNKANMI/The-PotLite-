@@ -200,33 +200,18 @@ export const ThePotLiteAppShell: React.FC<{ children: React.ReactNode }> = ({ ch
             </button>
           </div>
 
-          {/* Perspective Switcher */}
-          <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-              Perspective
+          {/* Active Verified Role (Role-Based Access Enforced) */}
+          <div className="bg-slate-100 dark:bg-slate-800/70 px-3 py-2 rounded-2xl flex items-center justify-between text-xs">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Account Role
             </span>
-            <div className="bg-slate-100 dark:bg-slate-800/70 p-1 rounded-2xl flex items-center justify-between text-xs font-semibold">
-              <button
-                onClick={() => switchRole("Organizer")}
-                className={`flex-1 py-1.5 rounded-xl transition-all text-center ${
-                  currentUser.role === "Organizer"
-                    ? "bg-purple-700 text-white shadow-sm font-bold"
-                    : "text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                }`}
-              >
-                Organizer
-              </button>
-              <button
-                onClick={() => switchRole("Member")}
-                className={`flex-1 py-1.5 rounded-xl transition-all text-center ${
-                  currentUser.role === "Member"
-                    ? "bg-amber-600 text-white shadow-sm font-bold"
-                    : "text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                }`}
-              >
-                Parent
-              </button>
-            </div>
+            <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
+              currentUser.role === "Organizer"
+                ? "bg-purple-100 text-purple-700 dark:bg-purple-950/80 dark:text-purple-300 border border-purple-200 dark:border-purple-800/40"
+                : "bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-200 dark:border-amber-800/40"
+            }`}>
+              {currentUser.role === "Organizer" ? "Organizer" : "Member (Parent)"}
+            </span>
           </div>
 
           {/* User Profile Card with Sign Out / Gateway Link */}

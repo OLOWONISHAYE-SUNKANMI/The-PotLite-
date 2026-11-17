@@ -193,14 +193,9 @@ export const ThePotLiteProfile: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2.5">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setRole(role === "Organizer" ? "Member" : "Organizer")}
-            className="rounded-2xl text-xs font-bold border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950"
-          >
-            Switch to {role === "Organizer" ? "Parent (Member)" : "Coach (Organizer)"}
-          </Button>
+          <div className="px-3 py-1.5 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300">
+            Verified {currentUser.role} Account
+          </div>
 
           <Button
             type="button"

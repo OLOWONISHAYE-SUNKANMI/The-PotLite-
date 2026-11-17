@@ -30,6 +30,23 @@ function ThePotLiteHome() {
   );
 }
 
+// Role-Based Access Control: Organizers cannot access Member routes and vice-versa
+function OrganizerOnlyRoute({ component: Component }: { component: React.ComponentType }) {
+  const { currentUser } = useThePotLite();
+  if (currentUser.role !== "Organizer") {
+    return <ThePotLiteMemberDashboard />;
+  }
+  return <Component />;
+}
+
+function MemberOnlyRoute({ component: Component }: { component: React.ComponentType }) {
+  const { currentUser } = useThePotLite();
+  if (currentUser.role !== "Member") {
+    return <ThePotLiteOrganizerDashboard />;
+  }
+  return <Component />;
+}
+
 function AppRouter() {
   const { isAuthenticated, currentUser } = useThePotLite();
 
@@ -75,12 +92,18 @@ function AppRouter() {
         <ThePotLiteAppShell>
           <Switch>
             <Route path="/" component={ThePotLiteHome} />
-            <Route path="/organizer" component={ThePotLiteOrganizerDashboard} />
-            <Route path="/member" component={ThePotLiteMemberDashboard} />
+            <Route path="/organizer">
+              {() => <OrganizerOnlyRoute component={ThePotLiteOrganizerDashboard} />}
+            </Route>
+            <Route path="/member">
+              {() => <MemberOnlyRoute component={ThePotLiteMemberDashboard} />}
+            </Route>
+            <Route path="/create">
+              {() => <OrganizerOnlyRoute component={CreatePot} />}
+            </Route>
             <Route path="/profile" component={ThePotLiteProfile} />
             <Route path="/invite/:id" component={ThePotLiteInviteLanding} />
             <Route path="/audit" component={ThePotLiteAuditLog} />
-            <Route path="/create" component={CreatePot} />
             <Route path="/feedback" component={FeedbackForm} />
             <Route path="/legacy" component={ThePotLiteLegacyArchive} />
             <Route component={NotFound} />

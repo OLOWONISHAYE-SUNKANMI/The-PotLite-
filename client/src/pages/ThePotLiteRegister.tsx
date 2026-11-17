@@ -86,11 +86,11 @@ export const ThePotLiteRegister: React.FC = () => {
       } catch {
         toast({
           title: "Account Created Successfully!",
-          description: "Entering dashboard...",
+          description: "Entering 10-step setup guide...",
         });
       }
 
-      setLocation("/");
+      setLocation("/onboarding");
     } catch (err: any) {
       toast({
         title: "Registration Failed",

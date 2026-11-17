@@ -24,7 +24,9 @@ urlpatterns = [
     path('api/v1/auth/', include('accounts.urls')),
     path('api/v1/pots/', include('pots.urls')),
     path('api/v1/governance/', include('governance.urls')),
+    path('api/v1/assistance/', include('assistance.urls')),
     path('api/v1/', include('pots.urls')),
     path('api/v1/', include('governance.urls')),
+    path('api/v1/', include('assistance.urls')),
     path('api/v1/', include('audit.urls')),
 ]

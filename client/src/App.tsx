@@ -17,6 +17,8 @@ import { ThePotLiteTwoFactor } from "./pages/ThePotLiteTwoFactor";
 import CreatePot from "./pages/CreatePot";
 import FeedbackForm from "./pages/FeedbackForm";
 import ThePotLiteLegacyArchive from "./pages/ThePotLiteLegacyArchive";
+import Onboarding from "./pages/Onboarding";
+import { ThePotLiteProfile } from "./pages/ThePotLiteProfile";
 import NotFound from "./pages/not-found";
 
 function ThePotLiteHome() {
@@ -50,6 +52,7 @@ function AppRouter() {
       <Route path="/login" component={ThePotLiteLogin} />
       <Route path="/register" component={ThePotLiteRegister} />
       <Route path="/auth/2fa" component={ThePotLiteTwoFactor} />
+      <Route path="/onboarding" component={Onboarding} />
 
       {/* ThePotLite V1 Pilot Dashboard Pages */}
       <Route>
@@ -58,6 +61,7 @@ function AppRouter() {
             <Route path="/" component={ThePotLiteHome} />
             <Route path="/organizer" component={ThePotLiteOrganizerDashboard} />
             <Route path="/member" component={ThePotLiteMemberDashboard} />
+            <Route path="/profile" component={ThePotLiteProfile} />
             <Route path="/invite/:id" component={ThePotLiteInviteLanding} />
             <Route path="/audit" component={ThePotLiteAuditLog} />
             <Route path="/create" component={CreatePot} />

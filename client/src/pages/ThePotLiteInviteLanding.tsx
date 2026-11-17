@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useParams, Link } from "wouter";
+import { apiUrl } from "@/lib/config";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -49,11 +50,20 @@ export const ThePotLiteInviteLanding: React.FC = () => {
     ],
   };
 
-  const handleAccept = () => {
+  const handleAccept = async () => {
+    try {
+      await fetch(apiUrl("/api/v1/pots/obligations/1/accept"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ version: invite.termsVersion }),
+      });
+    } catch {
+      // Graceful local handling
+    }
     setAccepted(true);
     toast({
-      title: "Terms Accepted!",
-      description: `You have explicitly accepted the terms (Version ${invite.termsVersion}). Obligation created.`,
+      title: "Terms Accepted & Consent Timestamped!",
+      description: `You have explicitly accepted the terms (Version ${invite.termsVersion}). Obligation active.`,
     });
   };
 

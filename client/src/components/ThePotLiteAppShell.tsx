@@ -17,6 +17,7 @@ import {
   Menu,
   X,
   User,
+  Sparkles,
   LogIn,
   LogOut,
   Building2,
@@ -58,6 +59,18 @@ export const ThePotLiteAppShell: React.FC<{ children: React.ReactNode }> = ({ ch
       path: "/audit",
       icon: FileText,
       active: location === "/audit",
+    },
+    {
+      label: "Profile Setup",
+      path: "/profile",
+      icon: User,
+      active: location === "/profile",
+    },
+    {
+      label: "10-Step Setup",
+      path: "/onboarding",
+      icon: Sparkles,
+      active: location === "/onboarding",
     },
     {
       label: "Invite Demo",
@@ -224,7 +237,7 @@ export const ThePotLiteAppShell: React.FC<{ children: React.ReactNode }> = ({ ch
 
           {/* User Profile Card with Sign Out / Gateway Link */}
           <div className="flex items-center justify-between gap-2 p-2 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800/80">
-            <div className="flex items-center gap-2.5 min-w-0">
+            <Link href="/profile" className="flex items-center gap-2.5 min-w-0 flex-1 hover:opacity-85 transition-opacity cursor-pointer">
               <img
                 src={avatarUrl}
                 alt={currentUser.name}
@@ -236,7 +249,7 @@ export const ThePotLiteAppShell: React.FC<{ children: React.ReactNode }> = ({ ch
                 </p>
                 <p className="text-[10px] text-slate-400 truncate">{currentUser.title}</p>
               </div>
-            </div>
+            </Link>
 
             {isAuthenticated ? (
               <button

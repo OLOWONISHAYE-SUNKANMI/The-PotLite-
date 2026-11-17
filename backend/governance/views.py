@@ -28,6 +28,7 @@ class PayoutSpendRequestSerializer(serializers.ModelSerializer):
 
 class PayoutSpendListCreateView(APIView):
     permission_classes = [AllowAny]
+    serializer_class = PayoutSpendRequestSerializer
 
     def get(self, request):
         payouts = PayoutSpendRequest.objects.all().order_by('-created_at')

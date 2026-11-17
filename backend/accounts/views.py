@@ -14,6 +14,7 @@ from .twilio_service import send_sms_otp, normalize_phone_number
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
+    serializer_class = RegisterSerializer
 
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
@@ -32,6 +33,7 @@ class RegisterView(APIView):
 
 class LoginView(APIView):
     permission_classes = [AllowAny]
+    serializer_class = LoginSerializer
 
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
@@ -74,6 +76,8 @@ class LogoutView(APIView):
 
 
 class MeView(APIView):
+    serializer_class = UserSerializer
+
     def get(self, request):
         if not request.user.is_authenticated:
             return Response({"error": "Not authenticated"}, status=status.HTTP_401_UNAUTHORIZED)

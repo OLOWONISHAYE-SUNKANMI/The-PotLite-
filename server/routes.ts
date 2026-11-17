@@ -21,7 +21,54 @@ import { thePotLiteRouter } from "./thepotlite/routes";
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
   
-  // ThePotLite V1 Pilot API Routes
+  // ThePotLite V1 Pilot API: Forward to Live Render Backend with local fallback
+  const LIVE_DJANGO_URL = process.env.DJANGO_API_URL || "https://pot-fintech-backend.onrender.com";
+
+  app.use('/api/v1', async (req, res, next) => {
+    // Only proxy if enabled (default true)
+    if (process.env.USE_LOCAL_API_ROUTER === 'true') {
+      return next();
+    }
+    try {
+      const targetUrl = `${LIVE_DJANGO_URL.replace(/\/$/, '')}${req.originalUrl}`;
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+      };
+      if (req.headers['content-type']) {
+        headers['Content-Type'] = req.headers['content-type'] as string;
+      }
+      if (req.headers['authorization']) {
+        headers['Authorization'] = req.headers['authorization'] as string;
+      }
+
+      const options: RequestInit = {
+        method: req.method,
+        headers,
+      };
+
+      if (['POST', 'PUT', 'PATCH'].includes(req.method) && req.body && Object.keys(req.body).length > 0) {
+        options.body = JSON.stringify(req.body);
+      }
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      options.signal = controller.signal;
+
+      const remoteRes = await fetch(targetUrl, options);
+      clearTimeout(timeoutId);
+
+      const contentType = remoteRes.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const data = await remoteRes.json();
+        return res.status(remoteRes.status).json(data);
+      }
+      return next();
+    } catch {
+      // Fallback gracefully to local router if live backend is unreachable
+      return next();
+    }
+  });
+
   app.use('/api/v1', thePotLiteRouter);
 
   // API prefix

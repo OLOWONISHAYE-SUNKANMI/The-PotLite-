@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useLocation } from "wouter";
 import { useThePotLite } from "@/context/ThePotLiteContext";
 import { useToast } from "@/hooks/use-toast";
+import { apiUrl } from "@/lib/config";
 import {
   ShieldCheck,
   Plus,
@@ -107,7 +108,7 @@ export const CreatePot: React.FC = () => {
     setLoading(true);
     try {
       // Send to API
-      const res = await fetch("/api/v1/pots", {
+      const res = await fetch(apiUrl("/api/v1/pots"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -7,6 +7,7 @@ from .serializers import AuditEventSerializer
 
 class AuditTrailView(APIView):
     permission_classes = [AllowAny]
+    serializer_class = AuditEventSerializer
 
     def get(self, request):
         events = AuditEvent.objects.all().order_by('-timestamp')[:100]

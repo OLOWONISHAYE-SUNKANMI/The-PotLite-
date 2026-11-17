@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     # Third-party packages
     'corsheaders',
     'rest_framework',
+    'drf_spectacular',
 
     # ThePotLite Core Domain Apps
     'accounts',
@@ -154,6 +155,22 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
     ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+# Swagger / OpenAPI Documentation Settings
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'ThePotLite V1 Pilot API',
+    'DESCRIPTION': 'Non-custodial obligation tracking, dual-confirmation payment reconciliation, and governance API for youth sports.',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'SWAGGER_UI_SETTINGS': {
+        'deepLinking': True,
+        'persistAuthorization': True,
+        'displayOperationId': False,
+        'defaultModelsExpandDepth': 1,
+        'defaultModelExpandDepth': 1,
+    },
 }
 
 # CORS Configuration for TypeScript Frontend

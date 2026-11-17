@@ -11,6 +11,7 @@ from audit.models import AuditEvent
 
 class PotListCreateView(APIView):
     permission_classes = [AllowAny]
+    serializer_class = PotSerializer
 
     def get(self, request):
         pots = Pot.objects.all().order_by('-created_at')
@@ -57,6 +58,7 @@ class PotListCreateView(APIView):
 
 class PotDetailView(APIView):
     permission_classes = [AllowAny]
+    serializer_class = PotSerializer
 
     def get(self, request, pk):
         pot = get_object_or_404(Pot, pk=pk)

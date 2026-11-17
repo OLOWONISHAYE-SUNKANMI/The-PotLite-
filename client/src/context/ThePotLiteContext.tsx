@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { apiUrl } from "@/lib/config";
 
 export type UserRole = "Organizer" | "Member";
 
@@ -147,7 +148,7 @@ export const ThePotLiteProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const login = async (credentials: { usernameOrEmail: string; password: string; phone?: string }) => {
-    const res = await fetch("/api/v1/auth/login", {
+    const res = await fetch(apiUrl("/api/v1/auth/login"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(credentials),
@@ -199,7 +200,7 @@ export const ThePotLiteProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     role: UserRole;
     organizationName?: string;
   }) => {
-    const res = await fetch("/api/v1/auth/register", {
+    const res = await fetch(apiUrl("/api/v1/auth/register"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -239,7 +240,7 @@ export const ThePotLiteProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const sendSmsCode = async (phone: string) => {
-    const res = await fetch("/api/v1/auth/sms/send", {
+    const res = await fetch(apiUrl("/api/v1/auth/sms/send"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ phone }),
@@ -250,7 +251,7 @@ export const ThePotLiteProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const verifySmsCode = async (phone: string, code: string, userId?: number) => {
-    const res = await fetch("/api/v1/auth/sms/verify", {
+    const res = await fetch(apiUrl("/api/v1/auth/sms/verify"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ phone, code, userId }),
@@ -284,7 +285,7 @@ export const ThePotLiteProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
 
     try {
-      const res = await fetch("/api/v1/auth/2fa/verify", {
+      const res = await fetch(apiUrl("/api/v1/auth/2fa/verify"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -321,7 +322,7 @@ export const ThePotLiteProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const setupTwoFactor = async () => {
-    const res = await fetch("/api/v1/auth/2fa/setup", {
+    const res = await fetch(apiUrl("/api/v1/auth/2fa/setup"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId: currentUser.id }),
@@ -332,7 +333,7 @@ export const ThePotLiteProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const enableTwoFactor = async (code: string) => {
-    const res = await fetch("/api/v1/auth/2fa/enable", {
+    const res = await fetch(apiUrl("/api/v1/auth/2fa/enable"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId: currentUser.id, code }),
@@ -345,7 +346,7 @@ export const ThePotLiteProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const logout = async () => {
     try {
-      await fetch("/api/v1/auth/logout", { method: "POST" });
+      await fetch(apiUrl("/api/v1/auth/logout"), { method: "POST" });
     } catch {
       // ignore network errors
     }

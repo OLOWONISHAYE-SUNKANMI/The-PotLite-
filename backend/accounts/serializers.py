@@ -73,3 +73,4 @@ class LoginSerializer(serializers.Serializer):
     usernameOrEmail = serializers.CharField(required=True)
     password = serializers.CharField(required=True, write_only=True)
     phone = serializers.CharField(required=False, allow_blank=True, default='')
+

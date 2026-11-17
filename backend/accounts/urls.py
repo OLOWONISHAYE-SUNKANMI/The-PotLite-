@@ -28,3 +28,4 @@ urlpatterns = [
     path('2fa/verify', VerifyTwoFactorView.as_view(), name='auth-2fa-verify'),
     path('2fa/verify/', VerifyTwoFactorView.as_view(), name='auth-2fa-verify-slash'),
 ]
+

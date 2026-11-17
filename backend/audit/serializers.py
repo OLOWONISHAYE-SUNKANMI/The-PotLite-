@@ -21,3 +21,4 @@ class AuditEventSerializer(serializers.ModelSerializer):
 
     def get_actor_username(self, obj):
         return obj.actor.username if obj.actor else 'System'
+

@@ -7,3 +7,4 @@ urlpatterns = [
     path('payouts/<int:pk>/approve', PayoutSpendApproveView.as_view(), name='governance-payouts-approve'),
     path('payouts/<int:pk>/approve/', PayoutSpendApproveView.as_view(), name='governance-payouts-approve-slash'),
 ]
+

@@ -5,3 +5,4 @@ urlpatterns = [
     path('audit-trail', AuditTrailView.as_view(), name='audit-trail'),
     path('audit-trail/', AuditTrailView.as_view(), name='audit-trail-slash'),
 ]
+

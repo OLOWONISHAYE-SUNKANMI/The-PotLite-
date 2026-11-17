@@ -82,3 +82,4 @@ def send_sms_otp(phone: str, code: str) -> dict:
             "message": f"Verification code dispatched for {normalized_phone}.",
             "testCode": code
         }
+

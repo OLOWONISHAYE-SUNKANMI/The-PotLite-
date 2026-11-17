@@ -98,3 +98,4 @@ class PotSerializer(serializers.ModelSerializer):
         for ob in obj.obligations.all():
             total_collected += float(ob.total_amount - ob.balance_remaining)
         return total_collected
+

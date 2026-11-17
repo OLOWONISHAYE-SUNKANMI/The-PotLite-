@@ -18,3 +18,4 @@ urlpatterns = [
     path('payments/<int:pk>/confirm', ObligationConfirmPaymentView.as_view(), name='payment-confirm'),
     path('payments/<int:pk>/confirm/', ObligationConfirmPaymentView.as_view(), name='payment-confirm-slash'),
 ]
+

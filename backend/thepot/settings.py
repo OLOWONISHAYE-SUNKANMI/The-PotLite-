@@ -15,6 +15,9 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'thepotlite-django-secret-key-v1-pil
 DEBUG = os.getenv('DJANGO_DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = ['*']
+RENDER_EXTERNAL_HOSTNAME = os.getenv('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
 # Application definition
 INSTALLED_APPS = [
@@ -23,6 +26,7 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'whitenoise.runserver_nostatic',
     'django.contrib.staticfiles',
 
     # Third-party packages
@@ -41,6 +45,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  # Must be at the very top
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # WhiteNoise for static files on Render
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -79,32 +84,31 @@ DATABASES = {
     }
 }
 
-if DATABASE_URL and 'postgresql://' in DATABASE_URL:
+if DATABASE_URL:
     try:
-        import psycopg2
-        import urllib.parse as urlparse
-        url = urlparse.urlparse(DATABASE_URL)
-        # Quick probe with 1 second timeout
-        test_conn = psycopg2.connect(
-            dbname=url.path[1:] or 'thepot',
-            user=url.username or 'postgres',
-            password=url.password or 'postgres',
-            host=url.hostname or 'localhost',
-            port=url.port or 5432,
-            connect_timeout=1
-        )
-        test_conn.close()
-        DATABASES['default'] = {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': url.path[1:] or 'thepot',
-            'USER': url.username or 'postgres',
-            'PASSWORD': url.password or 'postgres',
-            'HOST': url.hostname or 'localhost',
-            'PORT': url.port or 5432,
-        }
-        print("[Django DB] Connected to PostgreSQL successfully.")
+        import dj_database_url
+        DATABASES['default'] = dj_database_url.parse(DATABASE_URL, conn_max_age=600)
+        print("[Django DB] Configured database from DATABASE_URL via dj_database_url.")
     except Exception as e:
-        print(f"[Django DB] PostgreSQL offline or unreachable ({e}). Using local SQLite database.")
+        print(f"[Django DB] dj_database_url fallback to manual parsing: {e}")
+        if 'postgres' in DATABASE_URL:
+            try:
+                import psycopg2
+                import urllib.parse as urlparse
+                url = urlparse.urlparse(DATABASE_URL)
+                DATABASES['default'] = {
+                    'ENGINE': 'django.db.backends.postgresql',
+                    'NAME': url.path[1:] or 'thepot',
+                    'USER': url.username or 'postgres',
+                    'PASSWORD': url.password or 'postgres',
+                    'HOST': url.hostname or 'localhost',
+                    'PORT': url.port or 5432,
+                }
+                print("[Django DB] Connected to PostgreSQL successfully.")
+            except Exception as e2:
+                print(f"[Django DB] PostgreSQL offline or unreachable ({e2}). Using local SQLite database.")
+else:
+    print("[Django DB] No DATABASE_URL provided. Using local SQLite database.")
 
 
 # Custom User Model
@@ -121,7 +125,9 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Django REST Framework Settings

@@ -86,6 +86,16 @@ class Obligation(models.Model):
             return True
         return False
 
+    def withdraw(self, reason: str = ''):
+        """
+        Phase 3: Opt-Out & Withdrawal Engine
+        Obligation closes as Withdrawn.
+        ThePotLite handles zero funds - confirmed payments remain recorded.
+        """
+        self.state = 'Withdrawn'
+        self.save(update_fields=['state', 'last_activity_at'])
+        return True
+
 
 class ObligationVersionStatus(models.TextChoices):
     PROPOSED = 'proposed', 'Proposed'
@@ -184,4 +194,19 @@ class PaymentRecord(models.Model):
 
         # Trigger potential Pot auto-completion
         self.pot.check_auto_completion()
+        return True
+
+    def dispute(self, disputer_user, counter_statement: str = ''):
+        """
+        Phase 4: Dual-Confirmation Payment Recording & Neutral Dispute Engine
+        Both statements logged neutrally in audit trail.
+        'ThePotLite never decides who is right.'
+        """
+        from django.utils import timezone
+        self.state = PaymentRecordState.DISPUTED
+        self.notes = f"{self.notes}\n[Disputed by {disputer_user.username if disputer_user else 'Organizer'}]: {counter_statement}".strip()
+        self.save(update_fields=['state', 'notes'])
+
+        self.obligation.state = ObligationState.DISPUTED
+        self.obligation.save(update_fields=['state', 'last_activity_at'])
         return True

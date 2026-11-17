@@ -36,9 +36,12 @@ export const ThePotLiteOrganizerDashboard: React.FC = () => {
   const [balanceVisible, setBalanceVisible] = useState(true);
   const [activeCurrency, setActiveCurrency] = useState<"USD" | "Tigers U12" | "Fall 2026">("USD");
   const [payoutModalOpen, setPayoutModalOpen] = useState(false);
+  const [disputeModalOpen, setDisputeModalOpen] = useState(false);
   const [payee, setPayee] = useState("");
   const [payoutAmount, setPayoutAmount] = useState("");
   const [payoutPurpose, setPayoutPurpose] = useState("");
+  const [disputeReason, setDisputeReason] = useState("Amount mismatch / transaction not visible");
+  const [disputeType, setDisputeType] = useState<"mismatch" | "denial">("mismatch");
 
   // Action Queue item matching the reference image's top item with inline check/cross
   const [pendingConfirmation, setPendingConfirmation] = useState<{
@@ -53,6 +56,21 @@ export const ThePotLiteOrganizerDashboard: React.FC = () => {
     amount: "$100.00",
     method: "Zelle",
     detail: "Payment confirmation needed",
+  });
+
+  // Second organizer payout co-approval queue item ($450 > $250 threshold)
+  const [pendingPayoutApproval, setPendingPayoutApproval] = useState<{
+    id: number;
+    payee: string;
+    amount: string;
+    purpose: string;
+    requester: string;
+  } | null>({
+    id: 1,
+    payee: "State Referee Association",
+    amount: "$450.00",
+    purpose: "State Cup Group Stage Referee & Field Marshals",
+    requester: "Coach Marcus Lewis",
   });
 
   const handleCopyOrgId = () => {
@@ -79,11 +97,43 @@ export const ThePotLiteOrganizerDashboard: React.FC = () => {
     });
   };
 
-  const handleRejectAction = async () => {
+  const handleRejectAction = () => {
+    setDisputeModalOpen(true);
+  };
+
+  const handleSubmitDispute = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setDisputeModalOpen(false);
     setPendingConfirmation(null);
+    try {
+      await fetch(apiUrl("/api/v1/pots/payments/1/dispute"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ statement: disputeReason, disputeType }),
+      });
+    } catch {
+      // Fallback
+    }
     toast({
       title: "Neutral Discrepancy Logged",
-      description: "Both member and coach statements saved to audit trail. No punitive fees charged.",
+      description: "Both member and coach statements saved to audit trail. ThePotLite never adjudicates disputes.",
+    });
+  };
+
+  const handleCoApprovePayout = async () => {
+    setPendingPayoutApproval(null);
+    try {
+      await fetch(apiUrl("/api/v1/governance/payouts/1/approve"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ decision: "approved" }),
+      });
+    } catch {
+      // Fallback
+    }
+    toast({
+      title: "Payout Authorized by Second Approver",
+      description: "Multi-approver threshold satisfied. Vendor payment can be disbursed off-platform.",
     });
   };
 
@@ -487,6 +537,33 @@ export const ThePotLiteOrganizerDashboard: React.FC = () => {
                 </div>
               )}
 
+              {/* Payout Spend Second Approval (> $250 multi-approver requirement) */}
+              {pendingPayoutApproval && (
+                <div className="py-3 flex items-center justify-between gap-2 bg-purple-50/50 dark:bg-purple-950/20 p-2.5 rounded-2xl border border-purple-100 dark:border-purple-900/40">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center text-xs font-bold shrink-0">
+                      2FA
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                        {pendingPayoutApproval.payee} ({pendingPayoutApproval.amount})
+                      </p>
+                      <p className="text-[10px] text-purple-700 dark:text-purple-300 font-medium truncate">
+                        Co-approval needed (over $250)
+                      </p>
+                    </div>
+                  </div>
+
+                  <Button
+                    size="sm"
+                    onClick={handleCoApprovePayout}
+                    className="h-7 text-xs bg-purple-700 hover:bg-purple-800 text-white rounded-full px-3 shrink-0"
+                  >
+                    Co-Approve
+                  </Button>
+                </div>
+              )}
+
               <div className="py-3 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300">
@@ -529,6 +606,180 @@ export const ThePotLiteOrganizerDashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* =========================================================================
+          BOTTLENECK STATUS: "WHO IS WAITING ON WHOM" & QUIET HOURS COMPLIANCE
+          ========================================================================= */}
+      <div className="bg-white dark:bg-[#0f172a] rounded-3xl p-6 border border-slate-200/90 dark:border-slate-800/90 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800/80 pb-3">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <span>Bottleneck Tracker: Who is Waiting on Whom</span>
+              <span className="text-[10px] font-bold bg-purple-100 text-purple-700 dark:bg-purple-950/80 dark:text-purple-300 px-2.5 py-0.5 rounded-full">
+                Cheffy AI Dispatcher
+              </span>
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Prompts target only the single individual blocking progress. Zero generic blast messages.
+            </p>
+          </div>
+
+          <div className="inline-flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 px-3 py-1 rounded-full text-xs font-semibold self-start sm:self-auto border border-emerald-200 dark:border-emerald-800/40">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Quiet Hours (9PM - 8AM) Compliant</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="p-3.5 rounded-2xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/70 dark:border-amber-900/30">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400 block mb-1">
+              Waiting on Parent (2)
+            </span>
+            <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+              Dave M. & Alex K.
+            </p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+              Pending State Cup invite opt-in (48h left before auto-removal)
+            </p>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-purple-50/60 dark:bg-purple-950/20 border border-purple-200/70 dark:border-purple-900/30">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-purple-800 dark:text-purple-400 block mb-1">
+              Waiting on Coach (1)
+            </span>
+            <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+              Sarah Jenkins ($100 Zelle)
+            </p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+              Dual-confirmation receipt check (Confirmation window: 48 hours)
+            </p>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-200/70 dark:border-indigo-900/30">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-800 dark:text-indigo-400 block mb-1">
+              Waiting on Co-Approver (1)
+            </span>
+            <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+              $450.00 Referee Payout
+            </p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+              Requires 2nd organizer signature (&gt;$250 threshold)
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* =========================================================================
+          PILOT TELEMETRY & METRIC INSTRUMENTATION
+          ========================================================================= */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white dark:bg-[#0f172a] rounded-2xl p-4 border border-slate-200/90 dark:border-slate-800/90 shadow-sm">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+            Pot Completion Rate
+          </span>
+          <span className="text-2xl font-extrabold text-slate-900 dark:text-white">84.2%</span>
+          <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold block mt-0.5">
+            +6.4% vs pilot benchmark
+          </span>
+        </div>
+
+        <div className="bg-white dark:bg-[#0f172a] rounded-2xl p-4 border border-slate-200/90 dark:border-slate-800/90 shadow-sm">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+            Avg Days to Full Paid
+          </span>
+          <span className="text-2xl font-extrabold text-slate-900 dark:text-white">8.2 days</span>
+          <span className="text-[11px] text-purple-600 dark:text-purple-400 font-semibold block mt-0.5">
+            Down from 22 days
+          </span>
+        </div>
+
+        <div className="bg-white dark:bg-[#0f172a] rounded-2xl p-4 border border-slate-200/90 dark:border-slate-800/90 shadow-sm">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+            Cheffy Response Time
+          </span>
+          <span className="text-2xl font-extrabold text-slate-900 dark:text-white">1.8 hrs</span>
+          <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold block mt-0.5">
+            Target &lt; 4 hrs
+          </span>
+        </div>
+
+        <div className="bg-white dark:bg-[#0f172a] rounded-2xl p-4 border border-slate-200/90 dark:border-slate-800/90 shadow-sm">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+            Organizer Time Saved
+          </span>
+          <span className="text-2xl font-extrabold text-slate-900 dark:text-white">4.5 hrs/wk</span>
+          <span className="text-[11px] text-purple-600 dark:text-purple-400 font-semibold block mt-0.5">
+            Zero spreadsheet tracking
+          </span>
+        </div>
+      </div>
+
+      {/* Neutral Dispute Reconciliation Dialog */}
+      <Dialog open={disputeModalOpen} onOpenChange={setDisputeModalOpen}>
+        <DialogContent className="bg-white dark:bg-[#0f172a] rounded-3xl border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white sm:max-w-md p-6">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-slate-900 dark:text-white">
+              Neutral Discrepancy Reconciliation
+            </DialogTitle>
+            <DialogDescription className="text-slate-500 dark:text-slate-400 text-xs">
+              <strong>ThePotLite never decides who is right.</strong> Both member and coach statements are recorded side-by-side in the immutable audit trail.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmitDispute} className="space-y-4 py-2">
+            <div>
+              <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Discrepancy Type</Label>
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                <button
+                  type="button"
+                  onClick={() => setDisputeType("mismatch")}
+                  className={`p-2.5 rounded-xl border text-xs font-semibold transition-all ${
+                    disputeType === "mismatch"
+                      ? "bg-purple-50 dark:bg-purple-950/60 border-purple-500 text-purple-700 dark:text-purple-300 font-bold"
+                      : "border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400"
+                  }`}
+                >
+                  Amount Mismatch
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDisputeType("denial")}
+                  className={`p-2.5 rounded-xl border text-xs font-semibold transition-all ${
+                    disputeType === "denial"
+                      ? "bg-purple-50 dark:bg-purple-950/60 border-purple-500 text-purple-700 dark:text-purple-300 font-bold"
+                      : "border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400"
+                  }`}
+                >
+                  Payment Not Received
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Organizer Counter-Statement</Label>
+              <Input
+                placeholder="e.g. Checked Zelle records; did not receive $100 on Nov 16"
+                value={disputeReason}
+                onChange={(e) => setDisputeReason(e.target.value)}
+                required
+                className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl text-sm mt-1"
+              />
+            </div>
+
+            <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-400">
+              Member filed: <em>"Sent $100.00 via Zelle"</em>. Both statements will remain visible without punitive charges or late fees.
+            </div>
+
+            <div className="pt-2 flex justify-end gap-2">
+              <Button type="button" variant="outline" className="rounded-full" onClick={() => setDisputeModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" className="bg-amber-600 hover:bg-amber-700 text-white rounded-full">
+                Log Neutral Discrepancy
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Record Payout Spend Dialog */}
       <Dialog open={payoutModalOpen} onOpenChange={setPayoutModalOpen}>

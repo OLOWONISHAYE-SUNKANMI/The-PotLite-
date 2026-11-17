@@ -136,7 +136,35 @@ def seed():
         }
     )
 
-    # 8. Audit Event
+    # 8. Governance: Payout Request & Change Proposal
+    from governance.models import PayoutSpendRequest, PayoutSpendStatus, ChangeProposal, ProposalStatus, ProposalType
+    payout, _ = PayoutSpendRequest.objects.get_or_create(
+        id=1,
+        defaults={
+            'pot': pot,
+            'requested_by': coach,
+            'amount': Decimal('450.00'),
+            'vendor_payee': 'State Referee Association',
+            'spend_purpose': 'State Cup Group Stage Referee & Field Marshals',
+            'status': PayoutSpendStatus.PENDING_SECOND_APPROVAL,
+            'first_approval_by': coach,
+        }
+    )
+
+    proposal, _ = ChangeProposal.objects.get_or_create(
+        id=1,
+        defaults={
+            'pot': pot,
+            'proposed_by': coach,
+            'title': 'Add $25/player for State Cup Referee & Video Analysis',
+            'description': 'Covers supplemental referee fees and Veo video camera rental for the regional showcase.',
+            'proposal_type': ProposalType.BUDGET_INCREASE,
+            'threshold_percent': 60,
+            'status': ProposalStatus.OPEN,
+        }
+    )
+
+    # 9. Audit Event
     AuditEvent.log(
         action='POT_CREATED',
         actor=coach,

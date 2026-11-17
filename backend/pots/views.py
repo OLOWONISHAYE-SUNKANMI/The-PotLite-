@@ -149,3 +149,56 @@ class ObligationConfirmPaymentView(APIView):
         )
 
         return Response(PaymentRecordSerializer(record).data, status=status.HTTP_200_OK)
+
+
+class ObligationWithdrawView(APIView):
+    """
+    Phase 3: Opt-Out / Withdrawal Flow
+    Closes obligation as Withdrawn and records audit event.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request, pk):
+        obligation = get_object_or_404(Obligation, pk=pk)
+        reason = request.data.get('reason', 'Member withdrew')
+        obligation.withdraw(reason=reason)
+
+        AuditEvent.log(
+            action="obligation_withdrawn",
+            plain_text=f'Member "{obligation.member.username}" withdrew from Pot "{obligation.pot.name}". Reason: {reason}',
+            actor=obligation.member,
+            actor_role="Member",
+            object_type="Obligation",
+            object_id=obligation.id
+        )
+
+        return Response(ObligationSerializer(obligation).data, status=status.HTTP_200_OK)
+
+
+class PaymentRecordDisputeView(APIView):
+    """
+    Phase 4: Neutral Dispute Engine
+    Sets payment to Disputed and logs both statements side-by-side.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request, pk):
+        record = get_object_or_404(PaymentRecord, pk=pk)
+        disputer = request.user if request.user.is_authenticated else None
+        if not disputer:
+            from accounts.models import User
+            disputer = User.objects.filter(role='Organizer').first()
+
+        statement = request.data.get('statement', 'Amount or receipt mismatch reported by organizer')
+        record.dispute(disputer, counter_statement=statement)
+
+        AuditEvent.log(
+            action="payment_disputed",
+            plain_text=f'Discrepancy logged for payment #${record.id} (${record.amount}): "{statement}". Both statements filed neutrally.',
+            actor=disputer,
+            actor_role="Organizer",
+            object_type="PaymentRecord",
+            object_id=record.id
+        )
+
+        return Response(PaymentRecordSerializer(record).data, status=status.HTTP_200_OK)

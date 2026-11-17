@@ -14,6 +14,9 @@ export interface ThePotLiteUser {
   organizationId: number;
   organizationName: string;
   twoFactorEnabled?: boolean;
+  onboardingCompleted?: boolean;
+  athleteName?: string;
+  paymentHandles?: Record<string, string>;
 }
 
 export const DEMO_USERS: Record<string, ThePotLiteUser> = {
@@ -78,6 +81,7 @@ interface ThePotLiteContextType {
   setupTwoFactor: () => Promise<{ secret: string; otpAuthUrl: string }>;
   enableTwoFactor: (code: string) => Promise<{ backupCodes: string[] }>;
   logout: () => Promise<void>;
+  completeOnboarding: (details: Partial<ThePotLiteUser> & { athleteName?: string; paymentHandles?: Record<string, string> }) => void;
   organizationName: string;
 }
 
@@ -91,6 +95,7 @@ const EMPTY_USER: ThePotLiteUser = {
   organizationId: 1,
   organizationName: "",
   twoFactorEnabled: false,
+  onboardingCompleted: false,
 };
 
 const defaultContextValue: ThePotLiteContextType = {
@@ -108,6 +113,7 @@ const defaultContextValue: ThePotLiteContextType = {
   setupTwoFactor: async () => ({ secret: "", otpAuthUrl: "" }),
   enableTwoFactor: async () => ({ backupCodes: [] }),
   logout: async () => {},
+  completeOnboarding: () => {},
   organizationName: "",
 };
 
@@ -344,6 +350,18 @@ export const ThePotLiteProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return data;
   };
 
+  const completeOnboarding = (details: Partial<ThePotLiteUser> & { athleteName?: string; paymentHandles?: Record<string, string> }) => {
+    const updated: ThePotLiteUser = {
+      ...currentUser,
+      ...details,
+      onboardingCompleted: true,
+    };
+    setCurrentUser(updated);
+    setIsAuthenticated(true);
+    localStorage.setItem("thepotlite_authenticated_user", JSON.stringify(updated));
+    localStorage.setItem("thepotlite_onboarding_completed", "true");
+  };
+
   const logout = async () => {
     try {
       await fetch(apiUrl("/api/v1/auth/logout"), { method: "POST" });
@@ -354,6 +372,7 @@ export const ThePotLiteProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setCurrentUser(EMPTY_USER);
     setTwoFactorChallenge(null);
     localStorage.removeItem("thepotlite_authenticated_user");
+    localStorage.removeItem("thepotlite_onboarding_completed");
   };
 
   return (
@@ -373,6 +392,7 @@ export const ThePotLiteProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         setupTwoFactor,
         enableTwoFactor,
         logout,
+        completeOnboarding,
         organizationName: currentUser.organizationName,
       }}
     >

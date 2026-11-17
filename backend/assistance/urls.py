@@ -6,3 +6,4 @@ urlpatterns = [
     path('<int:pk>/approve', AssistanceApproveView.as_view(), name='assistance-approve'),
     path('<int:pk>/approve/', AssistanceApproveView.as_view(), name='assistance-approve-slash'),
 ]
+

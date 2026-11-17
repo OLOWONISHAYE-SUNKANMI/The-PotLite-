@@ -36,3 +36,4 @@ class AssistanceRequestSerializer(serializers.ModelSerializer):
 
     def get_obligation_amount(self, obj) -> str:
         return str(obj.obligation.total_amount)
+

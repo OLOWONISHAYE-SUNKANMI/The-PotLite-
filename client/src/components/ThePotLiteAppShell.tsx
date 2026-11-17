@@ -67,12 +67,6 @@ export const ThePotLiteAppShell: React.FC<{ children: React.ReactNode }> = ({ ch
       active: location === "/profile",
     },
     {
-      label: "10-Step Setup",
-      path: "/onboarding",
-      icon: Sparkles,
-      active: location === "/onboarding",
-    },
-    {
       label: "Invite Demo",
       path: "/invite/101",
       icon: Mail,

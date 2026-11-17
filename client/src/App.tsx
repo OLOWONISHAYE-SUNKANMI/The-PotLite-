@@ -31,16 +31,32 @@ function ThePotLiteHome() {
 }
 
 function AppRouter() {
-  const { isAuthenticated } = useThePotLite();
+  const { isAuthenticated, currentUser } = useThePotLite();
+
+  const hasCompletedOnboarding =
+    currentUser.onboardingCompleted ||
+    localStorage.getItem("thepotlite_onboarding_completed") === "true";
 
   // If unauthenticated: Re-route root and dashboard routes to Login & Register first
   if (!isAuthenticated) {
     return (
       <Switch>
         <Route path="/register" component={ThePotLiteRegister} />
+        <Route path="/onboarding" component={Onboarding} />
         <Route path="/auth/2fa" component={ThePotLiteTwoFactor} />
         <Route path="/login" component={ThePotLiteLogin} />
         <Route component={ThePotLiteLogin} />
+      </Switch>
+    );
+  }
+
+  // If registered but haven't completed the 10-step profile setup authentication
+  if (!hasCompletedOnboarding) {
+    return (
+      <Switch>
+        <Route path="/onboarding" component={Onboarding} />
+        <Route path="/login" component={ThePotLiteLogin} />
+        <Route component={Onboarding} />
       </Switch>
     );
   }

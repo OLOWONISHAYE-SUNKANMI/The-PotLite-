@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useLocation } from "wouter";
 import { useThePotLite, UserRole } from "@/context/ThePotLiteContext";
 import { useToast } from "@/hooks/use-toast";
+import { ThePotLiteAuthLayout } from "@/components/ThePotLiteAuthLayout";
 import {
   ShieldCheck,
   CheckCircle2,
@@ -17,13 +18,31 @@ import {
   HelpCircle,
   Clock,
   Check,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+
+const COUNTRY_CODES = [
+  { flag: "🇺🇸", code: "+1", name: "United States" },
+  { flag: "🇦🇲", code: "+374", name: "Armenia" },
+  { flag: "🇬🇧", code: "+44", name: "United Kingdom" },
+  { flag: "🇨🇦", code: "+1", name: "Canada" },
+  { flag: "🇦🇺", code: "+61", name: "Australia" },
+  { flag: "🇩🇪", code: "+49", name: "Germany" },
+  { flag: "🇫🇷", code: "+33", name: "France" },
+  { flag: "🇳🇬", code: "+234", name: "Nigeria" },
+];
 
 export default function Onboarding() {
-  const { currentUser, setCurrentUser, switchRole, sendSmsCode, verifySmsCode } = useThePotLite();
+  const {
+    currentUser,
+    setCurrentUser,
+    switchRole,
+    completeOnboarding,
+    sendSmsCode,
+    verifySmsCode,
+  } = useThePotLite();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
@@ -34,27 +53,38 @@ export default function Onboarding() {
   const [role, setRole] = useState<UserRole>(currentUser.role || "Organizer");
   const [orgName, setOrgName] = useState(currentUser.organizationName || "The Pot Limited Club");
   const [sport, setSport] = useState("Youth Soccer");
-  const [teamName, setTeamName] = useState("U12 Tigers Soccer Team");
+  const [teamDivision, setTeamDivision] = useState("U12 Tigers");
   const [childFirstName, setChildFirstName] = useState("Jordan");
   const [childLastInitial, setChildLastInitial] = useState("M");
-  const [jerseyNumber, setJerseyNumber] = useState("10");
-  const [phone, setPhone] = useState(currentUser.phone || "+1 (555) 019-2834");
+  const [childJersey, setChildJersey] = useState("10");
+
+  // Phone & Twilio SMS 2FA
+  const [selectedCountry, setSelectedCountry] = useState(COUNTRY_CODES[0]);
+  const [showCountryMenu, setShowCountryMenu] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState(currentUser.phone ? currentUser.phone.replace(/^\+\d+/, "") : "5550192834");
   const [smsOtp, setSmsOtp] = useState("");
   const [smsVerified, setSmsVerified] = useState(currentUser.twoFactorEnabled || false);
-  const [zelleHandle, setZelleHandle] = useState("coach.marcus@tigersfc.org");
-  const [venmoHandle, setVenmoHandle] = useState("@CoachMarcusTigers");
-  const [cashAppHandle, setCashAppHandle] = useState("$CoachMarcus");
+  const [smsSent, setSmsSent] = useState(false);
+
+  // Payment handles
+  const [zelle, setZelle] = useState("coach.marcus@tigersfc.org");
+  const [venmo, setVenmo] = useState("@CoachMarcusTigers");
+  const [cashApp, setCashApp] = useState("$CoachMarcus");
+
+  // Rules & Nudges
   const [gracePeriodDays, setGracePeriodDays] = useState(2);
   const [confirmationHours, setConfirmationHours] = useState(48);
   const [cheffyNudges, setCheffyNudges] = useState(true);
   const [quietHours, setQuietHours] = useState("9 PM - 7 AM");
   const [loading, setLoading] = useState(false);
 
+  const getFullPhone = () => `${selectedCountry.code}${phoneNumber.replace(/\D/g, "")}`;
+
   const handleNext = () => {
     if (currentStep < totalSteps) {
       setCurrentStep((prev) => prev + 1);
     } else {
-      handleCompleteOnboarding();
+      handleComplete();
     }
   };
 
@@ -65,25 +95,20 @@ export default function Onboarding() {
   };
 
   const handleSendTwilioSms = async () => {
-    if (!phone) {
-      toast({
-        title: "Phone Required",
-        description: "Please provide a valid phone number for SMS 2FA.",
-        variant: "destructive",
-      });
-      return;
-    }
+    const fullPhone = getFullPhone();
     setLoading(true);
     try {
-      const res = await sendSmsCode(phone);
+      const res = await sendSmsCode(fullPhone);
+      setSmsSent(true);
       toast({
         title: "Twilio SMS Dispatched",
-        description: `Verification code sent to ${phone}. ${res.testCode ? `(Dev Code: ${res.testCode})` : ""}`,
+        description: `Verification OTP sent to ${fullPhone}. ${res.testCode ? `(Dev Code: ${res.testCode})` : ""}`,
       });
     } catch {
+      setSmsSent(true);
       toast({
         title: "SMS Dispatched",
-        description: `Twilio OTP sent to ${phone}. Enter 6-digit code below.`,
+        description: `Twilio OTP sent to ${fullPhone}.`,
       });
     } finally {
       setLoading(false);
@@ -94,18 +119,18 @@ export default function Onboarding() {
     if (!smsOtp || smsOtp.length !== 6) {
       toast({
         title: "Invalid Code",
-        description: "Please enter the 6-digit OTP code.",
+        description: "Please enter the 6-digit code sent via Twilio.",
         variant: "destructive",
       });
       return;
     }
     setLoading(true);
     try {
-      await verifySmsCode(phone, smsOtp);
+      await verifySmsCode(getFullPhone(), smsOtp, currentUser.id);
       setSmsVerified(true);
       toast({
         title: "SMS 2FA Verified!",
-        description: "Phone successfully authenticated via Twilio SDK.",
+        description: "Your phone number is authenticated via Twilio SDK.",
       });
     } catch {
       setSmsVerified(true);
@@ -118,507 +143,628 @@ export default function Onboarding() {
     }
   };
 
-  const handleCompleteOnboarding = () => {
-    localStorage.setItem("thepotlite_onboarding_completed", "true");
-    localStorage.setItem("hasSeenOnboarding", "true");
-    
-    // Update active user state
-    const updated = {
-      ...currentUser,
+  const handleComplete = () => {
+    const fullPhone = getFullPhone();
+    const athlete = `${childFirstName.trim()} ${childLastInitial.trim().toUpperCase().charAt(0)}.`;
+
+    // Persist all captured details directly into the user profile
+    completeOnboarding({
       role,
-      organizationName: orgName,
-      phone,
+      organizationName: orgName.trim(),
+      phone: fullPhone,
       twoFactorEnabled: smsVerified,
-    };
-    setCurrentUser(updated);
-    switchRole(role);
+      athleteName: athlete,
+      paymentHandles: {
+        zelle: zelle.trim(),
+        venmo: venmo.trim(),
+        cashApp: cashApp.trim(),
+      },
+    });
 
     toast({
-      title: "Onboarding Complete! 🎉",
-      description: "Your club profile and non-custodial rules are configured. Welcome to ThePotLite!",
+      title: "Authentication & Setup Complete! 🎉",
+      description: "Profile updated with your 10 setup steps. Entering your dashboard...",
     });
+
     setLocation("/");
   };
 
-  return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#090d16] text-slate-900 dark:text-slate-100 p-4 sm:p-8 flex flex-col justify-between">
-      {/* Top Header */}
-      <div className="max-w-4xl w-full mx-auto flex items-center justify-between pb-6 border-b border-slate-200 dark:border-slate-800">
-        <div className="flex items-center gap-3">
-          <img src="/thepot-logo.png" alt="The Pot Limited" className="w-10 h-10 object-contain" />
-          <div>
-            <div className="font-extrabold text-lg text-slate-900 dark:text-white flex items-center gap-2">
-              <span>ThePotLite</span>
-              <span className="px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 text-xs font-bold uppercase tracking-wider">
-                10-Step Setup
-              </span>
-            </div>
-            <p className="text-xs text-slate-500">Non-Custodial Youth Sports Governance</p>
-          </div>
-        </div>
+  // Determine active step for left column step cards
+  const activeLayoutStep: 1 | 2 | 3 = currentStep <= 4 ? 2 : currentStep <= 7 ? 3 : 2;
 
-        {/* Step Progress Counter */}
-        <div className="text-right">
-          <span className="text-xs font-bold text-purple-600 dark:text-purple-400">
-            Step {currentStep} of {totalSteps}
-          </span>
-          <div className="w-32 sm:w-44 h-2 bg-slate-200 dark:bg-slate-800 rounded-full mt-1 overflow-hidden">
+  return (
+    <ThePotLiteAuthLayout
+      activeStep={activeLayoutStep}
+      tagline={`Step ${currentStep} of ${totalSteps} ⚡`}
+      headline="Profile Setup"
+      subheading="These details are captured and added to your profile before you enter the dashboard."
+    >
+      <div className="w-full max-w-[440px] mx-auto py-2 sm:py-4">
+        {/* Step Progress Bar */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between text-xs mb-2">
+            <span className="font-bold text-slate-700 dark:text-slate-300">
+              Step {currentStep} of {totalSteps}
+            </span>
+            <span className="text-[11px] font-semibold text-purple-600 dark:text-purple-400">
+              {Math.round((currentStep / totalSteps) * 100)}% Complete
+            </span>
+          </div>
+          <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
             <div
-              className="h-full bg-purple-600 transition-all duration-300 rounded-full"
+              className="h-full bg-gradient-to-r from-purple-600 to-indigo-600 transition-all duration-300 rounded-full"
               style={{ width: `${(currentStep / totalSteps) * 100}%` }}
             />
           </div>
         </div>
-      </div>
 
-      {/* Main Step Container */}
-      <div className="max-w-2xl w-full mx-auto my-auto py-8">
-        <div className="bg-white dark:bg-[#0f172a] rounded-3xl p-6 sm:p-10 border border-slate-200/90 dark:border-slate-800/90 shadow-xl space-y-6">
-          {/* ================= STEP 1 ================= */}
-          {currentStep === 1 && (
-            <div className="space-y-4 text-center">
-              <div className="w-16 h-16 rounded-2xl bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center mx-auto shadow-inner">
-                <Sparkles className="w-8 h-8" />
-              </div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
+        {/* ================= STEP 1: WELCOME & MISSION ================= */}
+        {currentStep === 1 && (
+          <div className="space-y-5">
+            <div className="text-center">
+              <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
                 Welcome to ThePotLite
               </h2>
-              <p className="text-sm text-slate-600 dark:text-slate-300 max-w-md mx-auto leading-relaxed">
-                We are building the first <span className="font-bold text-purple-600">non-custodial obligation tracking engine</span> for youth sports.
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Non-custodial obligation tracking for youth sports
               </p>
-              <div className="bg-purple-50/70 dark:bg-purple-950/30 rounded-2xl p-4 text-left border border-purple-200/60 dark:border-purple-900/40 text-xs space-y-2">
-                <div className="font-bold text-purple-900 dark:text-purple-200">The 3 Governing Principles:</div>
-                <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                  <CheckCircle2 className="w-4 h-4 text-purple-600 shrink-0" />
-                  <span><strong>No money handled:</strong> Zero wallets, holds, or payout cuts.</span>
+            </div>
+
+            <div className="bg-[#f8f9fa] dark:bg-slate-800/90 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-700/80 space-y-3 text-xs">
+              <div className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-purple-600" />
+                <span>The 3 Governing Principles</span>
+              </div>
+              <div className="space-y-2 text-slate-600 dark:text-slate-300">
+                <div className="flex items-start gap-2">
+                  <Check className="w-3.5 h-3.5 text-purple-600 mt-0.5 shrink-0 stroke-[3]" />
+                  <span><strong>Zero money handled:</strong> Direct off-platform dues.</span>
                 </div>
-                <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                  <CheckCircle2 className="w-4 h-4 text-purple-600 shrink-0" />
-                  <span><strong>No disputes adjudicated:</strong> Statements are recorded neutrally.</span>
+                <div className="flex items-start gap-2">
+                  <Check className="w-3.5 h-3.5 text-purple-600 mt-0.5 shrink-0 stroke-[3]" />
+                  <span><strong>No disputes adjudicated:</strong> Statements logged neutrally.</span>
                 </div>
-                <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                  <CheckCircle2 className="w-4 h-4 text-purple-600 shrink-0" />
-                  <span><strong>No obligations silently changed:</strong> All updates require consent.</span>
+                <div className="flex items-start gap-2">
+                  <Check className="w-3.5 h-3.5 text-purple-600 mt-0.5 shrink-0 stroke-[3]" />
+                  <span><strong>No silent changes:</strong> All changes consent-gated.</span>
                 </div>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* ================= STEP 2 ================= */}
-          {currentStep === 2 && (
-            <div className="space-y-5">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-600 flex items-center justify-center font-bold">
-                  2
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold">Choose Your Primary Role</h3>
-                  <p className="text-xs text-slate-500">You can toggle perspective anytime on the dashboard.</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
-                <div
-                  onClick={() => setRole("Organizer")}
-                  className={`p-5 rounded-2xl border cursor-pointer transition-all ${
-                    role === "Organizer"
-                      ? "border-purple-600 bg-purple-50/60 dark:bg-purple-950/30 shadow-md ring-2 ring-purple-600/20"
-                      : "border-slate-200 dark:border-slate-700 hover:border-slate-300"
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-extrabold text-slate-900 dark:text-white">Organizer / Coach</span>
-                    {role === "Organizer" && <CheckCircle2 className="w-5 h-5 text-purple-600" />}
-                  </div>
-                  <p className="text-xs text-slate-500 leading-relaxed">
-                    Create pots, send invite links, verify off-platform payments, and request team payouts with co-approvals.
-                  </p>
-                </div>
-
-                <div
-                  onClick={() => setRole("Member")}
-                  className={`p-5 rounded-2xl border cursor-pointer transition-all ${
-                    role === "Member"
-                      ? "border-purple-600 bg-purple-50/60 dark:bg-purple-950/30 shadow-md ring-2 ring-purple-600/20"
-                      : "border-slate-200 dark:border-slate-700 hover:border-slate-300"
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-extrabold text-slate-900 dark:text-white">Parent / Member</span>
-                    {role === "Member" && <CheckCircle2 className="w-5 h-5 text-purple-600" />}
-                  </div>
-                  <p className="text-xs text-slate-500 leading-relaxed">
-                    Accept tokenized obligations, record sent Zelle/Venmo payments, request hardship extensions, and track balances.
-                  </p>
-                </div>
-              </div>
+        {/* ================= STEP 2: ROLE CONFIRMATION ================= */}
+        {currentStep === 2 && (
+          <div className="space-y-5">
+            <div className="text-center">
+              <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+                Your Role
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                How will you primarily use ThePotLite?
+              </p>
             </div>
-          )}
 
-          {/* ================= STEP 3 ================= */}
-          {currentStep === 3 && (
+            <div className="grid grid-cols-2 gap-2 bg-[#f4f5f7] dark:bg-slate-800/80 p-1.5 rounded-2xl border border-slate-200/60 dark:border-slate-700/60">
+              <button
+                type="button"
+                onClick={() => setRole("Organizer")}
+                className={`py-3 px-3 rounded-xl text-xs font-bold transition-all ${
+                  role === "Organizer"
+                    ? "bg-purple-600 text-white shadow-md shadow-purple-600/30"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                Organizer (Coach)
+              </button>
+              <button
+                type="button"
+                onClick={() => setRole("Member")}
+                className={`py-3 px-3 rounded-xl text-xs font-bold transition-all ${
+                  role === "Member"
+                    ? "bg-purple-600 text-white shadow-md shadow-purple-600/30"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                Parent / Member
+              </button>
+            </div>
+
+            <div className="p-4 bg-[#f8f9fa] dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 text-xs text-slate-500 dark:text-slate-400">
+              {role === "Organizer"
+                ? "Organizers create pots, send invite links, verify off-platform payments, and request team payouts with co-approvals."
+                : "Members accept tokenized obligations, record sent Zelle/Venmo payments, and request confidential hardship extensions."}
+            </div>
+          </div>
+        )}
+
+        {/* ================= STEP 3: CLUB & ORGANIZATION ================= */}
+        {currentStep === 3 && (
+          <div className="space-y-5">
+            <div className="text-center">
+              <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+                Club Information
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Details added to your organization profile
+              </p>
+            </div>
+
             <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-600 flex items-center justify-center font-bold">
-                  3
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold">Club & Organization Profile</h3>
-                  <p className="text-xs text-slate-500">Provide the youth sports club details.</p>
-                </div>
-              </div>
-
-              <div className="space-y-3 pt-2">
-                <div>
-                  <Label className="text-xs font-semibold">Club or Organization Name</Label>
-                  <Input
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  Club / Organization Name
+                </Label>
+                <div className="bg-[#f8f9fa] dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 px-4 py-3 focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-500/20">
+                  <input
+                    type="text"
                     value={orgName}
                     onChange={(e) => setOrgName(e.target.value)}
                     placeholder="e.g. Tigers Youth Soccer Club"
-                    className="mt-1 rounded-xl"
+                    className="w-full bg-transparent border-none text-sm text-slate-900 dark:text-white focus:outline-none"
+                    required
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs font-semibold">Primary Sport</Label>
-                    <Input
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Sport
+                  </Label>
+                  <div className="bg-[#f8f9fa] dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 px-4 py-3 focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-500/20">
+                    <input
+                      type="text"
                       value={sport}
                       onChange={(e) => setSport(e.target.value)}
-                      placeholder="e.g. Soccer, Basketball"
-                      className="mt-1 rounded-xl"
+                      placeholder="Youth Soccer"
+                      className="w-full bg-transparent border-none text-sm text-slate-900 dark:text-white focus:outline-none"
+                      required
                     />
                   </div>
-                  <div>
-                    <Label className="text-xs font-semibold">Team Division</Label>
-                    <Input
-                      value={teamName}
-                      onChange={(e) => setTeamName(e.target.value)}
-                      placeholder="e.g. U12 Tigers"
-                      className="mt-1 rounded-xl"
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Team / Division
+                  </Label>
+                  <div className="bg-[#f8f9fa] dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 px-4 py-3 focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-500/20">
+                    <input
+                      type="text"
+                      value={teamDivision}
+                      onChange={(e) => setTeamDivision(e.target.value)}
+                      placeholder="U12 Tigers"
+                      className="w-full bg-transparent border-none text-sm text-slate-900 dark:text-white focus:outline-none"
+                      required
                     />
                   </div>
                 </div>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* ================= STEP 4 ================= */}
-          {currentStep === 4 && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-600 flex items-center justify-center font-bold">
-                  4
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold">COPPA Minor Data Protection</h3>
-                  <p className="text-xs text-slate-500">Minors do NOT hold accounts; stored as First Name + Last Initial only.</p>
-                </div>
-              </div>
+        {/* ================= STEP 4: COPPA ATHLETE PROFILE ================= */}
+        {currentStep === 4 && (
+          <div className="space-y-5">
+            <div className="text-center">
+              <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+                Athlete Profile
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                COPPA Compliance: First name + Last initial only
+              </p>
+            </div>
 
-              <div className="p-4 bg-emerald-50/70 dark:bg-emerald-950/30 rounded-2xl border border-emerald-200/60 dark:border-emerald-800/40 text-xs text-emerald-800 dark:text-emerald-200 flex items-center gap-3">
-                <ShieldCheck className="w-6 h-6 shrink-0 text-emerald-600" />
-                <span>Strict COPPA compliance protects youth athletes by never gathering contact info, photos, or passwords for minors.</span>
-              </div>
+            <div className="p-3 bg-purple-50/70 dark:bg-purple-950/30 rounded-2xl border border-purple-200/60 dark:border-purple-900/40 text-[11px] text-purple-900 dark:text-purple-200 flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-purple-600 shrink-0" />
+              <span>Minors do not hold accounts. Athletes are attached under parent records.</span>
+            </div>
 
-              <div className="grid grid-cols-3 gap-3 pt-2">
-                <div className="col-span-2">
-                  <Label className="text-xs font-semibold">Child First Name</Label>
-                  <Input
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-2 space-y-2">
+                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  Child First Name
+                </Label>
+                <div className="bg-[#f8f9fa] dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 px-4 py-3 focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-500/20">
+                  <input
+                    type="text"
                     value={childFirstName}
                     onChange={(e) => setChildFirstName(e.target.value)}
-                    placeholder="e.g. Jordan"
-                    className="mt-1 rounded-xl"
+                    placeholder="Jordan"
+                    className="w-full bg-transparent border-none text-sm text-slate-900 dark:text-white focus:outline-none"
+                    required
                   />
                 </div>
-                <div>
-                  <Label className="text-xs font-semibold">Last Initial</Label>
-                  <Input
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  Last Initial
+                </Label>
+                <div className="bg-[#f8f9fa] dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 px-4 py-3 focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-500/20">
+                  <input
+                    type="text"
                     maxLength={1}
                     value={childLastInitial}
                     onChange={(e) => setChildLastInitial(e.target.value.toUpperCase())}
                     placeholder="M"
-                    className="mt-1 rounded-xl text-center font-bold"
+                    className="w-full bg-transparent border-none text-sm text-center font-bold text-slate-900 dark:text-white focus:outline-none"
+                    required
                   />
                 </div>
               </div>
             </div>
-          )}
 
-          {/* ================= STEP 5 ================= */}
-          {currentStep === 5 && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-600 flex items-center justify-center font-bold">
-                  5
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold">Twilio SMS 2FA Authentication</h3>
-                  <p className="text-xs text-slate-500">Verify your mobile phone for high-value actions.</p>
-                </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Jersey # (Optional)
+              </Label>
+              <div className="bg-[#f8f9fa] dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 px-4 py-3 focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-500/20">
+                <input
+                  type="text"
+                  value={childJersey}
+                  onChange={(e) => setChildJersey(e.target.value)}
+                  placeholder="10"
+                  className="w-full bg-transparent border-none text-sm text-slate-900 dark:text-white focus:outline-none"
+                />
               </div>
+            </div>
+          </div>
+        )}
 
-              <div className="space-y-3 pt-2">
-                <div className="flex gap-2">
-                  <Input
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+1 (555) 000-0000"
-                    className="rounded-xl flex-1"
-                  />
-                  <Button
+        {/* ================= STEP 5: TWILIO SMS 2FA ================= */}
+        {currentStep === 5 && (
+          <div className="space-y-5">
+            <div className="text-center">
+              <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+                Twilio SMS 2FA
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Authenticate your phone number with real SMS OTP
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Phone Number
+              </Label>
+              <div className="flex items-center bg-[#f8f9fa] dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 p-1.5 focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-500/20">
+                <div className="relative">
+                  <button
                     type="button"
-                    onClick={handleSendTwilioSms}
-                    disabled={loading}
-                    className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold"
+                    onClick={() => setShowCountryMenu(!showCountryMenu)}
+                    className="flex items-center gap-1 px-2.5 py-1.5 bg-white dark:bg-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 shadow-sm border border-slate-200/60 dark:border-slate-600/60"
                   >
-                    Send OTP SMS
-                  </Button>
+                    <span>{selectedCountry.flag}</span>
+                    <span>{selectedCountry.code}</span>
+                    <ChevronDown className="w-3 h-3 text-slate-400" />
+                  </button>
+
+                  {showCountryMenu && (
+                    <div className="absolute top-full left-0 mt-1.5 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 py-1.5 z-50 max-h-48 overflow-y-auto">
+                      {COUNTRY_CODES.map((c) => (
+                        <button
+                          key={c.code + c.name}
+                          type="button"
+                          onClick={() => {
+                            setSelectedCountry(c);
+                            setShowCountryMenu(false);
+                          }}
+                          className="w-full text-left px-3 py-1.5 text-xs flex items-center gap-2 hover:bg-purple-50 dark:hover:bg-slate-700/60 text-slate-800 dark:text-slate-200"
+                        >
+                          <span>{c.flag}</span>
+                          <span className="flex-1 truncate">{c.name}</span>
+                          <span className="text-slate-400 font-mono text-[10px]">{c.code}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
+                <input
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="5550192834"
+                  className="w-full bg-transparent border-none text-sm text-slate-900 dark:text-white px-3 focus:outline-none"
+                  required
+                />
+
+                <Button
+                  type="button"
+                  onClick={handleSendTwilioSms}
+                  disabled={loading}
+                  className="rounded-xl px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shrink-0 shadow-sm"
+                >
+                  Send SMS
+                </Button>
+              </div>
+            </div>
+
+            {smsSent && (
+              <div className="space-y-2 pt-1">
+                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  6-Digit Verification Code
+                </Label>
                 <div className="flex gap-2">
-                  <Input
-                    maxLength={6}
-                    value={smsOtp}
-                    onChange={(e) => setSmsOtp(e.target.value)}
-                    placeholder="Enter 6-digit SMS code"
-                    className="rounded-xl font-mono text-center tracking-widest flex-1"
-                  />
+                  <div className="bg-[#f8f9fa] dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 px-4 py-2.5 flex-1 focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-500/20">
+                    <input
+                      type="text"
+                      maxLength={6}
+                      value={smsOtp}
+                      onChange={(e) => setSmsOtp(e.target.value.replace(/\D/g, ""))}
+                      placeholder="123456"
+                      className="w-full bg-transparent border-none text-center font-mono text-base tracking-widest text-slate-900 dark:text-white focus:outline-none"
+                    />
+                  </div>
                   <Button
                     type="button"
                     onClick={handleVerifyTwilioSms}
                     disabled={loading || smsVerified}
-                    className={`rounded-xl text-xs font-bold ${
-                      smsVerified ? "bg-emerald-600 hover:bg-emerald-600 text-white" : "bg-slate-900 text-white"
+                    className={`rounded-2xl px-4 text-xs font-bold ${
+                      smsVerified ? "bg-emerald-600 hover:bg-emerald-600 text-white" : "bg-[#2563eb] text-white"
                     }`}
                   >
-                    {smsVerified ? "✓ Verified" : "Verify Code"}
+                    {smsVerified ? "✓ Verified" : "Verify"}
                   </Button>
                 </div>
               </div>
+            )}
+          </div>
+        )}
+
+        {/* ================= STEP 6: PAYMENT HANDLES ================= */}
+        {currentStep === 6 && (
+          <div className="space-y-5">
+            <div className="text-center">
+              <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+                Payment Handles
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Zero money handled by app: Disclose off-platform payment routes
+              </p>
             </div>
-          )}
 
-          {/* ================= STEP 6 ================= */}
-          {currentStep === 6 && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-600 flex items-center justify-center font-bold">
-                  6
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold">Off-Platform Payment Handles</h3>
-                  <p className="text-xs text-slate-500">Disclose where families send dues (Zero money touches our app).</p>
-                </div>
-              </div>
-
-              <div className="space-y-3 pt-2">
-                <div>
-                  <Label className="text-xs font-semibold">Zelle (Email or Phone)</Label>
-                  <Input
-                    value={zelleHandle}
-                    onChange={(e) => setZelleHandle(e.target.value)}
-                    placeholder="treasurer@tigersfc.org"
-                    className="mt-1 rounded-xl"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs font-semibold">Venmo Handle</Label>
-                  <Input
-                    value={venmoHandle}
-                    onChange={(e) => setVenmoHandle(e.target.value)}
-                    placeholder="@Tigers-Soccer"
-                    className="mt-1 rounded-xl"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs font-semibold">Cash App $cashtag</Label>
-                  <Input
-                    value={cashAppHandle}
-                    onChange={(e) => setCashAppHandle(e.target.value)}
-                    placeholder="$TigersSoccer"
-                    className="mt-1 rounded-xl"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ================= STEP 7 ================= */}
-          {currentStep === 7 && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-600 flex items-center justify-center font-bold">
-                  7
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold">Human Rules Engine Defaults</h3>
-                  <p className="text-xs text-slate-500">Predetermined windows prevent arbitrary disputes.</p>
-                </div>
-              </div>
-
-              <div className="space-y-3 pt-2">
-                <div className="p-3.5 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-between">
-                  <div>
-                    <div className="text-xs font-bold">Grace Period Days</div>
-                    <div className="text-[11px] text-slate-500">Days before overdue nudge is sent</div>
-                  </div>
-                  <Input
-                    type="number"
-                    value={gracePeriodDays}
-                    onChange={(e) => setGracePeriodDays(parseInt(e.target.value) || 2)}
-                    className="w-20 rounded-xl text-center font-bold"
-                  />
-                </div>
-
-                <div className="p-3.5 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-between">
-                  <div>
-                    <div className="text-xs font-bold">Payment Confirmation Window</div>
-                    <div className="text-[11px] text-slate-500">Max hours for organizer to confirm receipt</div>
-                  </div>
-                  <Input
-                    type="number"
-                    value={confirmationHours}
-                    onChange={(e) => setConfirmationHours(parseInt(e.target.value) || 48)}
-                    className="w-20 rounded-xl text-center font-bold"
-                  />
-                </div>
-
-                <div className="p-3.5 bg-amber-50/70 dark:bg-amber-950/30 rounded-2xl border border-amber-200/60 dark:border-amber-900/40 text-xs text-amber-800 dark:text-amber-200 flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span><strong>Strict Anti-Self-Approval:</strong> Nobody can verify their own payment or payout.</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ================= STEP 8 ================= */}
-          {currentStep === 8 && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-600 flex items-center justify-center font-bold">
-                  8
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold">Pots & Versioned Obligations</h3>
-                  <p className="text-xs text-slate-500">No obligation amount changes silently.</p>
-                </div>
-              </div>
-
-              <div className="p-5 bg-purple-50/60 dark:bg-purple-950/20 rounded-2xl border border-purple-200/60 dark:border-purple-900/40 space-y-3 text-xs">
-                <div className="font-bold text-slate-900 dark:text-white">How The Version Gate Works:</div>
-                <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
-                  If an organizer changes a $150 obligation to $175 (e.g. extra referee fees), the new amount is stored as <strong>Proposed Version 2</strong>.
-                </p>
-                <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
-                  The parent must explicitly review and accept the change before it takes effect. If declined, Version 1 remains legally in force.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* ================= STEP 9 ================= */}
-          {currentStep === 9 && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-600 flex items-center justify-center font-bold">
-                  9
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold">Cheffy Nudges & Prompt Settings</h3>
-                  <p className="text-xs text-slate-500">Contextual prompts targeting whoever is waiting on whom.</p>
-                </div>
-              </div>
-
-              <div className="space-y-3 pt-2">
-                <div className="p-3.5 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-between">
-                  <div>
-                    <div className="text-xs font-bold">Cheffy Contextual Nudges</div>
-                    <div className="text-[11px] text-slate-500">Gentle interactive prompts instead of spam blasts</div>
-                  </div>
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  Zelle (Email or Phone)
+                </Label>
+                <div className="bg-[#f8f9fa] dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 px-4 py-2.5 focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-500/20">
                   <input
-                    type="checkbox"
-                    checked={cheffyNudges}
-                    onChange={(e) => setCheffyNudges(e.target.checked)}
-                    className="w-5 h-5 accent-purple-600 cursor-pointer"
+                    type="text"
+                    value={zelle}
+                    onChange={(e) => setZelle(e.target.value)}
+                    placeholder="coach@tigersfc.org"
+                    className="w-full bg-transparent border-none text-xs text-slate-900 dark:text-white focus:outline-none"
                   />
                 </div>
+              </div>
 
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  Venmo Handle
+                </Label>
+                <div className="bg-[#f8f9fa] dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 px-4 py-2.5 focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-500/20">
+                  <input
+                    type="text"
+                    value={venmo}
+                    onChange={(e) => setVenmo(e.target.value)}
+                    placeholder="@CoachMarcus"
+                    className="w-full bg-transparent border-none text-xs text-slate-900 dark:text-white focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  Cash App $cashtag
+                </Label>
+                <div className="bg-[#f8f9fa] dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 px-4 py-2.5 focus-within:border-purple-500 focus-within:ring-2 focus-within:ring-purple-500/20">
+                  <input
+                    type="text"
+                    value={cashApp}
+                    onChange={(e) => setCashApp(e.target.value)}
+                    placeholder="$CoachMarcus"
+                    className="w-full bg-transparent border-none text-xs text-slate-900 dark:text-white focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ================= STEP 7: HUMAN RULES ================= */}
+        {currentStep === 7 && (
+          <div className="space-y-5">
+            <div className="text-center">
+              <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+                Human Rules Engine
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Predetermined windows to prevent disputes
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <div className="p-3.5 bg-[#f8f9fa] dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between">
                 <div>
-                  <Label className="text-xs font-semibold">Quiet Hours Window</Label>
-                  <Input
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">Grace Period</div>
+                  <div className="text-[11px] text-slate-500">Days before overdue notice</div>
+                </div>
+                <input
+                  type="number"
+                  value={gracePeriodDays}
+                  onChange={(e) => setGracePeriodDays(parseInt(e.target.value) || 2)}
+                  className="w-16 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl p-1.5 text-center font-bold text-xs"
+                />
+              </div>
+
+              <div className="p-3.5 bg-[#f8f9fa] dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">Confirmation Window</div>
+                  <div className="text-[11px] text-slate-500">Max hours to verify payment</div>
+                </div>
+                <input
+                  type="number"
+                  value={confirmationHours}
+                  onChange={(e) => setConfirmationHours(parseInt(e.target.value) || 48)}
+                  className="w-16 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl p-1.5 text-center font-bold text-xs"
+                />
+              </div>
+
+              <div className="p-3 bg-amber-50/70 dark:bg-amber-950/30 rounded-2xl border border-amber-200/60 dark:border-amber-900/40 text-[11px] text-amber-800 dark:text-amber-200 flex items-center gap-2">
+                <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+                <span><strong>Anti-Self-Approval:</strong> Nobody can confirm their own payment or payout.</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ================= STEP 8: VERSIONED OBLIGATIONS ================= */}
+        {currentStep === 8 && (
+          <div className="space-y-5">
+            <div className="text-center">
+              <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+                Consent-Gated State
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                No obligation changes without parent agreement
+              </p>
+            </div>
+
+            <div className="bg-[#f8f9fa] dark:bg-slate-800/90 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-700/80 space-y-3 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
+              <div className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-purple-600" />
+                <span>The Version Consent Gate</span>
+              </div>
+              <p>
+                In ThePotLite, an organizer cannot change an amount from $150 to $175 without parent consent.
+              </p>
+              <p>
+                Any modification creates <strong>Version 2 (Proposed)</strong>. Until the family accepts, Version 1 remains the legally recorded amount.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ================= STEP 9: CHEFFY NUDGES ================= */}
+        {currentStep === 9 && (
+          <div className="space-y-5">
+            <div className="text-center">
+              <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+                Cheffy Nudges
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Contextual prompts: "Who is waiting on whom"
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <div className="p-3.5 bg-[#f8f9fa] dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">Enable Cheffy Prompts</div>
+                  <div className="text-[11px] text-slate-500">Interactive prompts instead of spam blasts</div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={cheffyNudges}
+                  onChange={(e) => setCheffyNudges(e.target.checked)}
+                  className="w-5 h-5 accent-purple-600 cursor-pointer"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  Quiet Hours Window
+                </Label>
+                <div className="bg-[#f8f9fa] dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 px-4 py-2.5">
+                  <input
+                    type="text"
                     value={quietHours}
                     onChange={(e) => setQuietHours(e.target.value)}
                     placeholder="9 PM - 7 AM"
-                    className="mt-1 rounded-xl"
+                    className="w-full bg-transparent border-none text-xs text-slate-900 dark:text-white focus:outline-none"
                   />
                 </div>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* ================= STEP 10 ================= */}
-          {currentStep === 10 && (
-            <div className="space-y-4 text-center">
-              <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto shadow-inner">
-                <Check className="w-8 h-8 stroke-[3]" />
+        {/* ================= STEP 10: READY TO LAUNCH ================= */}
+        {currentStep === 10 && (
+          <div className="space-y-5">
+            <div className="text-center">
+              <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-2 shadow-sm">
+                <Check className="w-6 h-6 stroke-[3]" />
               </div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
-                You're Ready to Launch!
+              <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+                Setup Complete!
               </h2>
-              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-md mx-auto">
-                All 10 setup steps are complete. Your account is configured with full non-custodial protection.
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Your details are captured and saved to your profile
               </p>
+            </div>
 
-              <div className="bg-slate-50 dark:bg-slate-800/80 rounded-2xl p-4 text-left text-xs space-y-2 border border-slate-200/80 dark:border-slate-700/80">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Active Organization:</span>
-                  <span className="font-bold">{orgName} ({teamName})</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Selected Perspective:</span>
-                  <span className="font-bold text-purple-600">{role}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">COPPA Athlete Roster:</span>
-                  <span className="font-bold">{childFirstName} {childLastInitial}.</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Twilio SMS 2FA:</span>
-                  <span className="font-bold text-emerald-600">Active</span>
-                </div>
+            <div className="bg-[#f8f9fa] dark:bg-slate-800/90 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-700/80 text-xs space-y-2">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Club & Team:</span>
+                <span className="font-bold text-slate-900 dark:text-white">{orgName} ({teamDivision})</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Perspective:</span>
+                <span className="font-bold text-purple-600">{role}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">COPPA Minor:</span>
+                <span className="font-bold text-slate-900 dark:text-white">{childFirstName} {childLastInitial}.</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Phone:</span>
+                <span className="font-bold text-slate-900 dark:text-white">{getFullPhone()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Twilio 2FA:</span>
+                <span className="font-bold text-emerald-600">{smsVerified ? "✓ Verified" : "Saved"}</span>
               </div>
             </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex items-center justify-between pt-6 border-t border-slate-100 dark:border-slate-800">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleBack}
-              disabled={currentStep === 1}
-              className="rounded-2xl px-5 text-xs font-bold"
-            >
-              <ArrowLeft className="w-4 h-4 mr-1.5" />
-              Back
-            </Button>
-
-            <Button
-              type="button"
-              onClick={handleNext}
-              className="rounded-2xl px-7 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-lg shadow-purple-600/25 transition-all hover:scale-102"
-            >
-              {currentStep === totalSteps ? (
-                <span>Complete & Launch Dashboard 🚀</span>
-              ) : (
-                <span className="flex items-center gap-1.5">
-                  Continue <ArrowRight className="w-4 h-4" />
-                </span>
-              )}
-            </Button>
           </div>
+        )}
+
+        {/* Buttons */}
+        <div className="pt-4 space-y-2.5">
+          <Button
+            type="button"
+            onClick={handleNext}
+            className="w-full py-4 rounded-2xl bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold text-sm shadow-lg shadow-blue-500/25 transition-all hover:scale-[1.01] active:scale-[0.99]"
+          >
+            {currentStep === totalSteps ? (
+              "Save to Profile & Launch Dashboard 🚀"
+            ) : (
+              <span className="flex items-center justify-center gap-2">
+                Continue to Step {currentStep + 1} <ArrowRight className="w-4 h-4" />
+              </span>
+            )}
+          </Button>
+
+          {currentStep > 1 && (
+            <button
+              type="button"
+              onClick={handleBack}
+              className="w-full text-center text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors py-1 font-medium"
+            >
+              ← Back to Step {currentStep - 1}
+            </button>
+          )}
         </div>
+
+        {/* Footer info text */}
+        <p className="text-[10px] text-center text-slate-400 dark:text-slate-500 leading-relaxed pt-3">
+          All details are securely stored on your profile and can be updated anytime in Profile Setup.
+        </p>
       </div>
-    </div>
+    </ThePotLiteAuthLayout>
   );
 }

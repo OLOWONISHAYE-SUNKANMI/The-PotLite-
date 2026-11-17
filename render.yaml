@@ -2,7 +2,7 @@ services:
   - type: web
     name: thepotlite-backend
     runtime: python
-    buildCommand: "./backend/build.sh"
+    buildCommand: "./build.sh"
     startCommand: "cd backend && gunicorn thepot.wsgi:application --bind 0.0.0.0:$PORT"
     envVars:
       - key: PYTHON_VERSION

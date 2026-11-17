@@ -43,13 +43,36 @@ class LoginView(APIView):
         query = serializer.validated_data['usernameOrEmail'].strip().lower()
         password = serializer.validated_data['password']
 
-        # Find user by username, email, or phone
-        user = User.objects.filter(
-            Q(username__iexact=query) | Q(email__iexact=query) | Q(phone__icontains=query)
-        ).first()
+        # Flexible query matching: username, email, normalized username, phone, or full name
+        normalized_user_query = query.replace(' ', '_').replace('-', '_')
+        clean_alphanumeric = ''.join(c for c in query if c.isalnum())
 
-        if not user or not user.check_password(password):
-            return Response({"error": "Invalid username/email or password"}, status=status.HTTP_400_BAD_REQUEST)
+        q_filter = (
+            Q(username__iexact=query) |
+            Q(username__iexact=normalized_user_query) |
+            Q(email__iexact=query)
+        )
+        if clean_alphanumeric and len(clean_alphanumeric) >= 4:
+            q_filter |= Q(phone__icontains=clean_alphanumeric)
+
+        name_parts = query.split()
+        if len(name_parts) >= 2:
+            q_filter |= (Q(first_name__iexact=name_parts[0]) & Q(last_name__iexact=name_parts[-1]))
+            q_filter |= (Q(first_name__icontains=name_parts[0]) & Q(last_name__icontains=name_parts[-1]))
+        elif len(name_parts) == 1:
+            q_filter |= Q(first_name__iexact=name_parts[0]) | Q(last_name__iexact=name_parts[0])
+
+        user = User.objects.filter(q_filter).first()
+
+        if not user:
+            return Response({
+                "error": "No account found matching this username or email. Please check your spelling or register a new account."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if not user.check_password(password):
+            return Response({
+                "error": "Incorrect password. Please verify your password and try again."
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         if user.two_factor_enabled:
             return Response({

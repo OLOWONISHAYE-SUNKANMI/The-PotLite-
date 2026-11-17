@@ -8,6 +8,7 @@ import {
   EyeOff,
   Lock,
   User,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -27,15 +28,19 @@ export const ThePotLiteLogin: React.FC = () => {
   const [smsCode, setSmsCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [targetPhone, setTargetPhone] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(null);
     const identifier = usernameOrEmail.trim();
 
     if (!identifier || !password) {
+      const msg = "Please enter your username or email and password.";
+      setErrorMessage(msg);
       toast({
         title: "Missing Information",
-        description: "Please enter your username or email and password.",
+        description: msg,
         variant: "destructive",
       });
       return;
@@ -63,9 +68,11 @@ export const ThePotLiteLogin: React.FC = () => {
         setLocation("/");
       }
     } catch (err: any) {
+      const msg = err.message || "Invalid username/email or password.";
+      setErrorMessage(msg);
       toast({
         title: "Login Failed",
-        description: err.message || "Invalid username/email or password.",
+        description: msg,
         variant: "destructive",
       });
     } finally {
@@ -210,6 +217,21 @@ export const ThePotLiteLogin: React.FC = () => {
                 </button>
               </div>
             </div>
+
+            {/* Inline Error Message */}
+            {errorMessage && (
+              <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300 text-xs font-semibold flex items-start gap-2.5">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600 dark:text-rose-400" />
+                <div className="flex-1">
+                  <p>{errorMessage}</p>
+                  {errorMessage.toLowerCase().includes("register") && (
+                    <Link href="/register" className="inline-block mt-1.5 underline font-bold text-rose-800 dark:text-rose-200">
+                      Create an account here &rarr;
+                    </Link>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Continue Button */}
             <div className="pt-2">

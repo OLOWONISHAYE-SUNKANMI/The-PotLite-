@@ -33,16 +33,35 @@ class PotListCreateView(APIView):
         if not team:
             team = Team.objects.create(organization=org, name="U12 Tigers", coach=creator)
 
+        target_amount = data.get('total_target_amount') or data.get('goalAmount') or data.get('goalAmountCents') or 0.00
+        if isinstance(target_amount, str):
+            try:
+                target_amount = float(target_amount.replace('$', '').replace(',', ''))
+            except ValueError:
+                target_amount = 0.00
+
+        per_member = data.get('per_member_amount') or data.get('perMemberAmount') or 0.00
+        if isinstance(per_member, str):
+            try:
+                per_member = float(per_member.replace('$', '').replace(',', ''))
+            except ValueError:
+                per_member = 0.00
+
+        pot_type = data.get('pot_type') or data.get('potType') or 'season fee'
+        due_date = data.get('due_date') or data.get('deadline') or None
+        if isinstance(due_date, str) and 'T' in due_date:
+            due_date = due_date.split('T')[0]
+
         pot = Pot.objects.create(
             organization=org,
             team=team,
             creator=creator,
             name=data.get('name', 'Season Dues'),
             description=data.get('description', ''),
-            pot_type=data.get('pot_type', 'season fee'),
-            total_target_amount=data.get('total_target_amount', 0.00),
-            per_member_amount=data.get('per_member_amount', 0.00),
-            due_date=data.get('due_date') or None
+            pot_type=pot_type,
+            total_target_amount=target_amount,
+            per_member_amount=per_member,
+            due_date=due_date
         )
 
         AuditEvent.log(
@@ -151,6 +170,100 @@ class ObligationConfirmPaymentView(APIView):
         return Response(PaymentRecordSerializer(record).data, status=status.HTTP_200_OK)
 
 
+class PaymentRecordListView(APIView):
+    """
+    List payment records with optional filtering by status
+    """
+    permission_classes = [AllowAny]
+    serializer_class = PaymentRecordSerializer
+
+    def get(self, request):
+        status_filter = request.query_params.get('state') or request.query_params.get('status')
+        qs = PaymentRecord.objects.all().order_by('-member_statement_filed_at')
+        if status_filter:
+            qs = qs.filter(state__iexact=status_filter)
+        serializer = PaymentRecordSerializer(qs, many=True)
+        return Response(serializer.data)
+
+
+class DashboardOrganizerView(APIView):
+    """
+    Live aggregated organizer dashboard API
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        pots = Pot.objects.all().order_by('-created_at')
+        total_goal = sum([float(p.total_target_amount) for p in pots])
+        total_confirmed = 0.0
+        for p in pots:
+            for ob in p.obligations.all():
+                total_confirmed += float(ob.total_amount - ob.balance_remaining)
+
+        pending_payments = PaymentRecord.objects.filter(state=PaymentRecordState.PENDING_CONFIRMATION).order_by('-member_statement_filed_at')
+        from governance.models import PayoutSpendRequest, PayoutSpendStatus
+        pending_payouts = PayoutSpendRequest.objects.filter(status=PayoutSpendStatus.PENDING_SECOND_APPROVAL).order_by('-created_at')
+        from assistance.models import AssistanceRequest, AssistanceStatus
+        pending_assistance = AssistanceRequest.objects.filter(status=AssistanceStatus.PENDING).order_by('-created_at')
+        disputes = PaymentRecord.objects.filter(state=PaymentRecordState.DISPUTED)
+
+        from governance.views import PayoutSpendRequestSerializer
+        from assistance.serializers import AssistanceRequestSerializer
+
+        return Response({
+            "pots": PotSerializer(pots, many=True).data,
+            "totalConfirmed": total_confirmed,
+            "totalGoal": total_goal,
+            "collectionRate": round((total_confirmed / total_goal * 100) if total_goal > 0 else 0, 1),
+            "pendingConfirmations": PaymentRecordSerializer(pending_payments, many=True).data,
+            "pendingPayouts": PayoutSpendRequestSerializer(pending_payouts, many=True).data,
+            "pendingAssistance": AssistanceRequestSerializer(pending_assistance, many=True).data,
+            "disputes": PaymentRecordSerializer(disputes, many=True).data,
+        })
+
+
+class DashboardMemberView(APIView):
+    """
+    Live aggregated member dashboard API
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        user = request.user if request.user.is_authenticated else None
+        user_id = request.query_params.get('userId')
+        if not user and user_id:
+            from accounts.models import User
+            try:
+                user = User.objects.filter(id=int(user_id)).first()
+            except (ValueError, TypeError):
+                pass
+
+        if user:
+            obligations = Obligation.objects.filter(member=user).order_by('-created_at')
+        else:
+            obligations = Obligation.objects.filter(member__role='Member').order_by('-created_at')
+
+        total_committed = sum([float(o.total_amount) for o in obligations])
+        total_remaining = sum([float(o.balance_remaining) for o in obligations])
+        total_paid = max(0.0, total_committed - total_remaining)
+
+        from governance.models import ChangeProposal, ProposalStatus
+        proposals = ChangeProposal.objects.filter(status=ProposalStatus.OPEN).order_by('-created_at')
+        from governance.views import ChangeProposalSerializer
+
+        payments = PaymentRecord.objects.filter(obligation__in=obligations).order_by('-member_statement_filed_at')[:10]
+
+        return Response({
+            "obligations": ObligationSerializer(obligations, many=True).data,
+            "totalCommitted": total_committed,
+            "totalRemaining": total_remaining,
+            "totalPaid": total_paid,
+            "proposals": ChangeProposalSerializer(proposals, many=True).data,
+            "recentPayments": PaymentRecordSerializer(payments, many=True).data,
+        })
+
+
+
 class ObligationWithdrawView(APIView):
     """
     Phase 3: Opt-Out / Withdrawal Flow
@@ -202,3 +315,5 @@ class PaymentRecordDisputeView(APIView):
         )
 
         return Response(PaymentRecordSerializer(record).data, status=status.HTTP_200_OK)
+
+

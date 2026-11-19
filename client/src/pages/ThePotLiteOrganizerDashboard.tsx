@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { Link, useLocation } from "wouter";
+import { useThePotLite } from "@/context/ThePotLiteContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiUrl } from "@/lib/config";
 import {
@@ -18,6 +20,8 @@ import {
   CreditCard,
   Building2,
   ArrowDownLeft,
+  Clock,
+  AlertCircle,
 } from "lucide-react";
 import {
   Dialog,
@@ -31,110 +35,182 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 
 export const ThePotLiteOrganizerDashboard: React.FC = () => {
+  const { currentUser } = useThePotLite();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
+  const [loading, setLoading] = useState(true);
   const [balanceVisible, setBalanceVisible] = useState(true);
-  const [activeCurrency, setActiveCurrency] = useState<"USD" | "Tigers U12" | "Fall 2026">("USD");
+  const [activeCurrency, setActiveCurrency] = useState<string>("USD");
+
+  // Dynamic Pot Collections & Stats
+  const [pots, setPots] = useState<any[]>([]);
+  const [totalConfirmed, setTotalConfirmed] = useState(0);
+  const [totalGoal, setTotalGoal] = useState(0);
+
+  // Dynamic "Needs You" Action Queue
+  const [pendingConfirmations, setPendingConfirmations] = useState<any[]>([]);
+  const [pendingPayouts, setPendingPayouts] = useState<any[]>([]);
+  const [pendingAssistance, setPendingAssistance] = useState<any[]>([]);
+  const [disputes, setDisputes] = useState<any[]>([]);
+  const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
+
+  // Modals state
   const [payoutModalOpen, setPayoutModalOpen] = useState(false);
   const [disputeModalOpen, setDisputeModalOpen] = useState(false);
+  const [selectedDisputePayment, setSelectedDisputePayment] = useState<any | null>(null);
+
+  // Payout form
   const [payee, setPayee] = useState("");
   const [payoutAmount, setPayoutAmount] = useState("");
   const [payoutPurpose, setPayoutPurpose] = useState("");
-  const [disputeReason, setDisputeReason] = useState("Amount mismatch / transaction not visible");
+
+  // Dispute form
+  const [disputeReason, setDisputeReason] = useState("Amount mismatch / payment not found in account statement");
   const [disputeType, setDisputeType] = useState<"mismatch" | "denial">("mismatch");
 
-  // Action Queue item matching the reference image's top item with inline check/cross
-  const [pendingConfirmation, setPendingConfirmation] = useState<{
-    id: string;
-    payerName: string;
-    amount: string;
-    method: string;
-    detail: string;
-  } | null>({
-    id: "conf_1",
-    payerName: "Sarah Jenkins",
-    amount: "$100.00",
-    method: "Zelle",
-    detail: "Payment confirmation needed",
-  });
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(apiUrl("/api/v1/dashboard/organizer"));
+      if (res.ok) {
+        const data = await res.json();
+        setPots(data.pots || []);
+        setTotalConfirmed(Number(data.totalConfirmed) || 0);
+        setTotalGoal(Number(data.totalGoal) || 0);
+        setPendingConfirmations(data.pendingConfirmations || []);
+        setPendingPayouts(data.pendingPayouts || []);
+        setPendingAssistance(data.pendingAssistance || []);
+        setDisputes(data.disputes || []);
+      } else {
+        // Direct pots fallback
+        const potsRes = await fetch(apiUrl("/api/v1/pots"));
+        if (potsRes.ok) {
+          const potsData = await potsRes.json();
+          setPots(potsData || []);
+          const confirmed = (potsData || []).reduce(
+            (acc: number, p: any) => acc + (parseFloat(p.collected_amount) || 0),
+            0
+          );
+          const goal = (potsData || []).reduce(
+            (acc: number, p: any) => acc + (parseFloat(p.total_target_amount) || 0),
+            0
+          );
+          setTotalConfirmed(confirmed);
+          setTotalGoal(goal);
+        }
+      }
 
-  // Second organizer payout co-approval queue item ($450 > $250 threshold)
-  const [pendingPayoutApproval, setPendingPayoutApproval] = useState<{
-    id: number;
-    payee: string;
-    amount: string;
-    purpose: string;
-    requester: string;
-  } | null>({
-    id: 1,
-    payee: "State Referee Association",
-    amount: "$450.00",
-    purpose: "State Cup Group Stage Referee & Field Marshals",
-    requester: "Coach Marcus Lewis",
-  });
+      // Fetch audit timeline for recent transaction ledger
+      const auditRes = await fetch(apiUrl("/api/v1/audit/"));
+      if (auditRes.ok) {
+        const auditData = await auditRes.json();
+        setRecentTransactions(auditData.slice(0, 5));
+      }
+    } catch {
+      // Graceful offline fallback
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
 
   const handleCopyOrgId = () => {
-    navigator.clipboard?.writeText("90340222748");
+    const orgCode = `ORG-${currentUser.organizationId || 101}`;
+    navigator.clipboard?.writeText(orgCode);
     toast({
       title: "Copied to Clipboard",
-      description: "Organization / Pot ID #90340222748 copied.",
+      description: `Organization Code ${orgCode} copied.`,
     });
   };
 
-  const handleConfirmAction = async () => {
-    setPendingConfirmation(null);
+  const handleConfirmAction = async (payment: any) => {
     try {
-      await fetch(apiUrl("/api/v1/pots/payments/1/confirm"), {
+      const res = await fetch(apiUrl(`/api/v1/pots/payments/${payment.id}/confirm`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmingUserId: currentUser.id }),
       });
-    } catch {
-      // Graceful local handling
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to confirm payment");
+      }
+      toast({
+        title: "Dual Confirmation Verified!",
+        description: `Applied $${parseFloat(payment.amount).toFixed(2)} to ${payment.payerName || "member"}'s obligation. Anti-self-approval rule satisfied.`,
+      });
+      fetchDashboardData();
+    } catch (err: any) {
+      toast({
+        title: "Confirmation Error",
+        description: err.message || "Failed to confirm payment on server.",
+        variant: "destructive",
+      });
     }
-    toast({
-      title: "Dual Confirmation Verified!",
-      description: "Applied $100.00 to Sarah Jenkins' obligation. Anti-self-approval rule satisfied.",
-    });
   };
 
-  const handleRejectAction = () => {
+  const handleOpenDispute = (payment: any) => {
+    setSelectedDisputePayment(payment);
     setDisputeModalOpen(true);
   };
 
   const handleSubmitDispute = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedDisputePayment) return;
     setDisputeModalOpen(false);
-    setPendingConfirmation(null);
     try {
-      await fetch(apiUrl("/api/v1/pots/payments/1/dispute"), {
+      await fetch(apiUrl(`/api/v1/pots/payments/${selectedDisputePayment.id}/dispute`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ statement: disputeReason, disputeType }),
+        body: JSON.stringify({
+          statement: disputeReason,
+          disputeType,
+          disputingUserId: currentUser.id,
+        }),
       });
+      toast({
+        title: "Neutral Discrepancy Logged",
+        description: "Both member and coach statements saved to audit trail. ThePotLite never adjudicates disputes.",
+      });
+      fetchDashboardData();
     } catch {
-      // Fallback
+      toast({
+        title: "Dispute Error",
+        description: "Failed to record dispute statement.",
+        variant: "destructive",
+      });
     }
-    toast({
-      title: "Neutral Discrepancy Logged",
-      description: "Both member and coach statements saved to audit trail. ThePotLite never adjudicates disputes.",
-    });
   };
 
-  const handleCoApprovePayout = async () => {
-    setPendingPayoutApproval(null);
+  const handleCoApprovePayout = async (payoutId: number) => {
     try {
-      await fetch(apiUrl("/api/v1/governance/payouts/1/approve"), {
+      const res = await fetch(apiUrl(`/api/v1/governance/payouts/${payoutId}/approve`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ decision: "approved" }),
+        body: JSON.stringify({
+          decision: "approved",
+          approverUserId: currentUser.id,
+        }),
       });
-    } catch {
-      // Fallback
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Co-approval failed");
+      }
+      toast({
+        title: "Payout Authorized by Second Approver",
+        description: "Multi-approver threshold satisfied. Vendor payment can be disbursed off-platform.",
+      });
+      fetchDashboardData();
+    } catch (err: any) {
+      toast({
+        title: "Approval Error",
+        description: err.message || "Cannot approve own payout request (Anti-Self-Approval rule).",
+        variant: "destructive",
+      });
     }
-    toast({
-      title: "Payout Authorized by Second Approver",
-      description: "Multi-approver threshold satisfied. Vendor payment can be disbursed off-platform.",
-    });
   };
 
   const handleCreatePayout = async (e: React.FormEvent) => {
@@ -142,16 +218,19 @@ export const ThePotLiteOrganizerDashboard: React.FC = () => {
     setPayoutModalOpen(false);
     const amountVal = parseFloat(payoutAmount) || 0;
     try {
+      const activePotId = pots.length > 0 ? pots[0].id : 1;
       await fetch(apiUrl("/api/v1/governance/payouts"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          potId: 1,
+          potId: activePotId,
+          requestedByUserId: currentUser.id,
           payee,
           amount: amountVal,
           purpose: payoutPurpose || "Youth tournament entry & referee fees",
         }),
       });
+      fetchDashboardData();
     } catch {
       // Graceful local handling
     }
@@ -167,6 +246,8 @@ export const ThePotLiteOrganizerDashboard: React.FC = () => {
     setPayoutAmount("");
     setPayoutPurpose("");
   };
+
+  const collectionPercent = totalGoal > 0 ? Math.min(100, Math.round((totalConfirmed / totalGoal) * 100)) : 0;
 
   return (
     <div className="w-full space-y-6">
@@ -234,7 +315,7 @@ export const ThePotLiteOrganizerDashboard: React.FC = () => {
               </span>
               <div className="flex items-center gap-3">
                 <span className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                  {balanceVisible ? "$92,142.10" : "••••••••••"}
+                  {balanceVisible ? `$${totalConfirmed.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "••••••••••"}
                 </span>
                 <button
                   onClick={() => setBalanceVisible(!balanceVisible)}
@@ -246,7 +327,9 @@ export const ThePotLiteOrganizerDashboard: React.FC = () => {
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 flex items-center gap-1.5 font-medium">
                 <span className="w-2 h-2 rounded-full bg-purple-600 inline-block"></span>
-                <span>$2,700 confirmed of $3,600 goal (Season Dues) · Off-rail verified</span>
+                <span>
+                  ${totalConfirmed.toLocaleString("en-US", { minimumFractionDigits: 0 })} confirmed of ${totalGoal.toLocaleString("en-US", { minimumFractionDigits: 0 })} goal ({pots[0]?.name || "Active Pots"}) · Off-rail verified
+                </span>
               </p>
             </div>
           </div>
@@ -263,15 +346,11 @@ export const ThePotLiteOrganizerDashboard: React.FC = () => {
               </button>
 
               <button
-                onClick={() => toast({ title: "Needs You Queue", description: "Review actions requiring organizer review below." })}
+                onClick={() => toast({ title: "Needs You Queue", description: `${pendingConfirmations.length} payments and ${pendingPayouts.length} payouts pending approval.` })}
                 className="inline-flex items-center gap-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-xs px-4 py-2.5 rounded-full shadow-sm transition-all"
               >
                 <Receipt className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                <span>Request Balance</span>
-              </button>
-
-              <button className="w-9 h-9 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white shadow-sm transition-colors">
-                <MoreHorizontal className="w-4 h-4" />
+                <span>Pending Approvals ({pendingConfirmations.length + pendingPayouts.length})</span>
               </button>
             </div>
 
@@ -310,14 +389,14 @@ export const ThePotLiteOrganizerDashboard: React.FC = () => {
 
             <div className="pt-1">
               <span className="text-xs font-semibold text-purple-200/90 block mb-1">
-                Your Collections (Pending & Confirmed)
+                Total Collections (Goal: ${totalGoal.toLocaleString("en-US", { minimumFractionDigits: 0 })})
               </span>
               <div className="flex flex-wrap items-baseline gap-2">
                 <span className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-                  $12,172.07
+                  ${(totalConfirmed + pendingConfirmations.reduce((s, p) => s + Number(p.amount || 0), 0)).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
                 <span className="bg-white/20 text-white text-[11px] font-bold px-2 py-0.5 rounded-full border border-white/20">
-                  +40% this month
+                  {collectionPercent}% of goal
                 </span>
               </div>
             </div>
@@ -331,7 +410,7 @@ export const ThePotLiteOrganizerDashboard: React.FC = () => {
                   Needs Confirm
                 </span>
                 <div className="flex items-center gap-1 font-bold text-sm text-white">
-                  <span>☆ 4,780</span>
+                  <span>☆ {pendingConfirmations.length} Pending</span>
                 </div>
               </div>
               <Eye className="w-3.5 h-3.5 text-purple-200" />
@@ -343,7 +422,7 @@ export const ThePotLiteOrganizerDashboard: React.FC = () => {
                   Assistance
                 </span>
                 <div className="flex items-center gap-1 font-bold text-sm text-white">
-                  <span>🎟 124</span>
+                  <span>🎟 {pendingAssistance.length} Requests</span>
                 </div>
               </div>
               <Eye className="w-3.5 h-3.5 text-purple-200" />
@@ -360,9 +439,9 @@ export const ThePotLiteOrganizerDashboard: React.FC = () => {
         <div className="lg:col-span-4 bg-white dark:bg-[#0f172a] rounded-3xl p-6 border border-slate-200/90 dark:border-slate-800/90 shadow-sm flex flex-col justify-between transition-colors">
           <div>
             <div className="flex items-center justify-between pb-3">
-              <span className="text-sm font-bold text-slate-900 dark:text-white">Spending</span>
+              <span className="text-sm font-bold text-slate-900 dark:text-white">Active Pots Overview</span>
               <span className="text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-3 py-1 rounded-full">
-                April / Fall
+                {pots.length} Pot{pots.length !== 1 ? 's' : ''} Active
               </span>
             </div>
 
@@ -384,44 +463,45 @@ export const ThePotLiteOrganizerDashboard: React.FC = () => {
                   className="stroke-purple-600 dark:stroke-purple-500"
                   strokeWidth="10"
                   strokeDasharray="301.6"
-                  strokeDashoffset="100"
+                  strokeDashoffset={301.6 - (301.6 * Math.min(100, collectionPercent)) / 100}
                   strokeLinecap="round"
                   fill="transparent"
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                <span className="text-xl font-bold text-slate-900 dark:text-white">$916.10</span>
+                <span className="text-xl font-bold text-slate-900 dark:text-white">
+                  ${totalConfirmed.toLocaleString("en-US", { minimumFractionDigits: 0 })}
+                </span>
                 <span className="text-[10px] font-bold text-purple-700 bg-purple-100 dark:bg-purple-950/80 dark:text-purple-300 px-2 py-0.5 rounded-full mt-0.5">
-                  +12%
+                  {collectionPercent}%
                 </span>
               </div>
             </div>
 
             <div className="text-center pb-2">
               <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 inline-flex items-center gap-1">
-                <span>✦ Rent / Field spend is up</span>
-                <span className="text-rose-500 font-bold">8.4%</span>
+                <span>✦ Collection progress towards goal:</span>
+                <span className="text-purple-600 font-bold">${totalGoal.toLocaleString("en-US", { minimumFractionDigits: 0 })}</span>
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 pt-4 border-t border-slate-100 dark:border-slate-800 text-[11px]">
-            <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-              <span className="w-2 h-2 rounded-full bg-slate-900 dark:bg-white inline-block"></span>
-              <span>Field / Rent <strong className="text-slate-900 dark:text-white">$500.02</strong></span>
-            </div>
-            <div className="flex items-center gap-1.5 text-slate-400">
-              <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-700 inline-block"></span>
-              <span>Travel $217.00</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-slate-400">
-              <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-700 inline-block"></span>
-              <span>Referee $100.00</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-slate-400">
-              <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-700 inline-block"></span>
-              <span>Uniforms $100.00</span>
-            </div>
+          <div className="space-y-2 pt-4 border-t border-slate-100 dark:border-slate-800 text-[11px]">
+            {pots.length === 0 ? (
+              <p className="text-xs text-slate-400 text-center py-2">No pots created yet.</p>
+            ) : (
+              pots.slice(0, 3).map((p) => (
+                <div key={p.id} className="flex items-center justify-between text-slate-600 dark:text-slate-300">
+                  <div className="flex items-center gap-1.5 truncate">
+                    <span className="w-2 h-2 rounded-full bg-purple-600 inline-block shrink-0"></span>
+                    <span className="truncate">{p.name}</span>
+                  </div>
+                  <strong className="text-slate-900 dark:text-white shrink-0 ml-2">
+                    ${Number(p.total_target_amount || 0).toLocaleString("en-US", { minimumFractionDigits: 0 })}
+                  </strong>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -429,64 +509,58 @@ export const ThePotLiteOrganizerDashboard: React.FC = () => {
         <div className="lg:col-span-4 bg-white dark:bg-[#0f172a] rounded-3xl p-6 border border-slate-200/90 dark:border-slate-800/90 shadow-sm flex flex-col justify-between transition-colors">
           <div>
             <div className="flex items-center justify-between pb-2">
-              <span className="text-sm font-bold text-slate-900 dark:text-white">Earning / Target</span>
+              <span className="text-sm font-bold text-slate-900 dark:text-white">Pot Allocations</span>
               <span className="text-xs font-bold text-[#e1683d] bg-[#fbf2ed] dark:bg-[#e1683d]/20 px-2.5 py-1 rounded-full border-b-2 border-[#e1683d]">
-                🎯 $8400
+                🎯 ${totalGoal.toLocaleString("en-US", { minimumFractionDigits: 0 })}
               </span>
             </div>
 
             <div className="py-2">
               <span className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight block">
-                $7,110.12
+                ${totalConfirmed.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
               <span className="text-[11px] font-bold text-purple-600 dark:text-purple-400">
-                +18% vs last month
+                {collectionPercent}% confirmed to date
               </span>
             </div>
 
             <div className="space-y-4 pt-3">
-              <div>
-                <div className="flex justify-between text-xs font-medium mb-1">
-                  <span className="text-slate-400">Tournament Entry</span>
-                  <span className="text-slate-600 dark:text-slate-300 font-semibold">$2,000.00</span>
+              {pots.length === 0 ? (
+                <div className="text-center py-6 text-slate-400 space-y-2">
+                  <p className="text-xs">No active pots yet</p>
+                  <Button
+                    size="sm"
+                    onClick={() => setLocation("/create")}
+                    className="bg-purple-600 hover:bg-purple-700 text-white rounded-full text-xs"
+                  >
+                    + Create First Pot
+                  </Button>
                 </div>
-                <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
-                  <div className="bg-slate-300 dark:bg-slate-600 h-2 rounded-full w-2/5"></div>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-xs font-medium mb-1">
-                  <span className="text-slate-900 dark:text-white font-bold">Season Dues</span>
-                  <span className="text-slate-900 dark:text-white font-bold">$4,000.00</span>
-                </div>
-                <div className="relative w-full bg-slate-100 dark:bg-slate-800 rounded-full h-3 flex items-center">
-                  <div className="bg-purple-600 h-3 rounded-full w-[51%]"></div>
-                  <span className="absolute left-[45%] text-[9px] font-black bg-purple-950 text-white px-1.5 py-0.2 rounded-full shadow-sm">
-                    51%
-                  </span>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-xs font-medium mb-1">
-                  <span className="text-slate-400">Uniforms & Gear</span>
-                  <span className="text-slate-600 dark:text-slate-300 font-semibold">$1,335.01</span>
-                </div>
-                <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
-                  <div className="bg-slate-300 dark:bg-slate-600 h-2 rounded-full w-1/4"></div>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-xs font-medium mb-1">
-                  <span className="text-slate-400">Travel & Misc</span>
-                  <span className="text-slate-600 dark:text-slate-300 font-semibold">$486.00</span>
-                </div>
-                <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
-                  <div className="bg-slate-300 dark:bg-slate-600 h-2 rounded-full w-1/6"></div>
-                </div>
-              </div>
+              ) : (
+                pots.map((pot) => {
+                  const potTarget = Number(pot.total_target_amount || 0);
+                  return (
+                    <div key={pot.id}>
+                      <div className="flex justify-between text-xs font-medium mb-1">
+                        <span className="text-slate-900 dark:text-white font-semibold truncate mr-2">{pot.name}</span>
+                        <span className="text-slate-600 dark:text-slate-300 font-semibold shrink-0">
+                          ${potTarget.toLocaleString("en-US", { minimumFractionDigits: 0 })}
+                        </span>
+                      </div>
+                      <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
+                        <div
+                          className="bg-purple-600 h-2 rounded-full transition-all"
+                          style={{ width: `${Math.min(100, collectionPercent)}%` }}
+                        ></div>
+                      </div>
+                      <div className="flex justify-between text-[10px] text-slate-400 mt-0.5">
+                        <span>Per Member: ${Number(pot.per_member_amount || 0).toFixed(0)}</span>
+                        <span>Due: {pot.due_date || "Open"}</span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>
@@ -495,39 +569,40 @@ export const ThePotLiteOrganizerDashboard: React.FC = () => {
         <div className="lg:col-span-4 bg-white dark:bg-[#0f172a] rounded-3xl p-6 border border-slate-200/90 dark:border-slate-800/90 shadow-sm flex flex-col justify-between transition-colors">
           <div>
             <div className="flex items-center justify-between pb-3">
-              <span className="text-sm font-bold text-slate-900 dark:text-white">Transactions</span>
-              <button className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:hover:text-slate-200">
-                <MoreHorizontal className="w-3.5 h-3.5" />
-              </button>
+              <span className="text-sm font-bold text-slate-900 dark:text-white">Action Queue & Receipts</span>
+              <span className="text-xs font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/60 px-2 py-0.5 rounded-full">
+                {pendingConfirmations.length + pendingPayouts.length} Action Needed
+              </span>
             </div>
 
-            <div className="divide-y divide-slate-100 dark:divide-slate-800">
-              {pendingConfirmation && (
-                <div className="py-3 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-600 dark:text-purple-400">
+            <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[280px] overflow-y-auto pr-1">
+              {/* Dynamic Pending Confirmations */}
+              {pendingConfirmations.map((item) => (
+                <div key={item.id} className="py-3 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-full bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
                       <ArrowUpRight className="w-4 h-4" />
                     </div>
-                    <div>
-                      <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight">
-                        {pendingConfirmation.payerName} {pendingConfirmation.amount}
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight truncate">
+                        {item.payer?.username || "Member"} filed ${Number(item.amount).toFixed(2)}
                       </p>
-                      <p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold">
-                        {pendingConfirmation.detail}
+                      <p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold truncate">
+                        {item.payment_method?.toUpperCase()} receipt check
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <button
-                      onClick={handleConfirmAction}
+                      onClick={() => handleConfirmAction(item.id)}
                       className="w-7 h-7 rounded-full bg-purple-600 hover:bg-purple-700 text-white flex items-center justify-center shadow-sm transition-transform hover:scale-105"
                       title="Confirm Payment"
                     >
                       <Check className="w-3.5 h-3.5 stroke-[3]" />
                     </button>
                     <button
-                      onClick={handleRejectAction}
+                      onClick={() => handleOpenDispute(item.id)}
                       className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 flex items-center justify-center transition-colors"
                       title="Dispute / Reject"
                     >
@@ -535,73 +610,42 @@ export const ThePotLiteOrganizerDashboard: React.FC = () => {
                     </button>
                   </div>
                 </div>
-              )}
+              ))}
 
-              {/* Payout Spend Second Approval (> $250 multi-approver requirement) */}
-              {pendingPayoutApproval && (
-                <div className="py-3 flex items-center justify-between gap-2 bg-purple-50/50 dark:bg-purple-950/20 p-2.5 rounded-2xl border border-purple-100 dark:border-purple-900/40">
+              {/* Dynamic Pending Payouts (Requires 2nd Approver) */}
+              {pendingPayouts.map((req) => (
+                <div key={req.id} className="py-3 flex items-center justify-between gap-2 bg-purple-50/50 dark:bg-purple-950/20 p-2.5 rounded-2xl border border-purple-100 dark:border-purple-900/40 my-1">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center text-xs font-bold shrink-0">
                       2FA
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                        {pendingPayoutApproval.payee} ({pendingPayoutApproval.amount})
+                        {req.payee} (${Number(req.amount).toFixed(2)})
                       </p>
                       <p className="text-[10px] text-purple-700 dark:text-purple-300 font-medium truncate">
-                        Co-approval needed (over $250)
+                        Co-approval needed (&gt;$250)
                       </p>
                     </div>
                   </div>
 
                   <Button
                     size="sm"
-                    onClick={handleCoApprovePayout}
+                    onClick={() => handleCoApprovePayout(req.id)}
                     className="h-7 text-xs bg-purple-700 hover:bg-purple-800 text-white rounded-full px-3 shrink-0"
                   >
                     Co-Approve
                   </Button>
                 </div>
+              ))}
+
+              {pendingConfirmations.length === 0 && pendingPayouts.length === 0 && (
+                <div className="text-center py-8 text-slate-400">
+                  <CheckCircle2 className="w-8 h-8 mx-auto text-emerald-500 mb-1.5 opacity-80" />
+                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Action Queue Clear</p>
+                  <p className="text-[11px] text-slate-400">All member payments and payouts are up to date.</p>
+                </div>
               )}
-
-              <div className="py-3 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300">
-                    <Building2 className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-slate-900 dark:text-white">Salary / Referee Payment</p>
-                    <p className="text-[10px] text-slate-400">Today, 09:00 AM</p>
-                  </div>
-                </div>
-                <span className="text-xs font-bold text-purple-600 dark:text-purple-400">+$5,000.00</span>
-              </div>
-
-              <div className="py-3 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300">
-                    <CreditCard className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-slate-900 dark:text-white">Buy - Uniforms Gear</p>
-                    <p className="text-[10px] text-slate-400">Yesterday, 2:30 PM</p>
-                  </div>
-                </div>
-                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">-$4,000.00</span>
-              </div>
-
-              <div className="py-3 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300">
-                    <CheckCircle2 className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-slate-900 dark:text-white">Refund - Zelle Pay</p>
-                    <p className="text-[10px] text-slate-400">Apr 1, 2026</p>
-                  </div>
-                </div>
-                <span className="text-xs font-bold text-purple-600 dark:text-purple-400">+$120.00</span>
-              </div>
             </div>
           </div>
         </div>
@@ -633,22 +677,24 @@ export const ThePotLiteOrganizerDashboard: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="p-3.5 rounded-2xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/70 dark:border-amber-900/30">
             <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400 block mb-1">
-              Waiting on Parent (2)
+              Active Member Commitments ({pots.reduce((s, p) => s + (p.obligations?.length || 0), 0)})
             </span>
             <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-              Dave M. & Alex K.
+              {pots.length > 0 ? `${pots[0].name}: ${pots.reduce((s, p) => s + (p.obligations?.length || 0), 0)} athletes enrolled` : "No active commitments"}
             </p>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-              Pending State Cup invite opt-in (48h left before auto-removal)
+              Target due date: {pots[0]?.due_date || "Open enrollment"}
             </p>
           </div>
 
           <div className="p-3.5 rounded-2xl bg-purple-50/60 dark:bg-purple-950/20 border border-purple-200/70 dark:border-purple-900/30">
             <span className="text-[10px] font-bold uppercase tracking-wider text-purple-800 dark:text-purple-400 block mb-1">
-              Waiting on Coach (1)
+              Waiting on Coach ({pendingConfirmations.length})
             </span>
             <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-              Sarah Jenkins ($100 Zelle)
+              {pendingConfirmations.length > 0
+                ? `${pendingConfirmations[0].payer?.username || "Member"} ($${Number(pendingConfirmations[0].amount).toFixed(2)})`
+                : "All payments confirmed"}
             </p>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
               Dual-confirmation receipt check (Confirmation window: 48 hours)
@@ -657,10 +703,12 @@ export const ThePotLiteOrganizerDashboard: React.FC = () => {
 
           <div className="p-3.5 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-200/70 dark:border-indigo-900/30">
             <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-800 dark:text-indigo-400 block mb-1">
-              Waiting on Co-Approver (1)
+              Waiting on Co-Approver ({pendingPayouts.length})
             </span>
             <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-              $450.00 Referee Payout
+              {pendingPayouts.length > 0
+                ? `${pendingPayouts[0].payee} ($${Number(pendingPayouts[0].amount).toFixed(2)})`
+                : "No pending payout requests"}
             </p>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
               Requires 2nd organizer signature (&gt;$250 threshold)

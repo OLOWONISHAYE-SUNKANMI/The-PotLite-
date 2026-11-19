@@ -50,18 +50,20 @@ export const ThePotLiteProfile: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   // COPPA Children list
-  const [children, setChildren] = useState([
-    { id: 1, firstName: "Jordan", lastInitial: "M", jersey: "10", team: "U12 Tigers" },
-  ]);
+  const [children, setChildren] = useState<any[]>(
+    (currentUser as any).children || ((currentUser as any).athleteName ? [
+      { id: 1, firstName: (currentUser as any).athleteName, lastInitial: "", jersey: "10", team: "U12 Tigers" }
+    ] : [])
+  );
   const [childModalOpen, setChildModalOpen] = useState(false);
   const [newChildFirst, setNewChildFirst] = useState("");
   const [newChildLast, setNewChildLast] = useState("");
   const [newChildJersey, setNewChildJersey] = useState("");
 
   // Payment handles
-  const [zelle, setZelle] = useState("coach.marcus@tigersfc.org");
-  const [venmo, setVenmo] = useState("@CoachMarcusTigers");
-  const [cashApp, setCashApp] = useState("$CoachMarcus");
+  const [zelle, setZelle] = useState((currentUser as any).paymentHandles?.zelle || "");
+  const [venmo, setVenmo] = useState((currentUser as any).paymentHandles?.venmo || "");
+  const [cashApp, setCashApp] = useState((currentUser as any).paymentHandles?.cashApp || "");
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,13 +74,20 @@ export const ThePotLiteProfile: React.FC = () => {
       phone,
       role,
       twoFactorEnabled: twoFactorActive,
+      children,
+      paymentHandles: {
+        zelle,
+        venmo,
+        cashApp,
+      },
     };
     setCurrentUser(updated);
     switchRole(role);
     localStorage.setItem("thepotlite_authenticated_user", JSON.stringify(updated));
+    localStorage.setItem("pot_user", JSON.stringify(updated));
     toast({
       title: "Profile Saved",
-      description: "Your user information and role have been updated.",
+      description: "Your user information, payment handles, and roster have been updated.",
     });
   };
 
@@ -350,27 +359,34 @@ export const ThePotLiteProfile: React.FC = () => {
             </div>
 
             <div className="space-y-2.5">
-              {children.map((c) => (
-                <div
-                  key={c.id}
-                  className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 font-bold text-xs flex items-center justify-center">
-                      #{c.jersey}
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-slate-900 dark:text-white">
-                        {c.firstName} {c.lastInitial}.
-                      </div>
-                      <div className="text-[10px] text-slate-500">{c.team}</div>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md">
-                    Active Obligation
-                  </span>
+              {children.length === 0 ? (
+                <div className="text-center py-6 text-slate-400">
+                  <p className="text-xs">No children registered yet.</p>
+                  <p className="text-[11px] text-slate-400 mt-1">Click "Add Child" above to add athletes under COPPA privacy rules.</p>
                 </div>
-              ))}
+              ) : (
+                children.map((c: any) => (
+                  <div
+                    key={c.id}
+                    className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 font-bold text-xs flex items-center justify-center">
+                        #{c.jersey}
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-slate-900 dark:text-white">
+                          {c.firstName} {c.lastInitial}.
+                        </div>
+                        <div className="text-[10px] text-slate-500">{c.team}</div>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md">
+                      Active Obligation
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 

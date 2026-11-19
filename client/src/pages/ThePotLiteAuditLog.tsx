@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { apiUrl } from "@/lib/config";
 import {
   FileText,
   Download,
@@ -15,7 +16,7 @@ import {
 export const ThePotLiteAuditLog: React.FC = () => {
   const { toast } = useToast();
 
-  const [events] = useState([
+  const [events, setEvents] = useState<any[]>([
     {
       id: 1,
       timestamp: "Nov 15, 2026 · 14:32",
@@ -72,6 +73,42 @@ export const ThePotLiteAuditLog: React.FC = () => {
       plainTextTimelineEntry: "Pot 'State Cup Tournament & Travel' ($2,400.00 goal) initialized with Human Governance Rules v1.",
     },
   ]);
+
+  useEffect(() => {
+    const fetchAudit = async () => {
+      try {
+        const res = await fetch(apiUrl("/api/v1/audit/"));
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            const mapped = data.map((e: any) => ({
+              id: e.id,
+              timestamp: e.timestamp
+                ? new Date(e.timestamp).toLocaleString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : "Recent",
+              actorRole: e.actor_role || "Organizer",
+              actorName: e.actor_username || "System",
+              action: e.action,
+              objectType: e.object_type || "Event",
+              termsVersion: e.metadata_snapshot?.terms_version || 1,
+              ruleVersion: e.metadata_snapshot?.rule_version || 1,
+              plainTextTimelineEntry: e.plain_text_timeline_entry || e.action,
+            }));
+            setEvents(mapped);
+          }
+        }
+      } catch {
+        // Fallback to initial events
+      }
+    };
+    fetchAudit();
+  }, []);
 
   const handleExportCSV = () => {
     const headers = "Timestamp,Actor Role,Object,Terms Version,Timeline Entry\n";

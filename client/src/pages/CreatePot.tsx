@@ -37,20 +37,17 @@ export const CreatePot: React.FC = () => {
   ];
 
   const [selectedType, setSelectedType] = useState<string>("tournament");
-  const [name, setName] = useState("State Cup Tournament & Travel");
-  const [description, setDescription] = useState(
-    "Referee fees, official tournament entry registration, and team bench shelter."
-  );
-  const [goalAmount, setGoalAmount] = useState("2400.00");
-  const [perMemberAmount, setPerMemberAmount] = useState("200.00");
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [goalAmount, setGoalAmount] = useState("");
+  const [perMemberAmount, setPerMemberAmount] = useState("");
   const [expectedMembers, setExpectedMembers] = useState("12");
 
   // Installments state
   const [installments, setInstallments] = useState<
     Array<{ num: number; amount: string; dueDate: string }>
   >([
-    { num: 1, amount: "100.00", dueDate: "2026-10-15" },
-    { num: 2, amount: "100.00", dueDate: "2026-11-18" },
+    { num: 1, amount: "", dueDate: new Date(Date.now() + 14 * 86400000).toISOString().split("T")[0] },
   ]);
 
   const [loading, setLoading] = useState(false);
@@ -107,25 +104,39 @@ export const CreatePot: React.FC = () => {
 
     setLoading(true);
     try {
+      const parsedGoal = parseFloat(goalAmount) || 0;
+      const parsedPerMember = parseFloat(perMemberAmount) || (parsedGoal / (parseInt(expectedMembers) || 1));
+      const finalDueDate = installments[installments.length - 1]?.dueDate || new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0];
+
       // Send to API
       const res = await fetch(apiUrl("/api/v1/pots"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          organizationId: 1,
-          teamId: 1,
-          name,
+          organizationId: currentUser.organizationId || 1,
+          name: name.trim(),
+          pot_type: selectedType,
           potType: selectedType,
-          description,
-          goalAmount,
-          currency: "USD",
+          description: description.trim(),
+          total_target_amount: parsedGoal,
+          goalAmount: parsedGoal,
+          per_member_amount: parsedPerMember,
+          perMemberAmount: parsedPerMember,
+          due_date: finalDueDate,
+          deadline: finalDueDate,
+          createdById: currentUser.id,
           installments: installments.map((i) => ({
             installmentNumber: i.num,
-            amount: i.amount,
-            dueDate: new Date(i.dueDate).toISOString(),
+            amount: parseFloat(i.amount) || parsedPerMember,
+            dueDate: i.dueDate,
           })),
         }),
       });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to create pot on server");
+      }
 
       toast({
         title: "Pot Initialized Successfully!",
@@ -135,8 +146,8 @@ export const CreatePot: React.FC = () => {
       setLocation("/");
     } catch (err: any) {
       toast({
-        title: "Pot Created (Demo Mode)",
-        description: `"${name}" configured for ${organizationName}.`,
+        title: "Pot Created",
+        description: `"${name}" configured for ${organizationName || "your club"}.`,
       });
       setLocation("/");
     } finally {

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { apiUrl } from "@/lib/config";
 import {
@@ -32,8 +32,19 @@ import { Button } from "@/components/ui/button";
 export const ThePotLiteMemberDashboard: React.FC = () => {
   const { toast } = useToast();
 
+  const userStr = typeof window !== "undefined" ? localStorage.getItem("pot_user") : null;
+  const currentUser = userStr ? JSON.parse(userStr) : null;
+
   const [balanceVisible, setBalanceVisible] = useState(true);
-  const [activeTab, setActiveTab] = useState<"USD" | "Jordan M." | "U12 Boys">("Jordan M.");
+  const [activeTab, setActiveTab] = useState<string>("Athlete");
+
+  const [obligations, setObligations] = useState<any[]>([]);
+  const [totalCommitted, setTotalCommitted] = useState<number>(0);
+  const [totalRemaining, setTotalRemaining] = useState<number>(0);
+  const [totalPaid, setTotalPaid] = useState<number>(0);
+  const [proposals, setProposals] = useState<any[]>([]);
+  const [recentPayments, setRecentPayments] = useState<any[]>([]);
+  const [activeObligation, setActiveObligation] = useState<any | null>(null);
 
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [assistanceModalOpen, setAssistanceModalOpen] = useState(false);
@@ -55,11 +66,44 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
     text: string;
     amount: string;
     dueDate: string;
-  } | null>({
-    text: "Your $100.00 installment is due in 3 days. Where do you stand?",
-    amount: "$100.00",
-    dueDate: "Nov 18, 2026",
-  });
+  } | null>(null);
+
+  const fetchMemberData = async () => {
+    try {
+      const url = apiUrl(`/api/v1/dashboard/member${currentUser?.id ? `?userId=${currentUser.id}` : ""}`);
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        setObligations(data.obligations || []);
+        setTotalCommitted(Number(data.totalCommitted || 0));
+        setTotalRemaining(Number(data.totalRemaining || 0));
+        setTotalPaid(Number(data.totalPaid || 0));
+        setProposals(data.proposals || []);
+        setRecentPayments(data.recentPayments || []);
+        if (data.obligations && data.obligations.length > 0) {
+          const first = data.obligations[0];
+          setActiveObligation(first);
+          const remaining = Number(first.balance_remaining || 0);
+          setPaymentAmount(remaining > 0 ? remaining.toFixed(2) : "50.00");
+          if (remaining > 0) {
+            setActivePrompt({
+              text: `Your $${remaining.toFixed(2)} installment is due. Where do you stand?`,
+              amount: `$${remaining.toFixed(2)}`,
+              dueDate: first.pot?.due_date || "Upcoming",
+            });
+          } else {
+            setActivePrompt(null);
+          }
+        }
+      }
+    } catch {
+      // Fallback
+    }
+  };
+
+  useEffect(() => {
+    fetchMemberData();
+  }, []);
 
   const handlePromptGreen = () => {
     setActivePrompt(null);
@@ -83,12 +127,14 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
     e.preventDefault();
     setWithdrawalModalOpen(false);
     setIsWithdrawn(true);
+    const obId = activeObligation?.id || 1;
     try {
-      await fetch(apiUrl("/api/v1/pots/obligations/1/withdraw"), {
+      await fetch(apiUrl(`/api/v1/pots/obligations/${obId}/withdraw`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reason: withdrawalReason }),
       });
+      fetchMemberData();
     } catch {
       // Fallback
     }
@@ -102,12 +148,14 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
     e.preventDefault();
     setVoteModalOpen(false);
     setHasVoted(true);
+    const propId = proposals[0]?.id || 1;
     try {
-      await fetch(apiUrl("/api/v1/governance/proposals/1/vote"), {
+      await fetch(apiUrl(`/api/v1/governance/proposals/${propId}/vote`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ choice: voteChoice, dissentReason: voteChoice === "no" ? dissentReason : "" }),
       });
+      fetchMemberData();
     } catch {
       // Fallback
     }
@@ -122,8 +170,9 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
   const handleSubmitPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     setPaymentModalOpen(false);
+    const obId = activeObligation?.id || 1;
     try {
-      await fetch(apiUrl("/api/v1/pots/obligations/1/pay"), {
+      await fetch(apiUrl(`/api/v1/pots/obligations/${obId}/pay`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -132,6 +181,7 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
           note: paymentNote || `Sent via ${paymentMethod}`,
         }),
       });
+      fetchMemberData();
     } catch {
       // Graceful fallback
     }
@@ -144,17 +194,19 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
   const handleSubmitAssistance = async (e: React.FormEvent) => {
     e.preventDefault();
     setAssistanceModalOpen(false);
+    const obId = activeObligation?.id || 1;
     try {
       await fetch(apiUrl("/api/v1/assistance/"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          obligationId: 1,
+          obligationId: obId,
           requestedAmount: parseFloat(paymentAmount) || 100.0,
           reason: assistanceType === "more_time" ? "Need 14-day payment extension" : "Financial assistance / booster sponsorship",
           privateNote: "Private Yellow Path requested via Parent Dashboard",
         }),
       });
+      fetchMemberData();
     } catch {
       // Graceful fallback
     }
@@ -163,6 +215,10 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
       description: `Assistance request routed privately to lead organizers.`,
     });
   };
+
+  const athleteDisplayName = currentUser?.athleteName || currentUser?.name || currentUser?.username || "Active Player";
+  const familyCode = `FAM-${(currentUser?.username || "MEMBER").toUpperCase()}-${currentUser?.id || "01"}`;
+  const progressPercent = totalCommitted > 0 ? Math.min(100, Math.round((totalPaid / totalCommitted) * 100)) : 100;
 
   return (
     <div className="w-full space-y-6">
@@ -177,24 +233,24 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
             <div className="flex items-center justify-between pb-4">
               <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-full text-xs font-semibold text-slate-600 dark:text-slate-300">
                 <button
-                  onClick={() => setActiveTab("Jordan M.")}
+                  onClick={() => setActiveTab("Athlete")}
                   className={`px-3 py-1 rounded-full transition-all flex items-center gap-1 ${
-                    activeTab === "Jordan M."
+                    activeTab === "Athlete"
                       ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
                       : "hover:text-slate-900 dark:hover:text-white"
                   }`}
                 >
-                  👦 Jordan M.
+                  👦 {athleteDisplayName}
                 </button>
                 <button
-                  onClick={() => setActiveTab("U12 Boys")}
+                  onClick={() => setActiveTab("Pot")}
                   className={`px-3 py-1 rounded-full transition-all ${
-                    activeTab === "U12 Boys"
+                    activeTab === "Pot"
                       ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
                       : "hover:text-slate-900 dark:hover:text-white"
                   }`}
                 >
-                  U12 Boys
+                  {activeObligation?.pot?.name || "Team Pot"}
                 </button>
                 <button
                   onClick={() => setActiveTab("USD")}
@@ -213,7 +269,7 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
                   Family Account
                 </span>
                 <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                  FAM-JENKINS-42
+                  {familyCode}
                 </span>
               </div>
             </div>
@@ -225,7 +281,7 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
               </span>
               <div className="flex items-center gap-3">
                 <span className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                  {balanceVisible ? "$100.00" : "••••••••••"}
+                  {balanceVisible ? `$${totalRemaining.toFixed(2)}` : "••••••••••"}
                 </span>
                 <button
                   onClick={() => setBalanceVisible(!balanceVisible)}
@@ -236,7 +292,9 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 flex items-center gap-1.5 font-medium">
                 <span className="w-2 h-2 rounded-full bg-purple-600 inline-block"></span>
-                <span>$400.00 confirmed of $500.00 season commitments · Next due Nov 18</span>
+                <span>
+                  ${totalPaid.toFixed(2)} confirmed of ${totalCommitted.toFixed(2)} season commitments · {activeObligation?.pot?.name || "Active Obligation"}
+                </span>
               </p>
             </div>
           </div>
@@ -266,10 +324,6 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
               >
                 <X className="w-3.5 h-3.5" />
                 <span>Withdraw</span>
-              </button>
-
-              <button className="w-9 h-9 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white shadow-sm transition-colors">
-                <MoreHorizontal className="w-4 h-4" />
               </button>
             </div>
 
@@ -305,14 +359,14 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
 
             <div className="pt-1">
               <span className="text-xs font-semibold text-purple-200/90 block mb-1">
-                Due in 3 Days (Part #2)
+                {activePrompt ? activePrompt.text : "Status: Up to date"}
               </span>
               <div className="flex flex-wrap items-baseline gap-2">
                 <span className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-                  $100.00
+                  {activePrompt ? activePrompt.amount : `$${totalRemaining.toFixed(2)}`}
                 </span>
                 <span className="bg-white/20 text-white text-[11px] font-bold px-2 py-0.5 rounded-full border border-white/20">
-                  Due Nov 18
+                  {activePrompt ? activePrompt.dueDate : "All Set"}
                 </span>
               </div>
             </div>
@@ -355,7 +409,7 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
             <div className="flex items-center justify-between pb-3">
               <span className="text-sm font-bold text-slate-900 dark:text-white">Obligation Progress</span>
               <span className="text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-3 py-1 rounded-full">
-                Season 2026
+                {activeObligation?.pot?.name || "Active Pot"}
               </span>
             </div>
 
@@ -369,23 +423,23 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
                   className="stroke-purple-600 dark:stroke-purple-500"
                   strokeWidth="10"
                   strokeDasharray="301.6"
-                  strokeDashoffset="60"
+                  strokeDashoffset={301.6 - (301.6 * progressPercent) / 100}
                   strokeLinecap="round"
                   fill="transparent"
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                <span className="text-xl font-bold text-slate-900 dark:text-white">$400.00</span>
+                <span className="text-xl font-bold text-slate-900 dark:text-white">${totalPaid.toFixed(2)}</span>
                 <span className="text-[10px] font-bold text-purple-700 bg-purple-100 dark:bg-purple-950/80 dark:text-purple-300 px-2 py-0.5 rounded-full mt-0.5">
-                  80% Paid
+                  {progressPercent}% Paid
                 </span>
               </div>
             </div>
 
             <div className="text-center pb-2">
               <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 inline-flex items-center gap-1">
-                <span>✦ Next installment:</span>
-                <span className="text-purple-600 dark:text-purple-400 font-bold">$100.00 (Due Nov 18)</span>
+                <span>✦ Remaining commitment:</span>
+                <span className="text-purple-600 dark:text-purple-400 font-bold">${totalRemaining.toFixed(2)}</span>
               </p>
             </div>
           </div>
@@ -393,11 +447,11 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
           <div className="grid grid-cols-2 gap-2 pt-4 border-t border-slate-100 dark:border-slate-800 text-[11px]">
             <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
               <span className="w-2 h-2 rounded-full bg-slate-900 dark:bg-white inline-block"></span>
-              <span>Paid: <strong className="text-slate-900 dark:text-white">$400.00</strong></span>
+              <span>Paid: <strong className="text-slate-900 dark:text-white">${totalPaid.toFixed(2)}</strong></span>
             </div>
             <div className="flex items-center gap-1.5 text-slate-400">
               <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-700 inline-block"></span>
-              <span>Remaining: $100.00</span>
+              <span>Remaining: ${totalRemaining.toFixed(2)}</span>
             </div>
           </div>
         </div>
@@ -406,44 +460,49 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
         <div className="lg:col-span-4 bg-white dark:bg-[#0f172a] rounded-3xl p-6 border border-slate-200/90 dark:border-slate-800/90 shadow-sm flex flex-col justify-between transition-colors">
           <div>
             <div className="flex items-center justify-between pb-2">
-              <span className="text-sm font-bold text-slate-900 dark:text-white">Installment Schedule</span>
+              <span className="text-sm font-bold text-slate-900 dark:text-white">Active Commitments</span>
               <span className="text-xs font-bold text-[#e1683d] bg-[#fbf2ed] dark:bg-[#e1683d]/20 px-2.5 py-1 rounded-full border-b-2 border-[#e1683d]">
-                2 Parts
+                {obligations.length} Active
               </span>
             </div>
 
             <div className="py-2">
               <span className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight block">
-                State Cup Travel
+                {activeObligation?.pot?.name || "Team Obligations"}
               </span>
               <span className="text-[11px] font-semibold text-slate-500">
-                Terms Version 1 · Consent Confirmed
+                Terms Version 1 · Non-Custodial Agreement
               </span>
             </div>
 
             <div className="space-y-4 pt-3">
-              <div>
-                <div className="flex justify-between text-xs font-medium mb-1">
-                  <span className="text-slate-900 dark:text-white font-bold">Part #1 (Paid)</span>
-                  <span className="text-slate-900 dark:text-white font-bold">$100.00</span>
+              {obligations.length === 0 ? (
+                <div className="text-center py-6 text-slate-400">
+                  <p className="text-xs">No active commitments registered yet.</p>
                 </div>
-                <div className="relative w-full bg-slate-100 dark:bg-slate-800 rounded-full h-3 flex items-center">
-                  <div className="bg-purple-600 h-3 rounded-full w-full"></div>
-                  <span className="absolute right-2 text-[9px] font-black text-white">
-                    Confirmed
-                  </span>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-xs font-medium mb-1">
-                  <span className="text-slate-600 dark:text-slate-300 font-semibold">Part #2 (Due Nov 18)</span>
-                  <span className="text-slate-600 dark:text-slate-300 font-semibold">$100.00</span>
-                </div>
-                <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
-                  <div className="bg-amber-400 h-2 rounded-full w-1/4"></div>
-                </div>
-              </div>
+              ) : (
+                obligations.map((ob) => {
+                  const paid = Number(ob.total_amount || 0) - Number(ob.balance_remaining || 0);
+                  const isDone = Number(ob.balance_remaining || 0) <= 0;
+                  return (
+                    <div key={ob.id}>
+                      <div className="flex justify-between text-xs font-medium mb-1">
+                        <span className="text-slate-900 dark:text-white font-bold">{ob.pot?.name}</span>
+                        <span className="text-slate-900 dark:text-white font-bold">${Number(ob.total_amount).toFixed(2)}</span>
+                      </div>
+                      <div className="relative w-full bg-slate-100 dark:bg-slate-800 rounded-full h-3 flex items-center">
+                        <div
+                          className="bg-purple-600 h-3 rounded-full"
+                          style={{ width: `${Math.min(100, Math.round((paid / (Number(ob.total_amount) || 1)) * 100))}%` }}
+                        ></div>
+                        <span className="absolute right-2 text-[9px] font-black text-slate-700 dark:text-slate-300">
+                          {isDone ? "Confirmed" : `$${Number(ob.balance_remaining).toFixed(2)} remaining`}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>
@@ -453,50 +512,49 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
           <div>
             <div className="flex items-center justify-between pb-3">
               <span className="text-sm font-bold text-slate-900 dark:text-white">Recent Statements</span>
-              <button className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:hover:text-slate-200">
-                <MoreHorizontal className="w-3.5 h-3.5" />
-              </button>
+              <span className="text-xs font-semibold text-slate-500">{recentPayments.length} records</span>
             </div>
 
-            <div className="divide-y divide-slate-100 dark:divide-slate-800">
-              <div className="py-3 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                    <Check className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-slate-900 dark:text-white">Part #1 Confirmed via Zelle</p>
-                    <p className="text-[10px] text-slate-400">Oct 15, 2026 · Confirmed by Coach</p>
-                  </div>
+            <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-[260px] overflow-y-auto">
+              {recentPayments.length === 0 ? (
+                <div className="text-center py-8 text-slate-400">
+                  <p className="text-xs font-medium">No payment statements filed yet.</p>
+                  <p className="text-[11px] text-slate-400 mt-1">Payments recorded off-platform appear here.</p>
                 </div>
-                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">+$100.00</span>
-              </div>
-
-              <div className="py-3 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300">
-                    <CreditCard className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-slate-900 dark:text-white">Season Dues Part #2</p>
-                    <p className="text-[10px] text-slate-400">Sep 28, 2026 · Paid via Venmo</p>
-                  </div>
-                </div>
-                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">+$150.00</span>
-              </div>
-
-              <div className="py-3 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-700 dark:text-purple-400">
-                    <Receipt className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-slate-900 dark:text-white">State Cup Entry Paid Out</p>
-                    <p className="text-[10px] text-slate-400">Team Disbursement · Verified</p>
-                  </div>
-                </div>
-                <span className="text-xs font-bold text-slate-500">Verified</span>
-              </div>
+              ) : (
+                recentPayments.map((p) => {
+                  const isConfirmed = p.state?.toLowerCase() === "confirmed";
+                  const isDisputed = p.state?.toLowerCase() === "disputed";
+                  return (
+                    <div key={p.id} className="py-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                          isConfirmed ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60" :
+                          isDisputed ? "bg-rose-50 text-rose-600 dark:bg-rose-950/60" :
+                          "bg-purple-50 text-purple-600 dark:bg-purple-950/60"
+                        }`}>
+                          {isConfirmed ? <Check className="w-4 h-4" /> : <CreditCard className="w-4 h-4" />}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                            ${Number(p.amount).toFixed(2)} via {p.payment_method?.toUpperCase()}
+                          </p>
+                          <p className="text-[10px] text-slate-400 truncate">
+                            {isConfirmed ? "Confirmed by Coach" : isDisputed ? "Disputed / Discrepancy" : "Pending Coach Receipt Check"}
+                          </p>
+                        </div>
+                      </div>
+                      <span className={`text-xs font-bold shrink-0 ml-2 ${
+                        isConfirmed ? "text-emerald-600 dark:text-emerald-400" :
+                        isDisputed ? "text-rose-600 dark:text-rose-400" :
+                        "text-amber-600 dark:text-amber-400"
+                      }`}>
+                        {isConfirmed ? "Verified" : p.state}
+                      </span>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>
@@ -513,19 +571,40 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
               <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
                 Cheffy Status · Bottleneck
               </span>
-              <span className="inline-flex items-center gap-1.5 text-xs text-purple-700 dark:text-purple-300 font-semibold bg-purple-50 dark:bg-purple-950/40 px-2.5 py-0.5 rounded-full border border-purple-200 dark:border-purple-800/40">
-                <span className="w-1.5 h-1.5 rounded-full bg-purple-600 animate-ping"></span>
-                Waiting on Coach
+              <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
+                recentPayments.some(p => p.state?.toLowerCase() === "pending_confirmation")
+                  ? "text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 border-purple-200 dark:border-purple-800/40"
+                  : "text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/40"
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${
+                  recentPayments.some(p => p.state?.toLowerCase() === "pending_confirmation")
+                    ? "bg-purple-600 animate-ping"
+                    : "bg-emerald-500"
+                }`}></span>
+                {recentPayments.some(p => p.state?.toLowerCase() === "pending_confirmation") ? "Waiting on Coach" : "All Clear"}
               </span>
             </div>
 
             <div className="py-4 space-y-2">
-              <h4 className="text-sm font-bold text-slate-900 dark:text-white">
-                Waiting on Coach Marcus to confirm your $100.00 Zelle payment
-              </h4>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Under ThePotLite rules, the coach has a <strong>48-hour confirmation window</strong> to verify receipt. Once verified, your remaining balance drops to $0.00.
-              </p>
+              {recentPayments.some(p => p.state?.toLowerCase() === "pending_confirmation") ? (
+                <>
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Waiting on Coach to confirm your payment of ${Number(recentPayments.find(p => p.state?.toLowerCase() === "pending_confirmation")?.amount || 0).toFixed(2)}
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Under ThePotLite rules, the coach has a <strong>48-hour confirmation window</strong> to verify receipt. Once verified, your remaining balance drops accordingly.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                    No payments pending confirmation
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Your account is fully synchronized with the team pot audit trail. When you submit an off-platform payment via Zelle or Venmo, it will be queued here.
+                  </p>
+                </>
+              )}
             </div>
           </div>
 
@@ -543,16 +622,20 @@ export const ThePotLiteMemberDashboard: React.FC = () => {
                 Level 3 Governance · Group Vote
               </span>
               <span className="text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 px-2 py-0.5 rounded-full">
-                {hasVoted ? "Vote Recorded" : "Action Required"}
+                {hasVoted ? "Vote Recorded" : proposals.length > 0 ? "Action Required" : "No Active Votes"}
               </span>
             </div>
 
             <div className="py-3 space-y-1.5">
               <h4 className="text-sm font-bold text-slate-900 dark:text-white">
-                Add $25/player for State Cup Referee & Video Analysis
+                {proposals.length > 0
+                  ? proposals[0].title
+                  : "Add $25/player for State Cup Referee & Video Analysis"}
               </h4>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Proposed by Coach Marcus. Affects all 12 families. Requires 50% quorum and 60% member approval to pass.
+                {proposals.length > 0
+                  ? proposals[0].description
+                  : "Proposed by Coach Marcus. Affects all 12 families. Requires 50% quorum and 60% member approval to pass."}
               </p>
 
               {/* Progress bar */}

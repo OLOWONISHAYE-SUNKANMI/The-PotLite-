@@ -17,6 +17,9 @@ export interface ThePotLiteUser {
   onboardingCompleted?: boolean;
   athleteName?: string;
   paymentHandles?: Record<string, string>;
+  profilePicture?: string;
+  avatar?: string;
+  children?: any[];
 }
 
 export const DEMO_USERS: Record<string, ThePotLiteUser> = {
@@ -350,7 +353,7 @@ export const ThePotLiteProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return data;
   };
 
-  const completeOnboarding = (details: Partial<ThePotLiteUser> & { athleteName?: string; paymentHandles?: Record<string, string> }) => {
+  const completeOnboarding = async (details: Partial<ThePotLiteUser> & { athleteName?: string; paymentHandles?: Record<string, string> }) => {
     const updated: ThePotLiteUser = {
       ...currentUser,
       ...details,
@@ -359,7 +362,25 @@ export const ThePotLiteProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setCurrentUser(updated);
     setIsAuthenticated(true);
     localStorage.setItem("thepotlite_authenticated_user", JSON.stringify(updated));
+    localStorage.setItem("pot_user", JSON.stringify(updated));
     localStorage.setItem("thepotlite_onboarding_completed", "true");
+
+    try {
+      await fetch(apiUrl("/api/v1/auth/onboarding/complete"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: updated.id,
+          role: updated.role,
+          phone: updated.phone,
+          athleteName: details.athleteName,
+          organizationName: updated.organizationName,
+          onboardingCompleted: true,
+        }),
+      });
+    } catch {
+      // Graceful offline fallback
+    }
   };
 
   const logout = async () => {

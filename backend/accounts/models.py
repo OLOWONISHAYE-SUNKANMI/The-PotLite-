@@ -16,6 +16,8 @@ class User(AbstractUser):
     two_factor_enabled = models.BooleanField(default=False)
     two_factor_secret = models.CharField(max_length=64, blank=True, null=True)
     two_factor_backup_codes = models.JSONField(default=list, blank=True)
+    profile_picture = models.TextField(blank=True, null=True)
+    onboarding_completed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

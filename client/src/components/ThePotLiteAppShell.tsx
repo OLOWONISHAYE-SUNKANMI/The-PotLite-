@@ -29,11 +29,9 @@ export const ThePotLiteAppShell: React.FC<{ children: React.ReactNode }> = ({ ch
   const [location, setLocation] = useLocation();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
-  // Avatar image URLs for Coach & Parent
-  const avatarUrl =
-    currentUser.role === "Organizer"
-      ? "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"
-      : "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80";
+  // User profile picture or fallback initial (never hardcoded un-uploaded photo)
+  const avatarUrl = currentUser.profilePicture || currentUser.avatar || "";
+  const initialLetter = (currentUser.name || currentUser.username || "U").charAt(0).toUpperCase();
 
   const firstName = currentUser.name.split(" ")[0];
 
@@ -217,11 +215,17 @@ export const ThePotLiteAppShell: React.FC<{ children: React.ReactNode }> = ({ ch
           {/* User Profile Card with Sign Out / Gateway Link */}
           <div className="flex items-center justify-between gap-2 p-2 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800/80">
             <Link href="/profile" className="flex items-center gap-2.5 min-w-0 flex-1 hover:opacity-85 transition-opacity cursor-pointer">
-              <img
-                src={avatarUrl}
-                alt={currentUser.name}
-                className="w-8 h-8 rounded-full object-cover ring-2 ring-purple-500/20 shadow-sm shrink-0"
-              />
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={currentUser.name}
+                  className="w-8 h-8 rounded-full object-cover ring-2 ring-purple-500/20 shadow-sm shrink-0"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 text-white font-bold text-xs flex items-center justify-center ring-2 ring-purple-500/20 shadow-sm shrink-0">
+                  {initialLetter}
+                </div>
+              )}
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
                   {currentUser.name}
@@ -270,17 +274,23 @@ export const ThePotLiteAppShell: React.FC<{ children: React.ReactNode }> = ({ ch
               <Menu className="w-5 h-5" />
             </button>
 
-            {/* Greeting + Avatar (Exact match to "Hello, Siburian") */}
-            <div className="flex items-center gap-2.5 shrink-0">
-              <img
-                src={avatarUrl}
-                alt={currentUser.name}
-                className="w-9 h-9 rounded-full object-cover ring-2 ring-slate-200 dark:ring-slate-700 shadow-sm"
-              />
+            {/* Greeting + Avatar (Links directly to profile for photo upload) */}
+            <Link href="/profile" className="flex items-center gap-2.5 shrink-0 hover:opacity-85 transition-opacity cursor-pointer">
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={currentUser.name}
+                  className="w-9 h-9 rounded-full object-cover ring-2 ring-slate-200 dark:ring-slate-700 shadow-sm"
+                />
+              ) : (
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 text-white font-bold text-sm flex items-center justify-center ring-2 ring-slate-200 dark:ring-slate-700 shadow-sm">
+                  {initialLetter}
+                </div>
+              )}
               <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white whitespace-nowrap">
                 Hello, {firstName}
               </span>
-            </div>
+            </Link>
 
             {/* Top Navigation Pills (Exact match to [Overview] [Create Pot] [Audit] [Feedback]) */}
             <div className="hidden md:flex items-center gap-1.5 ml-2 text-xs font-semibold">

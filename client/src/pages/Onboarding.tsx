@@ -49,27 +49,27 @@ export default function Onboarding() {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const totalSteps = 10;
 
-  // Onboarding Form States
+  // Onboarding Form States - Start with empty strings so users input manually
   const [role, setRole] = useState<UserRole>(currentUser.role || "Organizer");
-  const [orgName, setOrgName] = useState(currentUser.organizationName || "The Pot Limited Club");
-  const [sport, setSport] = useState("Youth Soccer");
-  const [teamDivision, setTeamDivision] = useState("U12 Tigers");
-  const [childFirstName, setChildFirstName] = useState("Jordan");
-  const [childLastInitial, setChildLastInitial] = useState("M");
-  const [childJersey, setChildJersey] = useState("10");
+  const [orgName, setOrgName] = useState(currentUser.organizationName || "");
+  const [sport, setSport] = useState("");
+  const [teamDivision, setTeamDivision] = useState("");
+  const [childFirstName, setChildFirstName] = useState("");
+  const [childLastInitial, setChildLastInitial] = useState("");
+  const [childJersey, setChildJersey] = useState("");
 
   // Phone & Twilio SMS 2FA
   const [selectedCountry, setSelectedCountry] = useState(COUNTRY_CODES[0]);
   const [showCountryMenu, setShowCountryMenu] = useState(false);
-  const [phoneNumber, setPhoneNumber] = useState(currentUser.phone ? currentUser.phone.replace(/^\+\d+/, "") : "5550192834");
+  const [phoneNumber, setPhoneNumber] = useState(currentUser.phone ? currentUser.phone.replace(/^\+\d+/, "") : "");
   const [smsOtp, setSmsOtp] = useState("");
   const [smsVerified, setSmsVerified] = useState(currentUser.twoFactorEnabled || false);
   const [smsSent, setSmsSent] = useState(false);
 
   // Payment handles
-  const [zelle, setZelle] = useState("coach.marcus@tigersfc.org");
-  const [venmo, setVenmo] = useState("@CoachMarcusTigers");
-  const [cashApp, setCashApp] = useState("$CoachMarcus");
+  const [zelle, setZelle] = useState(currentUser.paymentHandles?.zelle || "");
+  const [venmo, setVenmo] = useState(currentUser.paymentHandles?.venmo || "");
+  const [cashApp, setCashApp] = useState(currentUser.paymentHandles?.cashApp || "");
 
   // Rules & Nudges
   const [gracePeriodDays, setGracePeriodDays] = useState(2);
@@ -78,7 +78,7 @@ export default function Onboarding() {
   const [quietHours, setQuietHours] = useState("9 PM - 7 AM");
   const [loading, setLoading] = useState(false);
 
-  const getFullPhone = () => `${selectedCountry.code}${phoneNumber.replace(/\D/g, "")}`;
+  const getFullPhone = () => (phoneNumber ? `${selectedCountry.code}${phoneNumber.replace(/\D/g, "")}` : "");
 
   const handleNext = () => {
     if (currentStep < totalSteps) {
@@ -96,6 +96,14 @@ export default function Onboarding() {
 
   const handleSendTwilioSms = async () => {
     const fullPhone = getFullPhone();
+    if (!fullPhone) {
+      toast({
+        title: "Phone Number Required",
+        description: "Please enter your phone number to receive an SMS verification code.",
+        variant: "destructive",
+      });
+      return;
+    }
     setLoading(true);
     try {
       const res = await sendSmsCode(fullPhone);
@@ -143,12 +151,14 @@ export default function Onboarding() {
     }
   };
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     const fullPhone = getFullPhone();
-    const athlete = `${childFirstName.trim()} ${childLastInitial.trim().toUpperCase().charAt(0)}.`;
+    const athlete = childFirstName.trim()
+      ? `${childFirstName.trim()}${childLastInitial.trim() ? ` ${childLastInitial.trim().toUpperCase().charAt(0)}.` : ""}`
+      : "";
 
-    // Persist all captured details directly into the user profile
-    completeOnboarding({
+    // Persist all captured details directly into user profile & mark onboarding completed
+    await completeOnboarding({
       role,
       organizationName: orgName.trim(),
       phone: fullPhone,
@@ -159,14 +169,15 @@ export default function Onboarding() {
         venmo: venmo.trim(),
         cashApp: cashApp.trim(),
       },
+      onboardingCompleted: true,
     });
 
     toast({
-      title: "Authentication & Setup Complete! 🎉",
-      description: "Profile updated with your 10 setup steps. Entering your dashboard...",
+      title: "Onboarding Completed! 🎉",
+      description: "Profile setup completed. Welcome to ThePotLite!",
     });
 
-    setLocation("/");
+    setLocation(role === "Organizer" ? "/organizer" : "/member");
   };
 
   // Determine active step for left column step cards
@@ -317,7 +328,7 @@ export default function Onboarding() {
                       type="text"
                       value={sport}
                       onChange={(e) => setSport(e.target.value)}
-                      placeholder="Youth Soccer"
+                      placeholder="e.g. Youth Soccer"
                       className="w-full bg-transparent border-none text-sm text-slate-900 dark:text-white focus:outline-none"
                       required
                     />
@@ -333,7 +344,7 @@ export default function Onboarding() {
                       type="text"
                       value={teamDivision}
                       onChange={(e) => setTeamDivision(e.target.value)}
-                      placeholder="U12 Tigers"
+                      placeholder="e.g. U12 Tigers"
                       className="w-full bg-transparent border-none text-sm text-slate-900 dark:text-white focus:outline-none"
                       required
                     />
@@ -371,7 +382,7 @@ export default function Onboarding() {
                     type="text"
                     value={childFirstName}
                     onChange={(e) => setChildFirstName(e.target.value)}
-                    placeholder="Jordan"
+                    placeholder="e.g. Jordan"
                     className="w-full bg-transparent border-none text-sm text-slate-900 dark:text-white focus:outline-none"
                     required
                   />
@@ -405,7 +416,7 @@ export default function Onboarding() {
                   type="text"
                   value={childJersey}
                   onChange={(e) => setChildJersey(e.target.value)}
-                  placeholder="10"
+                  placeholder="e.g. 10"
                   className="w-full bg-transparent border-none text-sm text-slate-900 dark:text-white focus:outline-none"
                 />
               </div>
@@ -466,7 +477,7 @@ export default function Onboarding() {
                   type="tel"
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
-                  placeholder="5550192834"
+                  placeholder="e.g. 5550192834"
                   className="w-full bg-transparent border-none text-sm text-slate-900 dark:text-white px-3 focus:outline-none"
                   required
                 />
@@ -494,7 +505,7 @@ export default function Onboarding() {
                       maxLength={6}
                       value={smsOtp}
                       onChange={(e) => setSmsOtp(e.target.value.replace(/\D/g, ""))}
-                      placeholder="123456"
+                      placeholder="6-digit code"
                       className="w-full bg-transparent border-none text-center font-mono text-base tracking-widest text-slate-900 dark:text-white focus:outline-none"
                     />
                   </div>
@@ -536,7 +547,7 @@ export default function Onboarding() {
                     type="text"
                     value={zelle}
                     onChange={(e) => setZelle(e.target.value)}
-                    placeholder="coach@tigersfc.org"
+                    placeholder="e.g. coach@club.org or phone"
                     className="w-full bg-transparent border-none text-xs text-slate-900 dark:text-white focus:outline-none"
                   />
                 </div>
@@ -551,7 +562,7 @@ export default function Onboarding() {
                     type="text"
                     value={venmo}
                     onChange={(e) => setVenmo(e.target.value)}
-                    placeholder="@CoachMarcus"
+                    placeholder="e.g. @YourVenmoHandle"
                     className="w-full bg-transparent border-none text-xs text-slate-900 dark:text-white focus:outline-none"
                   />
                 </div>
@@ -566,7 +577,7 @@ export default function Onboarding() {
                     type="text"
                     value={cashApp}
                     onChange={(e) => setCashApp(e.target.value)}
-                    placeholder="$CoachMarcus"
+                    placeholder="e.g. $YourCashAppTag"
                     className="w-full bg-transparent border-none text-xs text-slate-900 dark:text-white focus:outline-none"
                   />
                 </div>
@@ -711,7 +722,9 @@ export default function Onboarding() {
             <div className="bg-[#f8f9fa] dark:bg-slate-800/90 rounded-2xl p-4 border border-slate-200/80 dark:border-slate-700/80 text-xs space-y-2">
               <div className="flex justify-between">
                 <span className="text-slate-500">Club & Team:</span>
-                <span className="font-bold text-slate-900 dark:text-white">{orgName} ({teamDivision})</span>
+                <span className="font-bold text-slate-900 dark:text-white">
+                  {orgName || "Club Not Specified"} {teamDivision ? `(${teamDivision})` : ""}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Perspective:</span>
@@ -719,15 +732,17 @@ export default function Onboarding() {
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">COPPA Minor:</span>
-                <span className="font-bold text-slate-900 dark:text-white">{childFirstName} {childLastInitial}.</span>
+                <span className="font-bold text-slate-900 dark:text-white">
+                  {childFirstName ? `${childFirstName} ${childLastInitial}.` : "None"}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Phone:</span>
-                <span className="font-bold text-slate-900 dark:text-white">{getFullPhone()}</span>
+                <span className="font-bold text-slate-900 dark:text-white">{phoneNumber ? getFullPhone() : "Not provided"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Twilio 2FA:</span>
-                <span className="font-bold text-emerald-600">{smsVerified ? "✓ Verified" : "Saved"}</span>
+                <span className="font-bold text-emerald-600">{smsVerified ? "✓ Verified" : "Pending Verification"}</span>
               </div>
             </div>
           </div>

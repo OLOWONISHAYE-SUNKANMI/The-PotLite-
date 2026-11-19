@@ -100,11 +100,79 @@ class LogoutView(APIView):
 
 class MeView(APIView):
     serializer_class = UserSerializer
+    permission_classes = [AllowAny]
 
     def get(self, request):
         if not request.user.is_authenticated:
             return Response({"error": "Not authenticated"}, status=status.HTTP_401_UNAUTHORIZED)
         return Response(UserSerializer(request.user).data)
+
+    def post(self, request):
+        return self.patch(request)
+
+    def patch(self, request):
+        user = request.user if request.user.is_authenticated else None
+        user_id = request.data.get('userId') or request.data.get('id')
+        if not user and user_id:
+            user = User.objects.filter(id=user_id).first()
+
+        if not user:
+            return Response({"error": "User not found or not authenticated"}, status=status.HTTP_404_NOT_FOUND)
+
+        if 'profilePicture' in request.data:
+            user.profile_picture = request.data['profilePicture']
+        elif 'profile_picture' in request.data:
+            user.profile_picture = request.data['profile_picture']
+
+        if 'name' in request.data:
+            parts = str(request.data['name']).strip().split(' ', 1)
+            user.first_name = parts[0]
+            user.last_name = parts[1] if len(parts) > 1 else ''
+
+        if 'phone' in request.data:
+            user.phone = request.data['phone']
+
+        if 'role' in request.data:
+            user.role = request.data['role']
+
+        if 'onboardingCompleted' in request.data:
+            user.onboarding_completed = bool(request.data['onboardingCompleted'])
+        elif 'onboarding_completed' in request.data:
+            user.onboarding_completed = bool(request.data['onboarding_completed'])
+
+        user.save()
+        return Response(UserSerializer(user).data, status=status.HTTP_200_OK)
+
+
+class OnboardingCompleteView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        user = request.user if request.user.is_authenticated else None
+        user_id = request.data.get('userId') or request.data.get('id')
+        if not user and user_id:
+            user = User.objects.filter(id=user_id).first()
+
+        role = request.data.get('role')
+        phone = request.data.get('phone')
+
+        if user:
+            user.onboarding_completed = True
+            if role:
+                user.role = role
+            if phone:
+                user.phone = phone
+            user.save()
+            return Response({
+                "message": "Onboarding completed successfully",
+                "onboarding_completed": True,
+                "user": UserSerializer(user).data
+            }, status=status.HTTP_200_OK)
+
+        return Response({
+            "message": "Onboarding status recorded",
+            "onboarding_completed": True
+        }, status=status.HTTP_200_OK)
 
 
 class SendSMSView(APIView):

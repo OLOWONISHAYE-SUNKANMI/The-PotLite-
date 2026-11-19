@@ -14,6 +14,8 @@ class UserSerializer(serializers.ModelSerializer):
             'role',
             'title',
             'two_factor_enabled',
+            'profile_picture',
+            'onboarding_completed',
             'created_at',
         ]
 

@@ -8,6 +8,7 @@ from .views import (
     VerifySMSView,
     SetupTwoFactorView,
     VerifyTwoFactorView,
+    OnboardingCompleteView,
 )
 
 urlpatterns = [
@@ -19,6 +20,10 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(), name='auth-logout-slash'),
     path('me', MeView.as_view(), name='auth-me'),
     path('me/', MeView.as_view(), name='auth-me-slash'),
+    path('profile', MeView.as_view(), name='auth-profile'),
+    path('profile/', MeView.as_view(), name='auth-profile-slash'),
+    path('onboarding/complete', OnboardingCompleteView.as_view(), name='auth-onboarding-complete'),
+    path('onboarding/complete/', OnboardingCompleteView.as_view(), name='auth-onboarding-complete-slash'),
     path('sms/send', SendSMSView.as_view(), name='auth-sms-send'),
     path('sms/send/', SendSMSView.as_view(), name='auth-sms-send-slash'),
     path('sms/verify', VerifySMSView.as_view(), name='auth-sms-verify'),
